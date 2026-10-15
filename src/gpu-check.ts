@@ -50,11 +50,15 @@ async function run(): Promise<void> {
     log(`Tolerances: temperature <${T_TOLERANCE} °C; PM <${C_TOLERANCE} µg/m³ (float32 GPU).`);
     backend = await createPlanGpu();
     log(`Acquired GPU device and compiled WGSL: ${backend.label}`);
-    const cases = [conditions('baseline', false), conditions('haze_outside', true)];
+    const westOnly = new URLSearchParams(location.search).get('case') === 'west';
+    const cases = [conditions('baseline', false), conditions('haze_outside', true), conditions('haze_outside', true)];
     cases[1].portableFan = { on: true, slot: 0, angleDeg: 90, speed: 3 };
     cases[1].purifier = { on: true, slot: 2 };
+    cases[2].windFrom = 'W';
+    cases[2].windSpeed = 4;
     for (let index = 0; index < cases.length; index++) {
-      const settings = cases[index], label = index === 0 ? 'Sealed diffusion' : 'Openings, wind, fan and purifier';
+      if (westOnly && index !== 2) continue;
+      const settings = cases[index], label = ['Sealed diffusion', 'Openings, wind, fan and purifier', 'West wind 4 m/s, all openings'][index];
       let cpu = seeded(settings), gpu = seeded(settings);
       cpu = stepSimulation(cpu, settings, 0.2); gpu = await backend.step(gpu, settings, 0.2);
       compare(cpu, gpu, `${label}, first step`);
@@ -62,6 +66,11 @@ async function run(): Promise<void> {
         cpu = stepSimulation(cpu, settings, 6); gpu = await backend.step(gpu, settings, 6);
       }
       compare(cpu, gpu, `${label}, 60 seconds`);
+    }
+    if (westOnly) {
+      status.className = 'pass'; status.textContent = 'PASS — west-wind WebGPU and CPU parity';
+      log('PASS: explicit west wind checked on the real GPU; lifecycle checks were not rerun.');
+      return;
     }
     const settings = conditions('baseline', false), initial = seeded(settings);
     const expected = stepSimulation(initial, settings, 0.5);

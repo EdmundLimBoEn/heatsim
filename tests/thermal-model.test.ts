@@ -112,4 +112,59 @@ describe('whole-flat conservative two-layer thermal model', () => {
     expect(snapshot.maxMassResidualM3s).toBeLessThan(1e-9);
     expect(THERMAL_MODEL_PARAMETERS.plumeUpperFraction).toBe(0.7);
   });
+  test.each([
+    ['N', 'window_master_1', 'window_master_2'],
+    ['E', 'window_bedroom3_2', 'window_bedroom3_1'],
+    ['S', 'window_living_1', 'window_living_3'],
+    ['W', 'window_master_2', 'window_master_1'],
+  ] as const)('wind FROM %s pressurizes the matching facade', (windFrom, opening, makeup) => {
+    const config = sealed(); config.base.windSpeed = 3; config.base.windFrom = windFrom;
+    config.vent.opening = opening; config.base.windows[makeup] = true;
+    const snapshot = thermalSnapshot(createThermalState(config), config);
+    expect(snapshot.actualVentM3h).toBeLessThan(-1);
+    expect(snapshot.maxMassResidualM3s).toBeLessThan(1e-10);
+  });
+  test('prescribed corridor conditions have no effect through a closed main door', () => {
+    const regular = sealed(); regular.vent.on = true; regular.base.windows.window_bedroom3_2 = true;
+    const corridor = structuredClone(regular); corridor.corridor = { enabled: true, temperature: 15, pm25: 900 };
+    const initial = createThermalState(regular);
+    const a = stepThermalState(initial, regular, 30), b = stepThermalState(initial, corridor, 30);
+    expect(b).toEqual(a); expect(thermalSnapshot(b, corridor).corridorInflowM3h).toBe(0);
+  });
+  test('only the open main door supplies prescribed corridor heat and particles', () => {
+    const config = sealed(); config.vent.on = true;
+    config.base.doors.main_door = true; config.base.doors.door_bedroom3 = true;
+    config.corridor = { enabled: true, temperature: 27, pm25: 700 };
+    const outdoor = structuredClone(config); outdoor.corridor!.enabled = false;
+    const initial = createThermalState(config), after = stepThermalState(initial, config, 60), control = stepThermalState(initial, outdoor, 60);
+    const snapshot = thermalSnapshot(after, config), dining = model.rooms.findIndex(room => room.name === 'dining');
+    expect(snapshot.rooms[dining].pm25).toBeGreaterThan(thermalSnapshot(control, outdoor).rooms[dining].pm25 + 1);
+    expect(snapshot.rooms[dining].lowerTemperature).toBeLessThan(thermalSnapshot(control, outdoor).rooms[dining].lowerTemperature);
+    expect(snapshot.rooms[dining].corridorInflowM3h).toBeGreaterThan(50);
+    expect(snapshot.rooms.filter(room => room.room !== 'dining').every(room => room.corridorInflowM3h === 0)).toBe(true);
+    expect(snapshot.outdoorInflowM3h).toBeLessThan(1e-7);
+    expect(snapshot.maxMassResidualM3s).toBeLessThan(1e-10); expect(Math.abs(snapshot.energyResidualJ)).toBeLessThan(1e-5);
+  });
+  test('equal room and corridor temperatures produce no false stack flow when outdoors differs', () => {
+    const config = sealed(); config.vent.ratedM3h = 0; config.base.doors.main_door = true;
+    config.base.outdoorTemperature = 30; config.corridor = { enabled: true, temperature: 35, pm25: 15 };
+    const initial = createThermalState(config); initial.lowerT.fill(35); initial.upperT.fill(35); initial.wallT.fill(35);
+    const snapshot = thermalSnapshot(initial, config);
+    expect(snapshot.corridorInflowM3h).toBeLessThan(1e-7);
+    expect(snapshot.rooms.reduce((sum, room) => sum + room.ventilationM3h, 0)).toBeLessThan(1e-7);
+    expect(snapshot.maxMassResidualM3s).toBeLessThan(1e-10);
+  });
+  test('ACH counts boundary inflow once and signed heat removal keeps fan electricity separate', () => {
+    const config = sealed(); config.vent.on = true; config.base.windows.window_bedroom3_2 = true; config.base.outdoorTemperature = 40;
+    const initial = createThermalState(config), before = thermalSnapshot(initial, config);
+    expect(before.airChangesPerHour).toBeCloseTo((before.outdoorInflowM3h + before.corridorInflowM3h) / (90 * 2.6), 10);
+    const weightedRoomAch = before.rooms.reduce((sum, room, index) => sum + room.boundaryAirChangesPerHour * model.rooms[index].area_m2, 0) / 90;
+    expect(weightedRoomAch).toBeCloseTo(before.airChangesPerHour, 10);
+    expect(before.sensibleHeatRemovedWatts).toBeLessThan(0);
+    const after = stepThermalState(initial, config, 1), snapshot = thermalSnapshot(after, config);
+    expect(snapshot.ventilationHeatRemovedJ).toBeCloseTo(-before.heatBudgetW.ventilation, 8);
+    expect(snapshot.fanEnergyWh).toBeCloseTo(before.fanPowerWatts / 3600, 10);
+    expect(snapshot.ventilationHeatRemovedJ).toBeLessThan(0);
+    expect(Math.abs(snapshot.energyResidualJ)).toBeLessThan(1e-5);
+  });
 });

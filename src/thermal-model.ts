@@ -3,7 +3,7 @@ import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { SCENARIOS } from './simulation';
 import type { ThermalConfig, ThermalHeatBudget, ThermalSnapshot, ThermalState } from './thermal-types';
 
-export const THERMAL_MODEL_ID = 'two-layer-surface-v1';
+export const THERMAL_MODEL_ID = 'two-layer-surface-v2';
 export const THERMAL_MODEL_PARAMETERS = {
   densityKgM3: 1.2, specificHeatJKgK: 1005, surfaceCapacityJPerM2K: 50_000,
   insideConvectionWPerM2K: 2.5, exteriorConvectionWPerM2K: 10, interiorConductanceWPerM2K: 1.5,
@@ -19,6 +19,8 @@ export const THERMAL_ASSUMPTIONS = [
   'People heat is 70% upper-layer and 30% lower-layer: an explicit unresolved plume assumption. Unstable warm-below stratification increases conservative interlayer mixing.',
   'The selected window is replaced by the same high-level fan adapter in both comparisons, with a sealed surround and a passively open fan passage even when off. Other open windows and doors provide makeup air; no hidden leakage is added.',
   'The fan has an illustrative linear 20 Pa shutoff-pressure curve and rated free-air flow. Actual flow can be lower, assisted by wind, or reversed. Motor heat stays indoors.',
+  'Optional shared-corridor air is a prescribed temperature/PM reservoir only at the main entrance, not a simulated corridor volume or new geometry. It is sheltered from wind, with zero gauge pressure at floor level and a temperature-consistent hydrostatic profile.',
+  'Air changes count incoming boundary air once; corridor air counts as replacement air, not necessarily clean air. Positive sensible heat removal means heat leaves the flat; negative values mean ventilation adds heat. Fan electricity and heat moved are different quantities, not an AC COP.',
   'Humidity is not transported; latent loads, condensation, turbulent jets and calibrated material properties are outside this model. Expansion is never a cooling source.',
 ];
 const P = THERMAL_MODEL_PARAMETERS;
@@ -79,19 +81,25 @@ for (const passage of passages) { surfaceAreas[passage.a] -= passage.area; surfa
 
 export function createThermalConfig(base: Conditions = defaultConditions()): ThermalConfig {
   return { base: structuredClone(base), vent: { opening: 'window_bedroom3_1', on: false, mode: 'exhaust', ratedM3h: 120 },
-    envelope: { uValue: 1.5, solarAbsorptance: 0.6, shadeFraction: 0 }, durationSeconds: 1200 };
+    envelope: { uValue: 1.5, solarAbsorptance: 0.6, shadeFraction: 0 },
+    corridor: { enabled: false, temperature: base.outdoorTemperature, pm25: base.outdoorPm25 }, durationSeconds: 1200 };
 }
 function settings(config: ThermalConfig) {
   const aperture = apertures.find(candidate => candidate.box.name === config.vent.opening && candidate.box.type === 'window' && candidate.box.exterior);
   if (!aperture || aperture.rooms.length !== 1) throw new RangeError('Select an exterior window for the fan adapter.');
   if (config.vent.mode !== 'exhaust' && config.vent.mode !== 'supply') throw new RangeError('Ventilation mode must be exhaust or supply.');
+  const scenario = SCENARIOS.find(scenario => scenario.id === config.base.scenarioId) ?? SCENARIOS[0];
+  const outdoorT = bounded(config.base.outdoorTemperature, 30, 10, 60), outdoorC = bounded(config.base.outdoorPm25, 20, 0, 1000);
   return {
-    aperture, outdoorT: bounded(config.base.outdoorTemperature, 30, 10, 60), outdoorC: bounded(config.base.outdoorPm25, 20, 0, 1000),
+    aperture, outdoorT, outdoorC,
+    corridorEnabled: config.corridor?.enabled === true,
+    corridorT: bounded(config.corridor?.temperature ?? outdoorT, outdoorT, 10, 60), corridorC: bounded(config.corridor?.pm25 ?? outdoorC, outdoorC, 0, 1000),
+    windFrom: config.base.windFrom && ['N', 'E', 'S', 'W'].includes(config.base.windFrom) ? config.base.windFrom : scenario.windward,
     wind: bounded(config.base.windSpeed, 1.2, 0, 10), setpoint: bounded(config.base.acSetpoint, 25, 16, 32),
     hour: ((Number.isFinite(config.base.timeOfDay) ? config.base.timeOfDay : 14) % 24 + 24) % 24,
     rate: bounded(config.vent.ratedM3h, 120, 0, 600),
     u: bounded(config.envelope.uValue, 1.5, 0, 5), absorptance: bounded(config.envelope.solarAbsorptance, 0.6, 0, 1), shade: bounded(config.envelope.shadeFraction, 0, 0, 1),
-    scenario: SCENARIOS.find(scenario => scenario.id === config.base.scenarioId) ?? SCENARIOS[0],
+    scenario,
   };
 }
 function storedEnergy(state: ThermalState): number {
@@ -102,7 +110,7 @@ export function createThermalState(config: ThermalConfig): ThermalState {
   const state: ThermalState = {
     elapsedSeconds: 0, lowerT: new Float64Array(count).fill(scenario.initialTemperature), upperT: new Float64Array(count).fill(scenario.initialTemperature),
     wallT: new Float64Array(count).fill(scenario.initialTemperature), lowerPm25: new Float64Array(count).fill(scenario.initialPm25), upperPm25: new Float64Array(count).fill(scenario.initialPm25),
-    initialEnergyJ: 0, netHeatJ: 0, electricalEnergyWh: 0,
+    initialEnergyJ: 0, netHeatJ: 0, electricalEnergyWh: 0, fanEnergyWh: 0, ventilationHeatRemovedJ: 0,
   };
   state.initialEnergyJ = storedEnergy(state); return state;
 }
@@ -110,12 +118,13 @@ function validateState(state: ThermalState): void {
   for (const values of [state.lowerT, state.upperT, state.wallT, state.lowerPm25, state.upperPm25]) {
     if (values.length !== count || !values.every(Number.isFinite)) throw new RangeError('Thermal state is invalid. Reset the Cooling Lab.');
   }
-  if (![state.elapsedSeconds, state.initialEnergyJ, state.netHeatJ, state.electricalEnergyWh].every(Number.isFinite)) throw new RangeError('Thermal counters are invalid. Reset the Cooling Lab.');
+  if (![state.elapsedSeconds, state.initialEnergyJ, state.netHeatJ, state.electricalEnergyWh, state.fanEnergyWh ?? 0, state.ventilationHeatRemovedJ ?? 0].every(Number.isFinite)) throw new RangeError('Thermal counters are invalid. Reset the Cooling Lab.');
 }
-interface Edge { a: number; b: number; g: number; drive: number; outsidePressure: number; exchange: number; fan?: boolean }
+interface Edge { a: number; b: number; g: number; drive: number; outsidePressure: number; exchange: number; fan?: boolean; outsideT?: number; outsideC?: number; corridor?: boolean }
 interface Evaluation {
   heat: Float64Array; surfaces: Float64Array; pollutant: Float64Array; budget: ThermalHeatBudget;
   ventilation: Float64Array; mixing: Float64Array; wallToAir: Float64Array;
+  outdoorInflow: Float64Array; corridorInflow: Float64Array;
   fanFlow: number; fanPower: number; power: number; maxRate: number; massResidual: number;
 }
 
@@ -127,8 +136,8 @@ function evaluate(state: ThermalState, config: ThermalConfig): Evaluation {
     particles[lower(room)] = state.lowerPm25[room]; particles[upper(room)] = state.upperPm25[room];
   }
   const edges: Edge[] = [];
-  const add = (a: number, b: number, area: number, drive = 0, outsidePressure = 0, exchange = 0) => {
-    if (area > 0) edges.push({ a, b, g: area * P.openingConductanceM3sPerPaPerM2, drive, outsidePressure, exchange });
+  const add = (a: number, b: number, area: number, drive = 0, outsidePressure = 0, exchange = 0, boundary?: Pick<Edge, 'outsideT' | 'outsideC' | 'corridor'>) => {
+    if (area > 0) edges.push({ a, b, g: area * P.openingConductanceM3sPerPaPerM2, drive, outsidePressure, exchange, ...boundary });
   };
   const mixing = new Float64Array(count), circulationFans = new Float64Array(count), purifierCounts = new Float64Array(count);
   for (const [name, roomName] of Object.entries(deviceRoom)) if (base.devices[name]) {
@@ -159,13 +168,16 @@ function evaluate(state: ThermalState, config: ThermalConfig): Evaluation {
     for (let layer = 0; layer < 2; layer++) {
       const area = aperture.width * Math.max(0, Math.min(aperture.box.max[1], (layer + 1) * layerHeight) - Math.max(aperture.box.min[1], layer * layerHeight));
       const outside = aperture.box.exterior === true;
-      const outsidePressure = outside && aperture.facade === s.scenario.windward ? 0.3 * s.wind * s.wind : 0;
-      if (outside || aperture.rooms.length === 2) add(2 * aperture.rooms[0] + layer, outside ? -1 : 2 * aperture.rooms[1] + layer, area, 0, outsidePressure, outside ? 0 : area * 0.01);
+      const corridor = outside && s.corridorEnabled && aperture.box.name === 'main_door';
+      const outsidePressure = corridor ? P.densityKgM3 * P.gravityMps2 * (layer + 0.5) * layerHeight * (s.corridorT - s.outdoorT) / (s.outdoorT + 273.15)
+        : outside && aperture.facade === s.windFrom ? 0.3 * s.wind * s.wind : 0;
+      if (outside || aperture.rooms.length === 2) add(2 * aperture.rooms[0] + layer, outside ? -1 : 2 * aperture.rooms[1] + layer, area, 0, outsidePressure, outside ? 0 : area * 0.01,
+        corridor ? { outsideT: s.corridorT, outsideC: s.corridorC, corridor: true } : undefined);
     }
   }
   if (s.rate > 0) edges.push({ a: upper(s.aperture.rooms[0]), b: -1, g: s.rate / 3600 / P.fanShutoffPressurePa,
     drive: config.vent.on ? (config.vent.mode === 'exhaust' ? 1 : -1) * P.fanShutoffPressurePa : 0,
-    outsidePressure: s.aperture.facade === s.scenario.windward ? 0.3 * s.wind * s.wind : 0, exchange: 0, fan: true });
+    outsidePressure: s.aperture.facade === s.windFrom ? 0.3 * s.wind * s.wind : 0, exchange: 0, fan: true });
 
   const matrix = new Float64Array(nodeCount * nodeCount), rhs = new Float64Array(nodeCount);
   const adjacent = Array.from({ length: nodeCount }, () => [] as number[]), outside = new Uint8Array(nodeCount);
@@ -208,13 +220,14 @@ function evaluate(state: ThermalState, config: ThermalConfig): Evaluation {
 
   const heat = new Float64Array(nodeCount), surfaces = new Float64Array(count), pollutant = new Float64Array(nodeCount);
   const ventilation = new Float64Array(count), mass = new Float64Array(nodeCount), rates = new Float64Array(nodeCount), wallToAir = new Float64Array(count);
+  const outdoorInflow = new Float64Array(count), corridorInflow = new Float64Array(count);
   const budget: ThermalHeatBudget = { solar: 0, people: 0, conduction: 0, radiation: 0, ventilation: 0, ac: 0, fan: 0, appliances: 0, net: 0 };
   let fanFlow = 0, power = 0;
   for (const edge of edges) {
     const flow = edge.g * (pressure[edge.a] - (edge.b >= 0 ? pressure[edge.b] : edge.outsidePressure) + edge.drive);
     const aRoom = Math.floor(edge.a / 2), bRoom = Math.floor(edge.b / 2);
-    const upstreamT = flow >= 0 ? temperatures[edge.a] : edge.b >= 0 ? temperatures[edge.b] : s.outdoorT;
-    const upstreamC = flow >= 0 ? particles[edge.a] : edge.b >= 0 ? particles[edge.b] : s.outdoorC;
+    const upstreamT = flow >= 0 ? temperatures[edge.a] : edge.b >= 0 ? temperatures[edge.b] : edge.outsideT ?? s.outdoorT;
+    const upstreamC = flow >= 0 ? particles[edge.a] : edge.b >= 0 ? particles[edge.b] : edge.outsideC ?? s.outdoorC;
     const energy = airCp * flow * upstreamT, particle = flow * upstreamC;
     heat[edge.a] -= energy; pollutant[edge.a] -= particle; mass[edge.a] += flow;
     rates[edge.a] += Math.max(0, flow) / volumes[aRoom];
@@ -225,7 +238,10 @@ function evaluate(state: ThermalState, config: ThermalConfig): Evaluation {
       const exchangedParticles = edge.exchange * (particles[edge.b] - particles[edge.a]);
       heat[edge.a] += exchangedHeat; heat[edge.b] -= exchangedHeat; pollutant[edge.a] += exchangedParticles; pollutant[edge.b] -= exchangedParticles;
       rates[edge.a] += edge.exchange / volumes[aRoom]; rates[edge.b] += edge.exchange / volumes[bRoom];
-    } else { budget.ventilation -= energy; ventilation[aRoom] += Math.abs(flow) * 3600; }
+    } else {
+      budget.ventilation -= energy; ventilation[aRoom] += Math.abs(flow) * 3600;
+      (edge.corridor ? corridorInflow : outdoorInflow)[aRoom] += Math.max(0, -flow) * 3600;
+    }
     if (edge.fan) fanFlow = flow * (config.vent.mode === 'exhaust' ? 1 : -1);
   }
   const fanPower = config.vent.on && s.rate > 0 ? 4 + s.rate / 30 : 0;
@@ -286,7 +302,7 @@ function evaluate(state: ThermalState, config: ThermalConfig): Evaluation {
   budget.net = budget.solar + budget.people + budget.conduction + budget.radiation + budget.ventilation + budget.ac + budget.fan + budget.appliances;
   const maxRate = rates.reduce((max, rate) => Math.max(max, rate), 0);
   const massResidual = mass.reduce((max, value) => Math.max(max, Math.abs(value)), 0);
-  return { heat, surfaces, pollutant, budget, ventilation, mixing, wallToAir, fanFlow, fanPower, power, maxRate, massResidual };
+  return { heat, surfaces, pollutant, budget, ventilation, mixing, wallToAir, outdoorInflow, corridorInflow, fanFlow, fanPower, power, maxRate, massResidual };
 }
 
 export function stepThermalState(previous: ThermalState, config: ThermalConfig, deltaSeconds: number): ThermalState {
@@ -302,6 +318,8 @@ export function stepThermalState(previous: ThermalState, config: ThermalConfig, 
       state.upperPm25[room] = Math.max(0, state.upperPm25[room] + result.pollutant[upper(room)] * dt / volumes[room]);
     }
     state.elapsedSeconds += dt; state.netHeatJ += result.budget.net * dt; state.electricalEnergyWh += result.power * dt / 3600;
+    state.fanEnergyWh = (state.fanEnergyWh ?? 0) + result.fanPower * dt / 3600;
+    state.ventilationHeatRemovedJ = (state.ventilationHeatRemovedJ ?? 0) - result.budget.ventilation * dt;
     remaining -= dt;
   }
   validateState(state); return state;
@@ -311,10 +329,14 @@ export function thermalSnapshot(state: ThermalState, config: ThermalConfig): The
   const evaluated = evaluate(state, config), area = rooms.reduce((sum, room) => sum + room.area_m2, 0);
   const mean = (values: Float64Array) => rooms.reduce((sum, room, index) => sum + room.area_m2 * values[index], 0) / area;
   const roomReadings = rooms.map((room, index) => ({ room: room.name, lowerTemperature: state.lowerT[index], upperTemperature: state.upperT[index], surfaceTemperature: state.wallT[index],
-    pm25: (state.lowerPm25[index] + state.upperPm25[index]) / 2, ventilationM3h: evaluated.ventilation[index], buoyancyExchangeM3h: evaluated.mixing[index] * 3600, wallToAirWatts: evaluated.wallToAir[index] }));
+    pm25: (state.lowerPm25[index] + state.upperPm25[index]) / 2, ventilationM3h: evaluated.ventilation[index], buoyancyExchangeM3h: evaluated.mixing[index] * 3600, wallToAirWatts: evaluated.wallToAir[index],
+    boundaryAirChangesPerHour: (evaluated.outdoorInflow[index] + evaluated.corridorInflow[index]) / (room.area_m2 * height), outdoorInflowM3h: evaluated.outdoorInflow[index], corridorInflowM3h: evaluated.corridorInflow[index] }));
   const storedEnergyJ = storedEnergy(state);
+  const outdoorInflowM3h = evaluated.outdoorInflow.reduce((sum, flow) => sum + flow, 0), corridorInflowM3h = evaluated.corridorInflow.reduce((sum, flow) => sum + flow, 0);
   return { elapsedSeconds: state.elapsedSeconds, rooms: roomReadings, averageTemperature: (mean(state.lowerT) + mean(state.upperT)) / 2,
     averageUpperTemperature: mean(state.upperT), averageSurfaceTemperature: mean(state.wallT), averagePm25: (mean(state.lowerPm25) + mean(state.upperPm25)) / 2,
     actualVentM3h: evaluated.fanFlow * 3600, fanPowerWatts: evaluated.fanPower, powerWatts: evaluated.power, energyWh: state.electricalEnergyWh,
+    airChangesPerHour: (outdoorInflowM3h + corridorInflowM3h) / (area * height), outdoorInflowM3h, corridorInflowM3h,
+    sensibleHeatRemovedWatts: -evaluated.budget.ventilation, fanEnergyWh: state.fanEnergyWh ?? 0, ventilationHeatRemovedJ: state.ventilationHeatRemovedJ ?? 0,
     heatBudgetW: evaluated.budget, storedEnergyJ, energyResidualJ: storedEnergyJ - state.initialEnergyJ - state.netHeatJ, maxMassResidualM3s: evaluated.massResidual };
 }

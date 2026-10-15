@@ -13,7 +13,8 @@ All runtime work stays in the browser. `src/domain.ts` imports the canonical `as
 | `src/plan-simulation.ts` | 64 × 48 floor-plan mask, CPU steady pressure/face-flow solution, scalar preparation/CPU transport and room summaries. |
 | `src/plan-gpu.ts` | Optional WGSL heat/PM2.5 transport using the same CPU face flow; async readback and failure cleanup. |
 | `src/thermal-types.ts`, `src/thermal-model.ts` | Independent full-flat two-layer/surface thermal and ventilation balance. |
-| `src/thermal-comparison.ts`, `src/thermal-worker.ts` | Matched fan-off/on experiments from one initial thermal state. |
+| `src/thermal-comparison.ts`, `src/thermal-worker.ts` | Quick fan-off/on or captured baseline/candidate experiments from one shared initial thermal state. |
+| `src/air-quality.ts` | Manual scenario PM2.5 / US EPA 24-hour-scale index-equivalent conversion; no data feed. |
 | `src/cooling-lab.ts`, `src/thermal-export.ts`, `src/fan-thermodynamics.ts` | Lab UI, reproducible CSV and separate educational ideal-expansion calculation. |
 | `src/scene.ts`, `src/scene-field.ts` | three.js WebGL scene built from JSON, opening/device animations, masked field texture and display tracers. |
 | `src/simulation.ts` | Six scenario records and presets; also contains a tested emergency well-mixed room model that the main app does not select. |
@@ -30,7 +31,7 @@ The solver retains cached flow/source data while controls are unchanged. The CPU
 
 Cooling Lab uses its own `ThermalConfig`, `ThermalState` and `ThermalSnapshot` contract in `src/thermal-types.ts`. Its two air layers, interior surface state and massless exterior-face balance per room derive dimensions from the same canonical JSON. These are separate from the planar `PlanField`; no laboratory temperature or fan result silently overwrites the main scene.
 
-The paired comparison runs both high-level fan cases in a dedicated worker from clones of the same initial thermal state. Only `vent.on` changes. The selected exhaust/supply mode, openings, weather, envelope assumptions and duration stay matched. Cancelling terminates the worker; a partial or stale run must not be presented as a completed pair. This is a controlled comparison, not the existing layout optimiser.
+The paired comparison runs in a dedicated worker from clones of one initial thermal state. Quick mode changes only `vent.on`. Configuration mode restores captured baseline interventions (openings, devices, fan and envelope) while using the current candidate scenario/weather, wind direction, optional main-door corridor boundary and duration for both arms. The corridor is a prescribed fixed reservoir only at the exterior `main_door`, not resolved shared-corridor geometry or the internal corridor rooms. Cancelling terminates the worker; a partial or stale run must not be presented as a completed pair. This is a controlled comparison, not the existing layout optimiser.
 
 The educational ideal-expansion calculation is independent of both solvers. It uses explicitly entered absolute pressure/pressure drop; the main scene's dimensionless pressure index is not a pressure input.
 

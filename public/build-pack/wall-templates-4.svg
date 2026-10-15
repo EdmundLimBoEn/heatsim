@@ -4,12 +4,188 @@
 <style>text{font-family:Arial,sans-serif;fill:#17332e}</style>
 <text x="10.00000" y="12.00000" font-size="3" text-anchor="start" font-weight="bold">HEATSIM / PHYSICAL BUILD</text>
 <text x="10.00000" y="21.00000" font-size="5" text-anchor="start" font-weight="bold">Wall elevations / 4 of 4</text>
-<text x="10.00000" y="27.00000" font-size="2.6" text-anchor="start" font-weight="normal">Actual-size templates. Left = west/north. Coloured holes are removed; magenta marks hinge edge.</text>
+<text x="10.00000" y="27.00000" font-size="2.6" text-anchor="start" font-weight="normal">mm · L = panel LEFT edge to opening LEFT edge. Below panels: clear gaps; R = final right gap.</text>
+<text x="10.00000" y="32.00000" font-size="2.4" text-anchor="start" font-weight="normal">x: viewed from south (west at left). z: viewed from west (north at left). Do not mirror. Grey lines are NOT cuts.</text>
 <text x="10.00000" y="37.00000" font-size="2.7" text-anchor="start" font-weight="normal">shelter east / 3 mm card</text>
 <rect x="10.00000" y="40.00000" width="21.65385" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
-<text x="11.00000" y="43.20000" font-size="2.1" text-anchor="start" font-weight="bold">W13 · 21.65 × 40</text>
+<text x="11.00000" y="43.20000" font-size="2.1" text-anchor="start" font-weight="bold">W13 z · 21.65 × 40</text>
 <line x1="10.00000" y1="81.00000" x2="15.00000" y2="81.00000" stroke="#17332e" stroke-width="0.25"/>
-<text x="10.00000" y="85.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 21.6538 mm; mark 21.7 mm. Height 40 mm.</text>
+<text x="10.00000" y="89.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 21.6538 mm; mark 21.7 mm. Height 40 mm.</text>
+<g class="measurement-annotations" data-schedule="opening-offsets">
+<text x="10.00000" y="101.00000" font-size="3.6" text-anchor="start" font-weight="bold">Opening measurements / existing cuts unchanged</text>
+<text x="10.00000" y="108.00000" font-size="2.5" text-anchor="start" font-weight="normal">All mm, shown to 0.001 mm. L is from the panel left cut edge; gap is clear edge-to-edge.</text>
+<text x="10.00000" y="113.00000" font-size="2.5" text-anchor="start" font-weight="normal">R is shown only for the final opening on each panel. Sill is measured up from panel bottom.</text>
+<text x="10.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">ID</text>
+<text x="25.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">Wall</text>
+<text x="43.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">L offset</text>
+<text x="68.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">Gap before</text>
+<text x="95.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">Width</text>
+<text x="119.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">Height</text>
+<text x="143.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">Sill</text>
+<text x="167.00000" y="122.00000" font-size="2.6" text-anchor="start" font-weight="bold">R after</text>
+<line x1="10.00000" y1="125.00000" x2="200.00000" y2="125.00000" stroke="#778787" stroke-width="0.2"/>
+<text x="10.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">G01</text>
+<text x="25.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">W01</text>
+<text x="43.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="68.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="95.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">24.615</text>
+<text x="119.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="143.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.846</text>
+<text x="167.00000" y="131.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">G02</text>
+<text x="25.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">W01</text>
+<text x="43.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">69.231</text>
+<text x="68.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">26.154</text>
+<text x="95.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">9.231</text>
+<text x="119.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">9.231</text>
+<text x="143.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">23.077</text>
+<text x="167.00000" y="137.50000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">G03</text>
+<text x="25.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">W01</text>
+<text x="43.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">101.538</text>
+<text x="68.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">23.077</text>
+<text x="95.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">21.538</text>
+<text x="119.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="143.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.846</text>
+<text x="167.00000" y="144.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">G04</text>
+<text x="25.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">W01</text>
+<text x="43.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">150.769</text>
+<text x="68.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">27.692</text>
+<text x="95.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">21.538</text>
+<text x="119.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="143.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">13.846</text>
+<text x="167.00000" y="150.50000" font-size="2.65" text-anchor="start" font-weight="normal">15.385</text>
+<text x="10.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">G05</text>
+<text x="25.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">W02</text>
+<text x="43.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">12.308</text>
+<text x="68.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">12.308</text>
+<text x="95.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">21.538</text>
+<text x="119.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="143.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.846</text>
+<text x="167.00000" y="157.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">D01</text>
+<text x="25.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">W02</text>
+<text x="43.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">77.692</text>
+<text x="68.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">43.846</text>
+<text x="95.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">13.846</text>
+<text x="119.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="163.50000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">G06</text>
+<text x="25.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">W02</text>
+<text x="43.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">121.538</text>
+<text x="68.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">30.000</text>
+<text x="95.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">24.615</text>
+<text x="119.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">26.154</text>
+<text x="143.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">7.692</text>
+<text x="167.00000" y="170.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">G07</text>
+<text x="25.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">W02</text>
+<text x="43.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">155.385</text>
+<text x="68.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">9.231</text>
+<text x="95.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">24.615</text>
+<text x="119.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">26.154</text>
+<text x="143.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">7.692</text>
+<text x="167.00000" y="176.50000" font-size="2.65" text-anchor="start" font-weight="normal">7.692</text>
+<text x="10.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">G08</text>
+<text x="25.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">W03</text>
+<text x="43.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">15.462</text>
+<text x="68.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">15.462</text>
+<text x="95.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="119.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="143.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.846</text>
+<text x="167.00000" y="183.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">G09</text>
+<text x="25.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">W03</text>
+<text x="43.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">58.538</text>
+<text x="68.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">24.615</text>
+<text x="95.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="119.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">15.385</text>
+<text x="143.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">15.385</text>
+<text x="167.00000" y="189.50000" font-size="2.65" text-anchor="start" font-weight="normal">35.462</text>
+<text x="10.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">G10</text>
+<text x="25.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">W04</text>
+<text x="43.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">17.000</text>
+<text x="68.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">17.000</text>
+<text x="95.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">15.385</text>
+<text x="119.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="143.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.846</text>
+<text x="167.00000" y="196.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">G11</text>
+<text x="25.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">W04</text>
+<text x="43.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">80.077</text>
+<text x="68.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">47.692</text>
+<text x="95.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">18.462</text>
+<text x="119.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">26.154</text>
+<text x="143.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">7.692</text>
+<text x="167.00000" y="202.50000" font-size="2.65" text-anchor="start" font-weight="normal">13.923</text>
+<text x="10.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">D02</text>
+<text x="25.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">W05</text>
+<text x="43.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">43.923</text>
+<text x="68.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">43.923</text>
+<text x="95.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">11.577</text>
+<text x="119.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="209.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">D03</text>
+<text x="25.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">W05</text>
+<text x="43.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">65.462</text>
+<text x="68.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">9.962</text>
+<text x="95.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">10.769</text>
+<text x="119.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="215.50000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">D04</text>
+<text x="25.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">W05</text>
+<text x="43.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">86.231</text>
+<text x="68.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">10.000</text>
+<text x="95.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">12.308</text>
+<text x="119.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="222.00000" font-size="2.65" text-anchor="start" font-weight="normal">—</text>
+<text x="10.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">D05</text>
+<text x="25.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">W05</text>
+<text x="43.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">135.462</text>
+<text x="68.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">36.923</text>
+<text x="95.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">12.308</text>
+<text x="119.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="228.50000" font-size="2.65" text-anchor="start" font-weight="normal">33.923</text>
+<text x="10.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">D06</text>
+<text x="25.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">W06</text>
+<text x="43.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">8.538</text>
+<text x="68.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">8.538</text>
+<text x="95.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">10.769</text>
+<text x="119.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="235.00000" font-size="2.65" text-anchor="start" font-weight="normal">30.038</text>
+<text x="10.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">D07</text>
+<text x="25.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">W10</text>
+<text x="43.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">0.038</text>
+<text x="68.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">0.038</text>
+<text x="95.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">12.308</text>
+<text x="119.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="241.50000" font-size="2.65" text-anchor="start" font-weight="normal">47.769</text>
+<text x="10.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">D08</text>
+<text x="25.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">W11</text>
+<text x="43.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.923</text>
+<text x="68.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.923</text>
+<text x="95.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">12.308</text>
+<text x="119.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="248.00000" font-size="2.65" text-anchor="start" font-weight="normal">13.885</text>
+<text x="10.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">D09</text>
+<text x="25.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">W12</text>
+<text x="43.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">4.654</text>
+<text x="68.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">4.654</text>
+<text x="95.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">12.308</text>
+<text x="119.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">32.308</text>
+<text x="143.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">0.000</text>
+<text x="167.00000" y="254.50000" font-size="2.65" text-anchor="start" font-weight="normal">7.654</text>
+<text x="10.00000" y="267.00000" font-size="2.4" text-anchor="start" font-weight="normal">W10 / D07: L = 0.038 mm (nearly flush). Leader is enlarged for reading; the cut is unchanged.</text>
+</g>
 <line x1="10.00000" y1="280.00000" x2="60.00000" y2="280.00000" stroke="#526d66" stroke-width="0.6"/>
 <line x1="10.00000" y1="278.00000" x2="10.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
 <line x1="60.00000" y1="278.00000" x2="60.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>

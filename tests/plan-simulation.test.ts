@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { defaultConditions, model, type Conditions, type SimulationResult } from '../src/domain';
-import { createSimulation, PLAN_GRID, stepSimulation } from '../src/plan-simulation';
+import { createSimulation, PLAN_GRID, preparePlanStep, stepSimulation } from '../src/plan-simulation';
 import { PRESETS } from '../src/simulation';
 
 function closed(scenarioId = 'baseline'): Conditions {
@@ -164,5 +164,61 @@ describe('plan-view geometry and conservative scalar transport', () => {
     const after = stepSimulation(structuredClone(state), conditions, 2);
     for (const array of [after.field!.temperature, after.field!.pm25, after.field!.ux, after.field!.uz]) expect(Array.from(array).every(Number.isFinite)).toBe(true);
     expect(after.averagePm25).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('manual meteorological wind direction', () => {
+  const openFlat = (): Conditions => {
+    const conditions = closed();
+    for (const name of Object.keys(conditions.windows)) conditions.windows[name] = true;
+    for (const name of Object.keys(conditions.doors)) conditions.doors[name] = true;
+    conditions.outdoorPm25 = 15;
+    return conditions;
+  };
+  test.each(['N', 'E', 'S', 'W'] as const)('wind FROM %s enters that facade with balanced conservative face flow', windFrom => {
+    const conditions = openFlat(); conditions.windFrom = windFrom;
+    const initial = createSimulation(conditions), prepared = preparePlanStep(initial, conditions, 0);
+    const { flow } = prepared;
+    const boundary = { N: 0, E: 0, S: 0, W: 0 };
+    const divergence = new Float64Array(PLAN_GRID.nx * PLAN_GRID.nz);
+    for (let edge = 0; edge < flow.a.length; edge++) {
+      const a = flow.a[edge], b = flow.b[edge], velocity = flow.velocity[edge];
+      divergence[a] += velocity;
+      if (flow.mask[b] === 0) divergence[b] -= velocity;
+      else {
+        const x = PLAN_GRID.origin[0] + (b % PLAN_GRID.nx + 0.5) * PLAN_GRID.dx;
+        const z = PLAN_GRID.origin[1] + (Math.floor(b / PLAN_GRID.nx) + 0.5) * PLAN_GRID.dx;
+        const facade = x < 0 ? 'W' : x > 12 ? 'E' : z < 0 ? 'N' : 'S';
+        boundary[facade] += velocity;
+      }
+    }
+    expect(boundary[windFrom]).toBeLessThan(-0.01);
+    expect(Object.entries(boundary).filter(([face]) => face !== windFrom).reduce((sum, [, velocity]) => sum + velocity, 0)).toBeGreaterThan(0.01);
+    expect(Math.abs(Object.values(boundary).reduce((sum, value) => sum + value, 0))).toBeLessThan(0.00001);
+    expect(Math.max(...divergence.map(Math.abs))).toBeLessThan(0.00001);
+    const advanced = stepSimulation(initial, conditions, 10);
+    expect(advanced.averageTemperature).toBeCloseTo(30, 4);
+    expect(advanced.averagePm25).toBeCloseTo(15, 4);
+  });
+  test('changing E to W refreshes cached flow without resetting scalar fields or elapsed time', () => {
+    const conditions = openFlat(); conditions.windFrom = 'E';
+    const east = stepSimulation(createSimulation(conditions), conditions, 1);
+    conditions.windFrom = 'W';
+    const west = stepSimulation(east, conditions, 0);
+    expect(west.field!.ux).not.toEqual(east.field!.ux);
+    expect(west.field!.pressure).not.toEqual(east.field!.pressure);
+    expect(west.field!.temperature).toEqual(east.field!.temperature);
+    expect(west.field!.pm25).toEqual(east.field!.pm25);
+    expect(west.elapsedSeconds).toBe(east.elapsedSeconds);
+    expect(west.energyKwh).toBe(east.energyKwh);
+  });
+  test.each([['baseline', 'S'], ['validation', 'N']] as const)('unset direction preserves %s preset wind', (scenario, windFrom) => {
+    const conditions = openFlat(); conditions.scenarioId = scenario;
+    const preset = createSimulation(conditions);
+    conditions.windFrom = windFrom;
+    const manual = createSimulation(conditions);
+    expect(manual.field!.ux).toEqual(preset.field!.ux);
+    expect(manual.field!.uz).toEqual(preset.field!.uz);
+    expect(manual.field!.pressure).toEqual(preset.field!.pressure);
   });
 });

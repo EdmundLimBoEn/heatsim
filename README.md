@@ -7,7 +7,7 @@ The app has two separate teaching models:
 | Workspace | What it illustrates | What it does not claim |
 |---|---|---|
 | **3D apartment** | A 3D scene around a qualitative 2D plan-view airflow, heat, haze and relative-pressure field. | Full 3D airflow, turbulence or measured pressure. |
-| **Cooling Lab** | A separate whole-flat model with lower/upper air layers and a surface temperature per room; matched high-level fan off/on experiments, envelope controls and an ideal-expansion calculator. | Calibrated building performance, a resolved 3D plume, or cooling produced by ideal expansion in the room solver. |
+| **Cooling Lab** | A separate whole-flat model with lower/upper air layers and a surface temperature per room; matched opening, purifier, high-level fan and envelope experiments, with an ideal-expansion calculator. | Calibrated building performance, a resolved 3D plume, or cooling produced by ideal expansion in the room solver. |
 
 The board has not arrived; USB control is optional. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
 
@@ -50,17 +50,27 @@ The footprint is **187.692 × 118.462 mm**, inside the requested **200 × 150 mm
 - [Door/window leaves](public/build-pack/door-window-leaves.svg), [wall dimensions](public/build-pack/cut-list.csv), [opening dimensions](public/build-pack/openings.csv)
 - [Printable pack and schedules](public/build-pack/index.html), served at **http://localhost:5173/build-pack/** while the app runs
 
+The wall sheets now label each opening's offset from the panel's left edge and the clear gaps between adjacent cutouts. The final wall-template sheet includes the complete 20-opening offset/gap table; these are added annotations, not changed cut shapes.
+
 Print at **100% / Actual size**, turn off “Fit to page”, and measure the **50 mm calibration bar** before cutting. The handoff accounts for 3 mm butt joints and one narrowed doorway. Dry-fit actual stock before gluing; no real switch or servo mounting dimensions are assumed.
 
 ## Cooling Lab
 
 Cooling Lab studies the **full-size flat**, independently of the running 3D apartment's readings. It uses two air layers and a lumped surface temperature in each room to illustrate heat storage, conduction, surface-to-air exchange, solar gains and ventilation. It is a reduced-order teaching model, not 3D CFD.
 
-The matched experiment changes only the selected high-level fan's on/off state; both cases start from the same state and run for the same simulated duration. Compare occupied-layer temperature, upper-layer temperature, haze, heat stored and estimated electricity together. An exhaust needs a connected make-up-air route. Hotter or hazier replacement air can make an outcome worse. A circulating fan mixes air and adds energy rather than manufacturing cold air.
+Use **Quick fan off / on** to isolate the selected high-level fan, or **Captured baseline / candidate** to save a setup and compare changed openings, purification, fan settings or envelope properties. Both arms use the **current shared weather, corridor boundary, initial state and duration**; saving a baseline does not freeze old weather. Read the listed changed settings and compare temperature, haze, air exchange, heat removed and electricity together. An exhaust needs a connected make-up-air route. Hotter or hazier replacement air can make an outcome worse. A circulating fan mixes air and adds energy rather than manufacturing cold air.
 
 The pressure/temperature calculator is separate: its ideal isentropic static-temperature drop is **not** subtracted from room temperatures. The main scene's pressure index cannot be entered as pascals. See [cooling science](docs/cooling-science.md) and [fan thermodynamics](docs/fan-thermodynamics.md) for the physical explanation and sources.
 
 Envelope properties and fan flows describe assumptions about the **full-size flat**, not the 3 mm cardboard. The build pack remains **two A4 sheets with no roof**; no extra cardboard or hardware fit is implied.
+
+## Set outdoor conditions manually
+
+In **Environment → Outside the home**, enter outdoor temperature, PM2.5 and wind speed; **Wind from North** means air arriving from the north towards the south. Numeric inputs and sliders stay synchronized. **Reset outdoor conditions to scenario** restores weather while retaining openings, devices and current readings; selecting another scenario also resets the indoor fields.
+
+The optional **US EPA PM2.5 index equivalent (24-hour scale)** converts a scenario concentration to an index, or an entered integer index back to a representative concentration. It is **not Singapore PSI, live AQI or a health forecast**, and does not imply a 24-hour measurement. PM2.5 in **µg/m³** remains the model input; values beyond the index's supported range remain usable as raw concentrations. No API is called. [Method and limits](docs/02-simulation.md) follow the EPA breakpoint table.
+
+Cooling Lab has its own shared outdoor controls. Its optional **Separate conditions at the main door** supplies a fixed sheltered temperature/PM2.5 boundary at the exterior main entrance only. Windows still use outdoor air. This boundary does not simulate a corridor volume or respond to heat/pollution leaving the flat; the internal corridor rooms are unchanged.
 
 ## A short standalone apartment demo
 
@@ -85,7 +95,7 @@ USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, hum
 
 HeatSim is a **qualitative teaching demonstration**, not a validated building assessment. The main apartment view is toy CFD: a **64 × 48 grid with 20 cm cells at y = 1.2 m** transports heat and PM2.5 using a steady pressure-flow approximation. It has no vertical buoyancy or turbulence. The 3D view is a presentation of the apartment, not a 3D airflow solver.
 
-In the main apartment, outdoor conditions and initial fields come from six scenarios. Its power display assumes **50 W per fan, 40 W per purifier and 1000 W per active AC**, and energy integrates those assumed watts over simulated time. Comfort is an illustrative indicator, not a medical heat index. No sensors or live environmental API are used. The master-bath window is above the slice and has no effect on this 2D field. Pressure, when displayed, is a **normalized qualitative index from −1 to +1**, not pascals or measured building pressure; arrows indicate simulated planar flow direction. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
+In the main apartment, six scenarios supply initial fields and default outdoor conditions; manual weather controls override the outdoor values. Its power display assumes **50 W per fan, 40 W per purifier and 1000 W per active AC**, and energy integrates those assumed watts over simulated time. Comfort is an illustrative indicator, not a medical heat index. No sensors or live environmental API are used. The master-bath window is above the slice and has no effect on this 2D field. Pressure, when displayed, is a **normalized qualitative index from −1 to +1**, not pascals or measured building pressure; arrows indicate simulated planar flow direction. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
 
 Cooling Lab is a different reduced-order calculation. Its layer and surface temperatures, exchange rates and envelope coefficients are assumptions, not measurements. It does not transport humidity, model condensation/dehumidification, or establish a health-safe ventilation strategy. Neither model validates the other.
 

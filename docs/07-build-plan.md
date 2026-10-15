@@ -4,7 +4,7 @@
 
 **The original schedule and 3D milestones below are historical planning, not a completion report.** The authoritative acceptance record is [CHECKLIST.md](../CHECKLIST.md). Run and rehearse from the [README](../README.md).
 
-The presentation is deliberately **standalone first**: a refined 3D view, documented 2D plan solver, all six scenarios, keyboard/on-screen controls, device placement, background layout comparison and A4 construction files. The Cooling Lab extension separately adds a two-layer/surface thermal balance and matched fan/opening/purification/envelope experiments with shared manual weather; it does not complete the deferred 3D solver. **The SSTuino has not arrived.** Hardware integration is prepared but is not a prerequisite for demonstrating the software.
+The presentation is deliberately **standalone first**: a refined 3D view, documented 2D plan solver, all six scenarios, keyboard/on-screen controls, device placement, background layout comparison and A4 construction files. The Cooling Lab extension separately adds a two-layer/surface thermal balance and matched fan/opening/purification/envelope experiments with shared manual weather; it does not complete the deferred 3D solver. **The user now has a SSTuino and one limit switch; physical operation is still unverified.** Hardware integration is optional for demonstrating the software.
 
 The new [Contractor Study](contractor-study.md) adds three validated plan inputs, independent model instances, shared manual weather/provenance, report export and room-level appliance placement. The original Flat adds portable fan/purifier slot dragging. Its current application gate passed **250 tests across 18 files** and **162 browser assertions**, plus strict TypeScript/build/scene checks; native Zen verified Flat dragging. The separate physical measurement-guide review passed: nine new paper reference pages explain absolute edges and adjacent gaps while retaining the existing cutting SVGs, cut data and two-A4-sheet material requirement. [CHECKLIST.md](../CHECKLIST.md) distinguishes actual checks from unverified external Windy tiles, physical hardware and rehearsal.
 
@@ -15,13 +15,13 @@ The prior outdoor-controls extension passed **173 tests across 13 files**, stric
 1. Keep the verified local build and its recorded checks. Before presenting, open it on the presentation machine and confirm the engine badge, Cooling Lab entry and saved comparison export.
 2. Rehearse the standalone README sequence on the presentation machine with no board connected. Record a backup video; keep the built app and local assets available.
 3. Give the crew the [build pack](../public/build-pack/index.html). Verify actual-size printing and cardboard thickness before cutting. Assemble the 187.692 × 118.462 mm roofless shell before fitting unspecified components.
-4. When the SSTuino arrives, identify its version, upload the correct sketch, and test the two default physical inputs individually. Only enable servos after checking their power and calibrating their travel.
+4. Select the correct board package and upload the default single-switch sketch. Wire COM→GND and NO→D5; verify press→simulated fan ON, release→OFF and reconnect preserving the chosen fan location. `SINGLE_FAN_SWITCH 0` retains the alternative two-opening demonstration. Servos remain disabled unless separately powered, checked and calibrated.
 
 ### Explicitly deferred
 
 - 3D D3Q19 LBM, 3D GPU/CPU equivalence and resolved vertical buoyancy. Optional WebGPU is limited to scalar transport on the existing 2D plan; its verification is separate. Cooling Lab uses an explicitly simplified two-layer balance instead.
 - SimScale/OpenFOAM runs or reference-validation claims.
-- Physical USB round-trip acceptance, board-specific compile/upload, limit-switch installation and servo actuation until the real hardware is available.
+- Physical USB round-trip acceptance, board-specific compile/upload and switch installation remain unverified on the supplied hardware. Servo actuation remains deferred.
 - Optional WebSocket bridge, vertical slices, high-resolution solver, advanced turbulence and physical device-position actuators.
 
 The old acceptance tests remain below for traceability. Mark 3D-only items **N/A for this deliberate fallback**, not passed. Do not convert mocked tests or solver-only benchmarks into claims of physical operation or full-browser FPS.

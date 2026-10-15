@@ -1,6 +1,6 @@
 # MVP verification and handoff
 
-**Contractor Study software checkpoint: 15 October 2026. All three workspaces run standalone; the current application gate passes 250 tests and 162 browser assertions. The SSTuino has not arrived.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
+**Contractor Study software checkpoint: 15 October 2026. All three workspaces run standalone; the current application gate passes 250 tests and 162 browser assertions. A SSTuino and one limit switch are available; physical operation remains unverified.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
 
 ## Contractor Study and appliance placement
 
@@ -101,12 +101,12 @@ This path runs planar heat/haze transport only. Geometry and airflow stay on the
 
 Headless Chromium's 3D rendering was blocked by its SwiftShader/driver environment. That is not a WebGL pass: actual 3D visual evidence comes from native Zen. Headless/browser scripts verify application behavior separately. Mock serial streams are not a real board; no physical USB or servo result is implied.
 
-## Physical work when parts arrive
+## Remaining physical setup and checks
 
 - [ ] Verify the printed 50 mm bar, cardboard thickness and 187.692 × 118.462 mm outer footprint; dry-fit walls and hinges.
-- [ ] Obtain and identify the SSTuino model; confirm the board package and actual D5/D6 pin assignments.
-- [ ] Compile/upload the actual board sketch. The default has two input channels and `ENABLE_SERVOS = 0`.
-- [ ] Check buttons/limit switches individually, including debounce and the limit switch's physical-state authority.
+- [ ] Confirm the supplied SSTuino's board package and labelled D5 input; wire the passive switch COM→GND, NO→D5, leaving NC unconnected.
+- [ ] Compile/upload the actual board sketch. The default `SINGLE_FAN_SWITCH = 1` has one fan-switch input and `ENABLE_SERVOS = 0`. Flag `0` restores the alternative WIN1/D5 and DOOR1/D6 inputs.
+- [ ] Check press→fan ON and release→OFF, 30 ms debounce and physical-state authority; choose a fan location and nonzero speed in the app.
 - [ ] USB connect, `HELLO` / `GET:ALL`, one press → one app update, unplug/reconnect and keyboard-only fallback on actual hardware.
 - [ ] Only if servos will be used: identify supply/current needs, verify common ground, calibrate horns detached, check linkage travel, then enable and test one servo.
 
@@ -124,7 +124,7 @@ The host C++ check exercises the sketch with mocked Arduino functions. No AVR up
 | AT-6 cross-ventilation | Automated 2D route check PASS; validation/browser opening path observed. Full demo rehearsal remains pending. |
 | AT-7 purifier | Automated local haze removal PASS. |
 | AT-8 five-minute browser performance | Pending full-browser run; solver timing alone is not acceptance. |
-| AT-9 protocol | Automated parsing, mocked lifecycle and browser serial-mock checks PASS; actual board sync pending arrival. |
+| AT-9 protocol | Automated parsing, mocked lifecycle and browser serial-mock checks PASS; actual board sync remains unverified. |
 | AT-10 hardware loop / servo | Pending hardware; servos disabled by default. |
 | AT-11 disconnect | Mocked lifecycle/browser disconnect covered; physical unplug/reconnect pending. |
 | AT-12 optimiser | Automated scoring/search checks and actual browser worker/Apply PASS; physical servo application remains pending hardware. |

@@ -6,6 +6,7 @@ import { createPlanGpu, type PlanGpu } from './plan-gpu';
 import { createScene, type SceneController, type ThermalVentConfig } from './scene';
 import { mountCoolingLab } from './cooling-lab';
 import { mountContractorStudy } from './contractor-study';
+import './theme.css';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { openingForKey } from './config/mapping';
 import { createOptimiser, type OptimiserReport, type OptimiserBudget } from './optimiser';

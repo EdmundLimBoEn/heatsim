@@ -35,6 +35,33 @@ int main() {
   for (bool& input : inputs) input = HIGH;
   setup();
   assert(Serial.baud == 115200);
+#if SINGLE_FAN_SWITCH
+  assert(Serial.output == "HELLO:HEATSIM/1\nFAN:OFF\n");
+  assert(exchange("PING\nHELLO\r\n") == "PONG\nHELLO:HEATSIM/1\n");
+  assert(exchange("GET:ALL\n") == "FAN:OFF\nEND\n");
+  assert(exchange("FAN:OFF\n") == "FAN:OFF\n");
+  assert(exchange("FAN:ON\n") == "ERR:BUSY\nFAN:OFF\n");
+  assert(exchange("FANPOS:3\nFANANG:45\n") == "FANPOS:3\nFANANG:45\n");
+  assert(exchange("GET:ALL\n") == "FAN:OFF\nEND\n");
+  assert(exchange("WIN1:1\n") == "ERR:UNKNOWN\n");
+  Serial.output.clear();
+  inputs[FAN_SWITCH_PIN] = LOW; loop();
+  nowMs += 10; inputs[FAN_SWITCH_PIN] = HIGH; loop();
+  nowMs += 10; inputs[FAN_SWITCH_PIN] = LOW; loop();
+  nowMs += 29; loop(); assert(Serial.output.empty());
+  nowMs += 1; loop(); assert(Serial.output == "FAN:ON\n");
+  nowMs += 50; loop(); assert(Serial.output == "FAN:ON\n");
+  assert(exchange("FAN:ON\n") == "FAN:ON\n");
+  assert(exchange("FAN:OFF\n") == "ERR:BUSY\nFAN:ON\n");
+  inputs[FAN_SWITCH_PIN] = HIGH; loop(); nowMs += 30; loop();
+  assert(Serial.output == "ERR:BUSY\nFAN:ON\nFAN:OFF\n");
+  assert(exchange("FAN:maybe\nFANPOS:10\n") == "ERR:RANGE\nERR:RANGE\n");
+  assert(exchange(std::string(100, 'X') + "\nPING\n") == "ERR:RANGE\nPONG\n");
+  inputs[FAN_SWITCH_PIN] = LOW; Serial.output.clear(); setup();
+  assert(Serial.output == "HELLO:HEATSIM/1\nFAN:ON\n");
+  assert(exchange("GET:ALL\n") == "FAN:ON\nEND\n");
+  std::cout << "Single-switch firmware passed: initial/reconnect state, press/release debounce, switch authority, location preservation, protocol bounds.\n";
+#else
   assert(Serial.output == "HELLO:HEATSIM/1\n");
   assert(exchange("PING\nHELLO\r\n") == "PONG\nHELLO:HEATSIM/1\n");
   assert(exchange("WIN1:1\n") == "WIN1:1\n");
@@ -63,4 +90,5 @@ int main() {
   assert(exchange("DOOR1:0\n") == "ERR:BUSY\nDOOR1:1\n");
   assert(flaps[1].open);
   std::cout << "Firmware logic passed: protocol, range checks, overflow recovery, debounce, limit authority.\n";
+#endif
 }

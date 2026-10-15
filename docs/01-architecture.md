@@ -43,7 +43,7 @@ The paired comparison runs in a dedicated worker from clones of one initial ther
 
 The educational ideal-expansion calculation is independent of both solvers. It uses explicitly entered absolute pressure/pressure drop; the main scene's dimensionless pressure index is not a pressure input.
 
-USB is optional. The default sketch defines two switch inputs and has servo outputs disabled. Actual board connection/upload remains pending board arrival; see [hardware guide](hardware.md). There is no WebSocket bridge or automatic 3D backend selection in this MVP.
+USB is optional. The default sketch uses one D5 limit switch for portable fan power, with servo outputs disabled; `SINGLE_FAN_SWITCH 0` retains the alternative WIN1/D5 and DOOR1/D6 inputs. The supplied board's upload and physical USB round trip remain unverified; see [hardware guide](hardware.md). There is no WebSocket bridge or automatic 3D backend selection in this MVP.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
 

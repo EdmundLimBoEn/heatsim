@@ -1,6 +1,16 @@
 // SSTuino II Rev A (core newer than 1.1.1), or Arduino Uno; USB protocol v1.
 #include <string.h>
 
+// One passive limit switch: COM -> GND, NO -> D5. Press = simulated fan ON.
+// Set to 0 to restore the optional two-opening WIN1/DOOR1 demonstration.
+#ifndef SINGLE_FAN_SWITCH
+#define SINGLE_FAN_SWITCH 1
+#endif
+const uint8_t FAN_SWITCH_PIN = 5;
+const bool FAN_SWITCH_ACTIVE = LOW;
+bool fanRaw = HIGH, fanStable = HIGH;
+unsigned long fanChangedAt = 0;
+
 // Set to 1 only after checking the servo supply and calibrating with horns detached.
 #define ENABLE_SERVOS 0
 #if ENABLE_SERVOS
@@ -21,7 +31,7 @@ Flap flaps[] = {
   {"WIN1", 5, false, 9, 90, 120, false, HIGH, HIGH, 0, 0},
   {"DOOR1", 6, false, 10, 90, 120, false, HIGH, HIGH, 0, 0}
 };
-const size_t FLAP_COUNT = sizeof(flaps) / sizeof(flaps[0]);
+const size_t FLAP_COUNT = SINGLE_FAN_SWITCH ? 0 : sizeof(flaps) / sizeof(flaps[0]);
 const unsigned long DEBOUNCE_MS = 30;
 #if ENABLE_SERVOS
 Servo servos[FLAP_COUNT];
@@ -80,8 +90,13 @@ void handleLine(char* line) {
   if (strcmp(line, "HELLO") == 0) { Serial.println("HELLO:HEATSIM/1"); return; }
   if (strcmp(line, "PING") == 0) { Serial.println("PONG"); return; }
   if (strcmp(line, "GET:ALL") == 0) {
+#if SINGLE_FAN_SWITCH
+    // Only FAN is physically owned; do not overwrite the app's location or weather.
+    printSetting(0);
+#else
     for (size_t i = 0; i < FLAP_COUNT; ++i) printFlap(i);
     for (size_t i = 0; i < SETTING_COUNT; ++i) printSetting(i);
+#endif
     Serial.println("END");
     return;
   }
@@ -113,6 +128,13 @@ void handleLine(char* line) {
       Serial.println("ERR:RANGE");
       return;
     }
+#if SINGLE_FAN_SWITCH
+    if (i == 0 && next != setting.value) {
+      Serial.println("ERR:BUSY");
+      printSetting(i);
+      return;
+    }
+#endif
     setting.value = next;
     printSetting(i);
     return;
@@ -122,6 +144,11 @@ void handleLine(char* line) {
 
 void setup() {
   Serial.begin(115200);
+#if SINGLE_FAN_SWITCH
+  pinMode(FAN_SWITCH_PIN, INPUT_PULLUP);
+  fanRaw = fanStable = digitalRead(FAN_SWITCH_PIN);
+  settings[0].value = fanStable == FAN_SWITCH_ACTIVE;
+#endif
   for (size_t i = 0; i < FLAP_COUNT; ++i) {
     Flap& flap = flaps[i];
     pinMode(flap.inputPin, INPUT_PULLUP);
@@ -130,10 +157,22 @@ void setup() {
     moveFlap(i);
   }
   Serial.println("HELLO:HEATSIM/1");
+#if SINGLE_FAN_SWITCH
+  printSetting(0);
+#endif
 }
 
 void loop() {
   const unsigned long now = millis();
+#if SINGLE_FAN_SWITCH
+  const bool fanReading = digitalRead(FAN_SWITCH_PIN);
+  if (fanReading != fanRaw) { fanRaw = fanReading; fanChangedAt = now; }
+  if (fanReading != fanStable && now - fanChangedAt >= DEBOUNCE_MS) {
+    fanStable = fanReading;
+    settings[0].value = fanStable == FAN_SWITCH_ACTIVE;
+    printSetting(0);
+  }
+#endif
   for (size_t i = 0; i < FLAP_COUNT; ++i) {
     Flap& flap = flaps[i];
     const bool reading = digitalRead(flap.inputPin);

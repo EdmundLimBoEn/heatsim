@@ -43,7 +43,7 @@ The paired comparison runs in a dedicated worker from clones of one initial ther
 
 The educational ideal-expansion calculation is independent of both solvers. It uses explicitly entered absolute pressure/pressure drop; the main scene's dimensionless pressure index is not a pressure input.
 
-USB is optional. The default sketch uses one D5 limit switch for portable fan power, with servo outputs disabled; `SINGLE_FAN_SWITCH 0` retains the alternative WIN1/D5 and DOOR1/D6 inputs. The supplied board's upload and physical USB round trip remain unverified; see [hardware guide](hardware.md). There is no WebSocket bridge or automatic 3D backend selection in this MVP.
+USB is optional. The default sketch uses one D5 limit switch for the Bedroom 3 corner purifier, with servo outputs disabled. `PUR:ON`/`PUR:OFF` set power and the app selects that purifier corner; fan, weather and opening states remain unchanged. `SINGLE_PURIFIER_SWITCH 0` retains the alternative WIN1/D5 and DOOR1/D6 inputs. The supplied board's upload and physical USB round trip remain unverified; see [hardware guide](hardware.md). There is no WebSocket bridge or automatic 3D backend selection in this MVP.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
 

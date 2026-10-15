@@ -15,7 +15,7 @@ The prior outdoor-controls extension passed **173 tests across 13 files**, stric
 1. Keep the verified local build and its recorded checks. Before presenting, open it on the presentation machine and confirm the engine badge, Cooling Lab entry and saved comparison export.
 2. Rehearse the standalone README sequence on the presentation machine with no board connected. Record a backup video; keep the built app and local assets available.
 3. Give the crew the [build pack](../public/build-pack/index.html). Verify actual-size printing and cardboard thickness before cutting. Assemble the 187.692 × 118.462 mm roofless shell before fitting unspecified components.
-4. Select the correct board package and upload the default single-switch sketch. Wire COM→GND and NO→D5; verify press→simulated fan ON, release→OFF and reconnect preserving the chosen fan location. `SINGLE_FAN_SWITCH 0` retains the alternative two-opening demonstration. Servos remain disabled unless separately powered, checked and calibrated.
+4. Select the correct board package and upload the default single-switch sketch. Wire COM→GND and NO→D5; verify hold pressed→Bedroom 3 corner purifier ON, release→OFF and startup/reconnect targeting the same purifier corner. `SINGLE_PURIFIER_SWITCH 0` retains the alternative two-opening demonstration. Servos remain disabled unless separately powered, checked and calibrated.
 
 ### Explicitly deferred
 

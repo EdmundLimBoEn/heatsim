@@ -105,8 +105,8 @@ Headless Chromium's 3D rendering was blocked by its SwiftShader/driver environme
 
 - [ ] Verify the printed 50 mm bar, cardboard thickness and 187.692 × 118.462 mm outer footprint; dry-fit walls and hinges.
 - [ ] Confirm the supplied SSTuino's board package and labelled D5 input; wire the passive switch COM→GND, NO→D5, leaving NC unconnected.
-- [ ] Compile/upload the actual board sketch. The default `SINGLE_FAN_SWITCH = 1` has one fan-switch input and `ENABLE_SERVOS = 0`. Flag `0` restores the alternative WIN1/D5 and DOOR1/D6 inputs.
-- [ ] Check press→fan ON and release→OFF, 30 ms debounce and physical-state authority; choose a fan location and nonzero speed in the app.
+- [ ] Compile/upload the actual board sketch. The default `SINGLE_PURIFIER_SWITCH = 1` has one purifier-switch input and `ENABLE_SERVOS = 0`. Flag `0` restores the alternative WIN1/D5 and DOOR1/D6 inputs.
+- [ ] Check hold pressed→Bedroom 3 corner purifier ON and release→OFF, 30 ms debounce and physical-state authority; confirm startup/reconnect uses the same corner without changing fan, weather or openings.
 - [ ] USB connect, `HELLO` / `GET:ALL`, one press → one app update, unplug/reconnect and keyboard-only fallback on actual hardware.
 - [ ] Only if servos will be used: identify supply/current needs, verify common ground, calibrate horns detached, check linkage travel, then enable and test one servo.
 

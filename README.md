@@ -99,11 +99,11 @@ Use the [presentation walkthrough](docs/presentation-demo.md) for the final rehe
 
 Playback starts at **30×**. **Space** pauses/resumes, **Backspace** resets fields and the simulation clock while keeping controls, and **H** shows the shortcuts. Keyboard shortcuts pause while typing in a form control or using a dialog. Everything needed for this demo is also on screen.
 
-## Optional electronics: one fan switch
+## Optional electronics: Bedroom 3 purifier switch
 
-Follow [the wiring and firmware guide](docs/hardware.md) and [protocol v1](docs/04-hardware-protocol.md). The default sketch has **one physical input**: COM→GND and NO→D5, with NC unconnected and `INPUT_PULLUP`. Press turns the simulated portable fan ON; release turns it OFF after 30 ms debounce. Choose its location and a nonzero speed in Flat simulation → Devices. Reconnect updates fan power while preserving that location. Set `SINGLE_FAN_SWITCH` to `0` only for the alternative WIN1/D5 and DOOR1/D6 opening demonstration.
+Follow [the wiring and firmware guide](docs/hardware.md) and [protocol v1](docs/04-hardware-protocol.md). The default sketch has **one physical input**: COM→GND and NO→D5, with NC unconnected and `INPUT_PULLUP`. Hold the switch pressed to turn the simulated purifier ON in the **Bedroom 3 corner**; release turns it OFF after 30 ms debounce. Startup and reconnect apply the actual switch state at that same corner. The fan is unaffected. Set `SINGLE_PURIFIER_SWITCH` to `0` only for the alternative WIN1/D5 and DOOR1/D6 opening demonstration.
 
-USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, humidity or PM sensors. **Servos are disabled by default; no physical fan is powered.** Board selection, firmware upload, switch wiring and USB round trips remain unverified on the supplied board. The standalone demo requires none of those physical checks.
+USB uses **115200 baud, ASCII `KEY:VALUE` lines**, specifically `PUR:ON` and `PUR:OFF` for this switch. There are no temperature, humidity or PM sensors. **Servos are disabled by default; no physical purifier or fan is powered.** Board selection, firmware upload, switch wiring and USB round trips remain unverified on the supplied board. The standalone demo requires none of those physical checks.
 
 ## What the simulation means
 

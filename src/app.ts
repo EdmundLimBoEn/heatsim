@@ -36,7 +36,9 @@ const $ = <T extends HTMLElement = HTMLElement>(selector: string): T => {
 };
 const escape = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
 
+const bedroom3PurifierSlot = PURIFIER_SLOTS.findIndex(slot => slot.room === 'bedroom3');
 let conditions: Conditions = structuredClone(PRESETS[0]?.conditions ?? defaultConditions());
+if (bedroom3PurifierSlot >= 0) conditions.purifier = { on: conditions.purifier?.on ?? false, slot: bedroom3PurifierSlot };
 let result = createSimulation(conditions);
 let view = { ...defaultView, selectedRoom: 'living' as string | null };
 let scene: SceneController | null = null;
@@ -131,7 +133,7 @@ $('#app').innerHTML = `
             <label class="field-label" for="fan-speed">Fan speed</label><select id="fan-speed" class="device-select" data-device-key="fanSpeed"><option value="0">Stopped</option><option value="1">Low</option><option value="2" selected>Medium</option><option value="3">High</option></select>
             <h3 class="control-group-title">Air purifier <kbd>P</kbd></h3>
             <label class="toggle-control"><span>Purifier power<small id="purifier-state">Off</small></span><input type="checkbox" data-device-key="purifierOn" aria-label="Portable purifier power"><span class="switch-track" aria-hidden="true"></span></label>
-            <label class="field-label spaced" for="purifier-slot">Position</label><select id="purifier-slot" class="device-select" data-device-key="purifierSlot">${PURIFIER_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}${index === 4 ? ' corner' : ''}</option>`).join('')}</select>
+            <label class="field-label spaced" for="purifier-slot">Position</label><select id="purifier-slot" class="device-select" data-device-key="purifierSlot">${PURIFIER_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}${index === 4 || index === bedroom3PurifierSlot ? ' corner' : ''}</option>`).join('')}</select><p class="section-note">The physical D5 switch controls the Bedroom 3 corner purifier: held down is on; released is off. You can also use these controls without a board.</p>
             <h3 class="control-group-title">Air conditioning <kbd>A</kbd></h3>
             <label class="toggle-control"><span>AC power<small id="ac-state">Off</small></span><input type="checkbox" data-device-key="acOn" aria-label="Air conditioning power"><span class="switch-track" aria-hidden="true"></span></label>
             <label class="field-label spaced" for="ac-unit">Room to cool</label><select id="ac-unit" class="device-select" data-device-key="acUnit">${Object.keys(deviceRoom).filter(id => id.startsWith('ac_')).map(id => `<option value="${id}">${roomLabel(deviceRoom[id])}</option>`).join('')}</select>
@@ -147,6 +149,10 @@ $('#app').innerHTML = `
       <div class="results-summary"><div class="results-heading"><h2>Inside the home</h2><p><span class="simulated-tag">SIMULATED</span></p><svg id="temperature-history" viewBox="0 0 160 32" aria-label="Average temperature trend" role="img"><path d="M0 24H160"/></svg></div><div class="metric"><span>Mean temperature <span class="simulated-tag">SIMULATED</span></span><strong id="mean-temperature">—</strong><small id="feels-like">Feels like —</small></div><div class="metric"><span>Mean PM2.5 <span class="simulated-tag">SIMULATED</span></span><strong id="mean-pm25">—</strong><small>Estimated indoor particles</small></div><div class="metric"><span>Device power <span class="simulated-tag">SIMULATED</span></span><strong id="power">—</strong><small id="energy">0.000 kWh used</small></div><div class="results-actions"><button class="button secondary compact" data-action="readings">All room readings</button><button class="button text-button compact" data-action="export">${icon('download')}Export CSV</button></div></div>
       <div class="room-readings" aria-label="Select a room">${primaryRooms.map(room => `<button class="room-reading ${room === 'living' ? 'selected' : ''}" data-room="${room}" aria-pressed="${room === 'living'}"><span>${roomLabel(room)}</span><strong id="reading-${room}">—</strong><span class="room-reading-detail" id="airflow-${room}">—</span></button>`).join('')}</div>
     </section>
+    <div class="section-note" id="bedroom3-purifier-monitor" aria-label="Bedroom 3 simulated air quality">
+      <strong>Bedroom 3 <span class="simulated-tag">SIMULATED</span></strong> · <span id="bedroom3-purifier-status"></span> · PM2.5 <output id="bedroom3-pm25">—</output> · ${escape(US_PM25_AQI_EQUIVALENT_LABEL)}: <output id="bedroom3-aqi-equivalent">—</output>
+      <p>${escape(US_PM25_AQI_EQUIVALENT_NOTE)} Particle levels change gradually. Openings can bring cleaner or hazier outdoor air inside.</p>
+    </div>
     </section>
     <section id="cooling-lab-workspace" aria-labelledby="cooling-lab-title" hidden>
       <div class="workspace-heading"><div><h1 id="cooling-lab-title" tabindex="-1">Cooling Lab</h1><p>Compare a window-fan idea with your starting setup.</p></div><button class="button secondary" data-workspace="flat">Back to flat</button></div>
@@ -372,6 +378,14 @@ export function applyHardwareControl(kind: 'window' | 'door' | 'device', id: str
   markCustom();
   return true;
 }
+export function applyHardwarePurifier(active: boolean): boolean {
+  if (typeof active !== 'boolean' || bedroom3PurifierSlot < 0) return false;
+  if (conditions.purifier?.on === active && conditions.purifier.slot === bedroom3PurifierSlot) return true;
+  conditions.purifier = { on: active, slot: bedroom3PurifierSlot };
+  markCustom();
+  renderReadings();
+  return true;
+}
 export function readConditions(): Conditions { return structuredClone(conditions); }
 export function replaceConditions(next: Conditions, resetSimulation = false): void {
   if (!resetSimulation && JSON.stringify(next) === JSON.stringify(conditions)) return;
@@ -492,6 +506,16 @@ function renderReadings(): void {
   $('#power').innerHTML = `${Math.round(result.powerWatts).toLocaleString()}<span>W</span>`;
   $('#energy').textContent = `${result.energyKwh.toFixed(3)} kWh used`;
   $('#elapsed-time').textContent = elapsed(result.elapsedSeconds);
+  const bedroom3 = result.rooms.find(room => room.room === 'bedroom3');
+  if (bedroom3) {
+    const purifierHere = conditions.purifier?.slot === bedroom3PurifierSlot;
+    $('#bedroom3-purifier-status').textContent = purifierHere
+      ? `Corner purifier ${conditions.purifier?.on ? 'ON' : 'OFF'}`
+      : `Portable purifier is in ${roomLabel(PURIFIER_SLOTS[conditions.purifier?.slot ?? 0]?.room ?? 'living')}`;
+    $('#bedroom3-pm25').textContent = `${bedroom3.pm25.toFixed(1)} µg/m³`;
+    const equivalent = pm25ToUsAqiEquivalent(bedroom3.pm25);
+    $('#bedroom3-aqi-equivalent').textContent = equivalent === null ? 'Beyond supported scale' : String(equivalent);
+  }
   for (const room of result.rooms) {
     const element = document.getElementById(`reading-${room.room}`);
     if (element) {

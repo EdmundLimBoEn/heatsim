@@ -1,6 +1,6 @@
 # 06 · Planned reference validation (SimScale or OpenFOAM)
 
-**Status: planned, not performed.** No SimScale/OpenFOAM runs, geometry exporter, reference images or external agreement results are included in this MVP. The live app uses a qualitative 2D plan-view solver; it does not implement 3D buoyancy or turbulence. This document preserves a future comparison plan, not evidence of validation.
+**Status: planned, not performed.** No SimScale/OpenFOAM runs, geometry exporter, reference images or external agreement results are included in this MVP. The main apartment uses a qualitative 2D plan-view solver; Cooling Lab separately uses two air layers and a surface state per room. Neither implements resolved 3D buoyancy or turbulence, and neither has been calibrated against this proposed reference. This document preserves a future comparison plan, not evidence of validation.
 
 **Purpose:** reference images for the slides that sanity-check the *qualitative* behaviour of the live toy sim (where air enters, where it stagnates, which configuration ventilates best). They are **not** used inside the app (stretch: show them in a "Reference CFD" tab).
 

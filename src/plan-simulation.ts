@@ -271,7 +271,8 @@ export function createSimulation(conditions: Conditions): SimulationResult {
   return summarize(makeField(flow, temperature, pm25), conditions, 0, 0, flow);
 }
 
-export function stepSimulation(previous: SimulationResult, conditions: Conditions, deltaSeconds: number): SimulationResult {
+export function preparePlanStep(previous: SimulationResult, conditions: Conditions, deltaSeconds: number) {
+  conditions = structuredClone(conditions);
   const env = environment(conditions), key = configurationKey(conditions);
   const cached = flowForResult.get(previous), flow = cached?.key === key ? cached : buildFlow(conditions, key);
   const old = previous.field;
@@ -290,6 +291,20 @@ export function stepSimulation(previous: SimulationResult, conditions: Condition
   }
   // shortcut: limit one call to 60 simulated seconds; split longer offline evaluations into chunks.
   const duration = clamp(finite(deltaSeconds, 0), 0, 60), count = Math.ceil(duration / flow.maxStep), dt = count ? duration / count : 0;
+  return { flow, env, temperature, pm25, duration, count, dt, conditions,
+    elapsedSeconds: Math.max(0, finite(previous.elapsedSeconds, 0)), energyKwh: Math.max(0, finite(previous.energyKwh, 0)) };
+}
+export type PreparedPlanStep = ReturnType<typeof preparePlanStep>;
+
+export function completePlanStep(prepared: PreparedPlanStep, temperature: Float32Array, pm25: Float32Array): SimulationResult {
+  return summarize(makeField(prepared.flow, temperature, pm25), prepared.conditions, prepared.elapsedSeconds + prepared.duration,
+    prepared.energyKwh + prepared.flow.powerWatts * prepared.duration / 3_600_000, prepared.flow);
+}
+
+export function stepSimulation(previous: SimulationResult, conditions: Conditions, deltaSeconds: number): SimulationResult {
+  const prepared = preparePlanStep(previous, conditions, deltaSeconds);
+  const { flow, env, count, dt } = prepared;
+  let { temperature, pm25 } = prepared;
   let nextT = new Float32Array(size), nextC = new Float32Array(size);
   const deltaT = new Float64Array(size), deltaC = new Float64Array(size);
   for (let step = 0; step < count; step++) {
@@ -314,6 +329,5 @@ export function stepSimulation(previous: SimulationResult, conditions: Condition
     }
     [temperature, nextT] = [nextT, temperature]; [pm25, nextC] = [nextC, pm25];
   }
-  return summarize(makeField(flow, temperature, pm25), conditions, Math.max(0, finite(previous.elapsedSeconds, 0)) + duration,
-    Math.max(0, finite(previous.energyKwh, 0)) + flow.powerWatts * duration / 3_600_000, flow);
+  return completePlanStep(prepared, temperature, pm25);
 }

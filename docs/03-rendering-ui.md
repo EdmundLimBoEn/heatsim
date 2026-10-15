@@ -2,7 +2,7 @@
 
 ## Implemented presentation
 
-**This document describes the working 2D MVP. The original GLB/WebGPU presentation plan was not implemented.** See [standalone demo instructions](../README.md), [the presentation walkthrough](presentation-demo.md), [solver limits](02-simulation.md) and [current QA status](../CHECKLIST.md).
+**The main apartment remains a 2D toy-CFD presentation inside a 3D scene. Cooling Lab is a separate two-layer/surface experiment. The original GLB/3D-LBM plan was not implemented; optional WebGPU runs only planar heat/haze transport.** See [standalone demo instructions](../README.md), [the presentation walkthrough](presentation-demo.md), [solver limits](02-simulation.md) and [current QA status](../CHECKLIST.md).
 
 `src/scene.ts` constructs the apartment in **three.js WebGL from the shared JSON boxes**, with refined materials, furniture, sliding window sashes, door pivots and portable-device markers. The original GLB is retained as an asset/reference; the live scene does not need to load it. Room labels, cutaway and dimension annotations are visual only. The initial view is roofless; the physical model also has no roof.
 
@@ -20,6 +20,22 @@ The field renderer uses **900 display tracers** in airflow/air-quality modes. Th
 
 Playback starts at **30×**, with 1× and 60× alternatives. Keyboard controls do not fire while typing into form fields or operating a dialog. Every hardware control used in the default demo has an on-screen/keyboard equivalent. The main workflow works with no SSTuino attached.
 
-The master-bath window is above the field slice and therefore changes only visually. There is no vertical slice, 3D buoyant plume or WebGPU backend. Physical USB, switches and servo movement remain pending hardware; an on-screen animation must not be presented as a confirmed servo action.
+In the main apartment, the master-bath window is above the field slice and therefore changes only visually. There is no vertical slice or resolved 3D buoyant plume. The engine badge distinguishes **CPU · 2D** from **WebGPU heat + haze · CPU airflow · 2D**. Physical USB, switches and servo movement remain pending hardware; an on-screen animation must not be presented as a confirmed servo action.
+
+## Cooling Lab workspace
+
+The **Flat simulation / Cooling Lab** workspace buttons switch views; the apartment clock pauses in the lab. The same 3D panel becomes a **position preview**, with planar overlays hidden; lab values stay in its chart and schematic. Returning to the flat restores its field selection and paused/resumed state.
+
+Cooling Lab opens a separate experiment using a **copy of the flat's controls**, not its current temperature/particle field. **Refresh from the flat** recaptures controls. A stale-capture notice identifies later changes to the apartment; those changes are not silently imported. Changing the lab's scenario/openings does not edit the apartment setup; both trials restart from the scenario's initial air and surface temperatures.
+
+The settings are **Room**, **Exterior fan opening**, **Fan direction** (high-level exhaust/supply), **Rated fan flow**, and **Simulated duration** (10/20/30 minutes, default 20). Weather choices are the six scenarios or the captured setup. **Openings for both trials** offers captured openings, **Open windows + internal doors**, or **Close all other openings**. The open route keeps the exterior main door closed. The selected window always contains the same fan adapter, regardless of its ordinary window state.
+
+**Envelope conductance**, **Solar absorptance** and **External shading** describe illustrative full-size-flat properties. They are identical in each fan-off/on pair. Changing an envelope value invalidates the old pair; comparing shading itself requires two otherwise identical completed experiments. Nothing changes the locked cardboard thickness or cutting plan.
+
+**Compare fan off / on** starts a worker with progress and a **Cancel** control. A completed result shows selected-room occupied/upper-layer changes, whole-flat PM2.5 change and electrical-use change, all **ON minus OFF**. The temperature chart traces the selected room's **lower layer**, while the schematic shows its final fan-on lower/upper/surface states. The schematic is not a computed 3D plume or pressure field.
+
+The results distinguish rated flow from **actual** flow in each arm, including possible backflow, and show final whole-flat heat-budget rates in **W**. Positive heat-budget rates add heat; negative rates remove it. Envelope rates are net inward contributions after the massless exterior-face/envelope balance, not gross incident radiation. Surface-to-air convection redistributes heat internally and is not counted again in the net external/source budget. Stored-energy difference in **kJ** and electricity in **Wh** are different quantities. **Export comparison CSV** includes both traces, initial conditions, configuration, room results and the sign convention.
+
+**Can pressure expansion make a room colder?** is an independent educational calculator. Its hypothetical pressure drop and overall fan efficiency change only that calculation. The assumptions are dry air at **303 K**, **101325 Pa absolute** and **180 m³/h**. The static-temperature drop is not applied to either simulation; its pascals have no conversion from the apartment's relative pressure colors.
 
 Written by gpt-6-astra in Codex on behalf of Edmund

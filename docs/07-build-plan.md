@@ -4,20 +4,20 @@
 
 **The original schedule and 3D milestones below are historical planning, not a completion report.** The authoritative acceptance record is [CHECKLIST.md](../CHECKLIST.md). Run and rehearse from the [README](../README.md).
 
-The working presentation is deliberately **standalone first**: a refined 3D view, documented 2D plan solver, all six scenarios, keyboard/on-screen controls, device placement, background layout comparison and A4 construction files. **The SSTuino has not arrived.** Hardware integration is prepared but is not a prerequisite for demonstrating the software.
+The presentation is deliberately **standalone first**: a refined 3D view, documented 2D plan solver, all six scenarios, keyboard/on-screen controls, device placement, background layout comparison and A4 construction files. The Cooling Lab extension separately adds a two-layer/surface thermal balance and matched high-level fan experiments; it does not complete the deferred 3D solver. **The SSTuino has not arrived.** Hardware integration is prepared but is not a prerequisite for demonstrating the software.
 
-At the final software checkpoint, **79 automated tests**, strict TypeScript/Vite production build and the scene self-check (including pressure and direction arrows) passed. Generated-pack assertions and a host C++ mock of the sketch also passed. Native Zen verified actual WebGL visuals and downloaded PNG output. Browser application and serial-mock scripts each passed nine assertions; the actual optimiser worker completed and Apply retained the layout. Production-preview smoke testing, formal five-minute FPS recording and physical hardware tests remain separately tracked in the checklist. Headless Chromium could not render WebGL in its SwiftShader/driver environment; native Zen supplies the visual evidence.
+The final software gate passed **137 tests across 12 files**, strict TypeScript/Vite production build, scene checks and generated-pack assertions. The physical handoff is unchanged. Cooling Lab passed **40 browser assertions** plus a separate backflow fixture. Native Zen / Firefox 157 executed the actual WebGPU kernel and CPU-parity checks; Chrome GPU startup timed out, so Chrome GPU execution is not claimed. [CHECKLIST.md](../CHECKLIST.md) records the evidence and the remaining full spoken rehearsal, formal FPS record and physical hardware checks.
 
 ### Finish the presentation
 
-1. Complete the production-preview smoke check and retain the final test/build results. Browser controls, pressure/flow views, optimiser and exports already have the specific evidence recorded in the checklist.
+1. Keep the verified local build and its recorded checks. Before presenting, open it on the presentation machine and confirm the engine badge, Cooling Lab entry and saved comparison export.
 2. Rehearse the standalone README sequence on the presentation machine with no board connected. Record a backup video; keep the built app and local assets available.
 3. Give the crew the [build pack](../public/build-pack/index.html). Verify actual-size printing and cardboard thickness before cutting. Assemble the 187.692 × 118.462 mm roofless shell before fitting unspecified components.
 4. When the SSTuino arrives, identify its version, upload the correct sketch, and test the two default physical inputs individually. Only enable servos after checking their power and calibrating their travel.
 
 ### Explicitly deferred
 
-- 3D D3Q19 LBM, WebGPU compute, GPU/CPU equivalence and vertical buoyancy.
+- 3D D3Q19 LBM, 3D GPU/CPU equivalence and resolved vertical buoyancy. Optional WebGPU is limited to scalar transport on the existing 2D plan; its verification is separate. Cooling Lab uses an explicitly simplified two-layer balance instead.
 - SimScale/OpenFOAM runs or reference-validation claims.
 - Physical USB round-trip acceptance, board-specific compile/upload, limit-switch installation and servo actuation until the real hardware is available.
 - Optional WebSocket bridge, vertical slices, high-resolution solver, advanced turbulence and physical device-position actuators.

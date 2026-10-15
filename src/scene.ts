@@ -6,8 +6,16 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { defaultConditions, defaultView, deviceRoom, model, MODEL_SCALE, roomLabel } from './domain';
 import type { Conditions, ModelBox, SimulationResult, ViewOptions } from './domain';
 
+export interface ThermalVentConfig {
+  opening: string;
+  on: boolean;
+  mode: 'exhaust' | 'supply';
+  ratedM3h: number;
+}
+
 export interface SceneController {
   update(conditions: Conditions, result: SimulationResult, view: ViewOptions): void;
+  setThermalVent(config: ThermalVentConfig | null): void;
   setCamera(view: 'perspective' | 'top'): void;
   resetCamera(): void;
   dispose(): void;
@@ -36,6 +44,18 @@ function furnishingBounds(source: ModelBox): { min: number[]; max: number[] } {
   return { min, max };
 }
 
+function thermalVentPlacement(name: string): { position: THREE.Vector3; size: number; yaw: number } | null {
+  const opening = model.boxes.find(box => box.name === name && box.type === 'window' && box.exterior);
+  if (!opening) return null;
+  const alongX = opening.wall_axis === 'x';
+  const width = opening.max[alongX ? 0 : 2] - opening.min[alongX ? 0 : 2];
+  const size = Math.min(0.56, width - 0.12, opening.max[1] - opening.min[1] - 0.12);
+  if (size <= 0) return null;
+  const position = new THREE.Vector3((opening.min[0] + opening.max[0]) / 2, opening.max[1] - size / 2 - 0.05, (opening.min[2] + opening.max[2]) / 2);
+  const yaw = alongX ? (position.z < 3.75 ? Math.PI : 0) : (position.x < 6 ? -Math.PI / 2 : Math.PI / 2);
+  return { position, size, yaw };
+}
+
 export function checkSceneModel(): void {
   const width = model.bounds.max[0] - model.bounds.min[0];
   const depth = model.bounds.max[2] - model.bounds.min[2];
@@ -49,6 +69,14 @@ export function checkSceneModel(): void {
       if (min[0] < 0 || min[2] < 0 || max[0] > 12 || max[2] > 7.5 || max.some((v, i) => v <= min[i])) throw new Error(`Furniture exceeds the shell: ${box.name}`);
     }
   }
+  for (const opening of model.boxes.filter(box => box.type === 'window' && box.exterior)) {
+    const placement = thermalVentPlacement(opening.name);
+    if (!placement || placement.position.y - placement.size / 2 < opening.min[1] || placement.position.y + placement.size / 2 > opening.max[1]) throw new Error(`Vent concept exceeds its aperture: ${opening.name}`);
+    const outward = new THREE.Vector3(Math.sin(placement.yaw), 0, Math.cos(placement.yaw));
+    const facadeNormal = opening.wall?.includes('north') ? new THREE.Vector3(0, 0, -1) : opening.wall?.includes('south') ? new THREE.Vector3(0, 0, 1) : opening.wall?.includes('west') ? new THREE.Vector3(-1, 0, 0) : new THREE.Vector3(1, 0, 0);
+    if (outward.dot(facadeNormal) < 0.999) throw new Error(`Vent concept faces the wrong facade: ${opening.name}`);
+  }
+  if (thermalVentPlacement('main_door') || thermalVentPlacement('unknown')) throw new Error('Vent concepts must attach only to existing exterior windows.');
   for (const name of Object.keys(deviceRoom)) {
     if (!model.boxes.some(box => box.name === name && box.type === 'device')) throw new Error(`Missing controlled device: ${name}`);
   }
@@ -437,6 +465,44 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   cylinder(0.125, 0.02, 0, 0.605, 0, palette.slate, portablePurifier);
   scene.add(portablePurifier);
 
+  const thermalVent = new THREE.Group();
+  thermalVent.visible = false;
+  for (const side of [-1, 1]) {
+    box(1, 0.1, 0.12, 0, side * 0.45, 0, palette.white, thermalVent, 0.035);
+    box(0.1, 0.8, 0.12, side * 0.45, 0, 0, palette.white, thermalVent, 0.035);
+  }
+  const ventRotor = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const pivot = new THREE.Group();
+    pivot.rotation.z = i * Math.PI / 2;
+    box(0.3, 0.13, 0.025, 0.19, 0, 0, palette.teal, pivot, 0.035);
+    ventRotor.add(pivot);
+  }
+  thermalVent.add(ventRotor);
+  const ventGuardGeometry = new THREE.TorusGeometry(0.4, 0.018, 6, 28);
+  geometries.add(ventGuardGeometry);
+  const ventGuard = new THREE.Mesh(ventGuardGeometry, palette.metal);
+  ventGuard.position.z = 0.14;
+  thermalVent.add(ventGuard);
+  for (const x of [-0.18, 0, 0.18]) box(0.018, 0.68, 0.02, x, 0, 0.15, palette.metal, thermalVent);
+  const ventArrow = new THREE.Group();
+  ventArrow.position.y = -0.66;
+  line([new THREE.Vector3(0, 0, -0.75), new THREE.Vector3(0, 0, 0.7)], '#315f53', ventArrow);
+  const ventArrowGeometry = new THREE.ConeGeometry(0.09, 0.22, 8);
+  geometries.add(ventArrowGeometry);
+  const ventArrowHead = new THREE.Mesh(ventArrowGeometry, palette.teal);
+  ventArrowHead.rotation.x = Math.PI / 2;
+  ventArrowHead.position.z = 0.76;
+  ventArrow.add(ventArrowHead);
+  thermalVent.add(ventArrow);
+  thermalVent.traverse(child => { if (child instanceof THREE.Mesh) child.castShadow = false; });
+  scene.add(thermalVent);
+  const ventLabel = document.createElement('div');
+  ventLabel.style.cssText = 'position:absolute;display:none;z-index:2001;transform:translate(0,-100%);padding:5px 7px;border:1px solid #a4bbae;border-radius:5px;background:rgba(244,249,242,.96);color:#315747;text-align:center;font:500 10px/1.35 system-ui,sans-serif;white-space:pre-line;pointer-events:none;';
+  labelLayer.appendChild(ventLabel);
+  const ventLabelAnchor = new THREE.Vector3();
+  let thermalVentConfig: ThermalVentConfig | null = null;
+
   const roofMat = material('#f2f3ed');
   roofMat.transparent = true;
   roofMat.opacity = 0;
@@ -535,6 +601,20 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   camera.updateProjectionMatrix();
   cameraPosition('perspective');
 
+  function setThermalVent(config: ThermalVentConfig | null): void {
+    if (disposed) return;
+    const placement = config && typeof config.on === 'boolean' && (config.mode === 'exhaust' || config.mode === 'supply') && Number.isFinite(config.ratedM3h) && config.ratedM3h >= 0 ? thermalVentPlacement(config.opening) : null;
+    thermalVentConfig = placement && config ? { ...config } : null;
+    thermalVent.visible = Boolean(thermalVentConfig);
+    ventLabel.style.display = 'none';
+    if (!placement || !thermalVentConfig) return;
+    thermalVent.position.copy(placement.position);
+    thermalVent.rotation.y = placement.yaw;
+    thermalVent.scale.setScalar(placement.size);
+    ventArrow.rotation.y = thermalVentConfig.mode === 'exhaust' ? 0 : Math.PI;
+    ventLabelAnchor.copy(placement.position).add(new THREE.Vector3(0, placement.size * 0.7, 0));
+    ventLabel.textContent = `Cooling Lab · concept\n${thermalVentConfig.mode === 'exhaust' ? 'Exhaust → outside' : 'Supply → inside'} · ${thermalVentConfig.on ? 'ON' : 'OFF'}\n${Math.round(thermalVentConfig.ratedM3h)} m³/h rated`;
+  }
   function wallHeight(source: ModelBox): number {
     if (!currentView.cutaway) return 2.6;
     return source.name.startsWith('wall_ext_north') || source.name.startsWith('wall_ext_west') ? 2.6 : 0.92;
@@ -627,6 +707,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     if (disposed) return;
     const dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;
+    if (thermalVentConfig?.on) ventRotor.rotation.z += dt * 10;
     if (currentConditions.portableFan?.on) fanRotor.rotation.z += dt * 8 * currentConditions.portableFan.speed;
     for (const [name, rotor] of fans) if (currentConditions.devices[name]) rotor.rotation.y += dt * 12;
     for (const opening of openings) {
@@ -645,6 +726,11 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       label.element.style.top = `${(1 - projected.y) / 2 * height}px`;
       label.element.style.zIndex = String(Math.round((1 - projected.z) * 1000));
     }
+    projected.copy(ventLabelAnchor).project(camera);
+    const showVentLabel = thermalVentConfig && currentView.roofOpacity < 0.65 && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < 1 && Math.abs(projected.y) < 1;
+    ventLabel.style.display = showVentLabel ? 'block' : 'none';
+    ventLabel.style.left = `${Math.max(8, Math.min(width - ventLabel.offsetWidth - 8, (projected.x + 1) / 2 * width + 16))}px`;
+    ventLabel.style.top = `${(1 - projected.y) / 2 * height}px`;
     for (const dimension of dimensions) {
       projected.copy(dimension.anchor).project(camera);
       dimension.element.style.display = currentView.dimensions && projected.z < 1 ? 'block' : 'none';
@@ -666,14 +752,18 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     if (!context) throw new Error('Image export is unavailable in this browser.');
     context.drawImage(renderer.domElement, 0, 0);
     context.scale(pixelRatio, pixelRatio);
-    function badge(anchor: THREE.Vector3, lines: string[], selected = false, mono = false): void {
+    function badge(anchor: THREE.Vector3, lines: string[], selected = false, mono = false, beside = false): void {
       projected.copy(anchor).project(camera);
       if (projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) return;
-      const x = (projected.x + 1) / 2 * width;
-      const y = (1 - projected.y) / 2 * height;
+      let x = (projected.x + 1) / 2 * width;
+      let y = (1 - projected.y) / 2 * height;
       context!.font = `600 10px ${mono ? 'monospace' : 'system-ui, sans-serif'}`;
       const badgeWidth = Math.max(...lines.map(text => context!.measureText(text).width)) + 14;
       const badgeHeight = lines.length * 14 + 7;
+      if (beside) {
+        x = Math.max(badgeWidth / 2 + 8, Math.min(width - badgeWidth / 2 - 8, x + 16 + badgeWidth / 2));
+        y -= badgeHeight / 2;
+      }
       context!.fillStyle = selected ? '#245b47' : 'rgba(251,252,248,.94)';
       context!.beginPath();
       context!.roundRect(x - badgeWidth / 2, y - badgeHeight / 2, badgeWidth, badgeHeight, 4);
@@ -686,6 +776,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     if (currentView.labels && currentView.roofOpacity < 0.65) {
       for (const label of labels) badge(label.anchor, [label.element.firstElementChild!.textContent!, label.value.textContent!].filter(Boolean), currentView.selectedRoom === label.room);
     }
+    if (thermalVentConfig && currentView.roofOpacity < 0.65) badge(ventLabelAnchor, ventLabel.textContent!.split('\n'), false, false, true);
     if (currentView.dimensions) for (const dimension of dimensions) badge(dimension.anchor, [dimension.element.textContent!], false, true);
     context.fillStyle = '#eff3ed';
     context.fillRect(0, height, width, footerHeight);
@@ -724,6 +815,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   }
   return {
     update,
+    setThermalVent,
     setCamera: cameraPosition,
     resetCamera: () => cameraPosition('perspective'),
     screenshot,

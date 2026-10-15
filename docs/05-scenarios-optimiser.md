@@ -1,6 +1,6 @@
 # 05 · Scenarios and placement optimiser
 
-**Demo implementation:** the app and optimiser use the spatial **2D plan-view toy CFD** in `src/plan-simulation.ts`. The original 3D WebGPU LBM design is deferred. This document describes the implemented fallback, including its limits.
+**Main apartment implementation:** the apartment view and layout optimiser use the spatial **2D plan-view toy CFD** in `src/plan-simulation.ts`. The original 3D WebGPU LBM design is deferred. This document describes the implemented fallback, including its limits.
 
 ## 1. Scenario presets (`SCENARIOS` and `PRESETS` in `src/simulation.ts`) [V code; all numbers illustrative]
 Heat and haze come **only** from these presets or the on-screen scenario controls (no sensors, no live API). Each scenario sets the outdoor boundary conditions and initial indoor fields, then the user or hardware toggles openings and devices.
@@ -109,7 +109,7 @@ All evaluated candidates, including intermediate layouts, are eligible for the r
 
 - Every candidate starts from the **same scenario's initial temperature and haze fields**, with that candidate's controls applied. It does not inherit the current live field or any previous candidate's field.
 - Run the same `createSimulation` / `stepSimulation` implementation as the live app in a dedicated worker: **240 calls × 0.5 simulated seconds = 120 simulated seconds**. The solver takes its own stable substeps within those calls.
-- Score the final 120-second reading. There is no final-window averaging and no WebGPU or coarse 3D LBM evaluation in this demo. The report identifies the engine as **`2d-plan`**.
+- Score the final 120-second reading. There is no final-window averaging and no WebGPU or coarse 3D LBM evaluation in this **layout search**; optional live-view GPU transport does not change the optimiser backend. The report identifies the engine as **`2d-plan`**.
 - Physics and candidate order are deterministic. Every completed candidate gets the same simulated duration, including when the run is time-limited.
 - The search stops starting new evaluations after a **25-second soft deadline**, returning already evaluated layouts with `partial: true`. Such a result can contain fewer than three layouts.
 - The main thread terminates the worker after **29 seconds** if no result arrives, reports an error, and leaves the user's controls unchanged. Cancel, replacement runs and disposal also terminate the worker. Worker errors and message-decoding errors are caught; stale worker events are ignored.
@@ -146,5 +146,30 @@ The result card displays the before/suggested score, combined-score improvement,
 **Apply** (`Enter`) replaces the controls with the selected layout, restarts the live simulation, and keeps the comparison card available for presentation. The app sends changed, mapped control commands through the existing hardware path. Only firmware-enabled actuators physically move: fan and purifier positions are logical settings, not motorised relocation. Actual servo movement requires a connected, calibrated board and is a separate hardware acceptance check.
 
 Editing controls or changing scenario invalidates an old recommendation. Cancel and errors preserve the live setup. No result is automatically applied, and no improvement is fabricated from live readings after Apply.
+
+## 5. Cooling Lab matched fan experiment
+
+This is separate from the layout optimiser above. `src/thermal-comparison.ts` and `src/thermal-worker.ts` compare **one high-level fan off versus on** using the two-layer/surface model in [doc 02](02-simulation.md). They do not search layouts, optimise the current live field or automatically apply an arrangement to the 3D apartment.
+
+Both cases clone **one initial `ThermalState`**. Only `config.vent.on` changes; exterior conditions, openings, supply/exhaust direction, rating, envelope coefficients, other devices and simulated duration remain identical. The selected fan aperture has the same adapter and resistive passage in both cases; fan-off does not imply zero wind-driven or buoyancy-driven flow. This avoids attributing a different starting temperature or an extra open window to the fan.
+
+The horizon is `durationSeconds`: positive, at most **7200 seconds**, with a model default of **1200 seconds**. Each arm includes the same initial and final sample times; the report retains at most **121 samples** per arm. Read the actual duration on the result rather than comparing unequal elapsed runs.
+
+Differences are **fan ON minus fan OFF**:
+
+| Difference | Interpretation |
+|---|---|
+| All-air temperature, °C | Negative means the on case ends cooler on average across both air layers; it is not a comfort score. |
+| Upper-layer temperature, °C | Negative means the upper layer ends cooler. Use lower-layer room readings separately for the occupied zone. |
+| PM2.5, µg/m³ | Negative means lower final model concentration; a hotter/hazier outdoor source can worsen a result. |
+| Cumulative PM exposure, µg·h/m³ | Integral of the model concentration over the run; not measured personal exposure or a health prediction. |
+| Stored heat, J | Difference in the thermal states' stored energy, separate from electrical consumption. |
+| Electrical energy, Wh | Estimated electricity used during the matched run; it is not heat removed. |
+
+`createThermalComparisonRunner().run(config, onProgress?)` returns a promise. `cancel()` and `dispose()` terminate the worker and reject with `AbortError`. The UI discards cancelled/stale results and clears a completed pair when its configuration changes. A **30-second wall-clock timeout** terminates a run that fails to return. No improvement is guaranteed: blocked paths, hot inlet air and haze are teaching outcomes, not failures to conceal.
+
+The CSV includes the captured controls, shared initial state, matched traces, final room values, signed differences and units. Instantaneous heat-budget rates in watts are separate from accumulated energy in joules or watt-hours.
+
+The ideal-expansion calculator is not an experimental treatment and does not change either arm's temperatures. Its numerical result is an independent ideal thermodynamic calculation.
 
 Written by gpt-6-astra in Codex on behalf of Edmund

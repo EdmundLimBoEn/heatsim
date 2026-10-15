@@ -4,6 +4,12 @@ A live, interactive **toy CFD** of heat and haze moving through a 4-room HDB fla
 
 > Status: **spec only**. No app code has been written yet. Build day is Thu 15 Oct 2026 (code freeze 16:00 SGT), and we pitch on Fri 16 Oct.
 
+## Cardboard build crew
+
+Use the [builder handoff](docs/physical-model.md) and [download the complete build pack](public/build-pack/heatsim-build-pack.zip). The model uses **two A4 sheets of 3 mm cardboard total**, with no roof. Its footprint is **187.692 × 118.462 mm** and every wall is **40 mm tall**.
+
+Print the [floor plan](public/build-pack/floor-plan.svg) and [all 13 walls on one A4 sheet](public/build-pack/all-walls-stock.svg) at **100% / Actual size**. Verify the printed 50 mm calibration bar before cutting. The remaining sheet is the base.
+
 ## Start here
 - **Coding agents (Astra etc.): read [`AGENTS.md`](AGENTS.md) first**, then `docs/` in order.
 - [`docs/00-overview.md`](docs/00-overview.md): problem, users, persona, HMW, rubric

@@ -1,0 +1,1523 @@
+{
+  "scale": 65,
+  "units": "mm",
+  "outside_footprint_mm": [
+    187.69230769230768,
+    118.46153846153845
+  ],
+  "wall_height_mm": 40.0,
+  "building_target_mm": [
+    200,
+    150
+  ],
+  "base_mm": [
+    210,
+    297
+  ],
+  "material_thickness_mm": {
+    "exterior": 3.0,
+    "interior": 3.0
+  },
+  "coordinate_origin": "Outer northwest corner; x east, z south, y above floor",
+  "walls": [
+    {
+      "id": "W01",
+      "name": "wall_ext_north",
+      "axis": "x",
+      "center_mm": 1.5,
+      "start_mm": 0,
+      "end_mm": 187.69230769230768,
+      "length_mm": 187.69230769230768,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 187.7,
+      "openings": [
+        "G01",
+        "G02",
+        "G03",
+        "G04"
+      ]
+    },
+    {
+      "id": "W02",
+      "name": "wall_ext_south",
+      "axis": "x",
+      "center_mm": 116.96153846153845,
+      "start_mm": 0,
+      "end_mm": 187.69230769230768,
+      "length_mm": 187.69230769230768,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 187.7,
+      "openings": [
+        "G05",
+        "D01",
+        "G06",
+        "G07"
+      ]
+    },
+    {
+      "id": "W03",
+      "name": "wall_ext_west",
+      "axis": "z",
+      "center_mm": 1.5,
+      "start_mm": 3.0,
+      "end_mm": 115.46153846153845,
+      "length_mm": 112.46153846153845,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 112.5,
+      "openings": [
+        "G08",
+        "G09"
+      ]
+    },
+    {
+      "id": "W04",
+      "name": "wall_ext_east",
+      "axis": "z",
+      "center_mm": 186.19230769230768,
+      "start_mm": 3.0,
+      "end_mm": 115.46153846153845,
+      "length_mm": 112.46153846153845,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 112.5,
+      "openings": [
+        "G10",
+        "G11"
+      ]
+    },
+    {
+      "id": "W05",
+      "name": "wall_north_corridor",
+      "axis": "x",
+      "center_mm": 53.84615384615385,
+      "start_mm": 3.0,
+      "end_mm": 184.69230769230768,
+      "length_mm": 181.69230769230768,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 181.7,
+      "openings": [
+        "D02",
+        "D03",
+        "D04",
+        "D05"
+      ]
+    },
+    {
+      "id": "W06",
+      "name": "wall_master_masterbath",
+      "axis": "z",
+      "center_mm": 60.0,
+      "start_mm": 3.0,
+      "end_mm": 52.34615384615385,
+      "length_mm": 49.34615384615385,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 49.3,
+      "openings": [
+        "D06"
+      ]
+    },
+    {
+      "id": "W07",
+      "name": "wall_bath_bedroom2",
+      "axis": "z",
+      "center_mm": 87.69230769230768,
+      "start_mm": 3.0,
+      "end_mm": 52.34615384615385,
+      "length_mm": 49.34615384615385,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 49.3,
+      "openings": []
+    },
+    {
+      "id": "W08",
+      "name": "wall_bedroom2_bedroom3",
+      "axis": "z",
+      "center_mm": 136.92307692307693,
+      "start_mm": 3.0,
+      "end_mm": 52.34615384615385,
+      "length_mm": 49.34615384615385,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 49.3,
+      "openings": []
+    },
+    {
+      "id": "W09",
+      "name": "wall_masterbath_commonbath",
+      "axis": "x",
+      "center_mm": 32.30769230769231,
+      "start_mm": 61.5,
+      "end_mm": 86.19230769230768,
+      "length_mm": 24.69230769230768,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 24.7,
+      "openings": []
+    },
+    {
+      "id": "W10",
+      "name": "wall_kitchen_corridor",
+      "axis": "z",
+      "center_mm": 44.61538461538461,
+      "start_mm": 55.34615384615385,
+      "end_mm": 115.46153846153845,
+      "length_mm": 60.115384615384606,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 60.1,
+      "openings": [
+        "D07"
+      ]
+    },
+    {
+      "id": "W11",
+      "name": "wall_kitchen_yard",
+      "axis": "x",
+      "center_mm": 87.69230769230768,
+      "start_mm": 3.0,
+      "end_mm": 43.11538461538461,
+      "length_mm": 40.11538461538461,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 40.1,
+      "openings": [
+        "D08"
+      ]
+    },
+    {
+      "id": "W12",
+      "name": "wall_shelter_north",
+      "axis": "x",
+      "center_mm": 92.3076923076923,
+      "start_mm": 46.11538461538461,
+      "end_mm": 70.73076923076923,
+      "length_mm": 24.615384615384613,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 24.6,
+      "openings": [
+        "D09"
+      ]
+    },
+    {
+      "id": "W13",
+      "name": "wall_shelter_east",
+      "axis": "z",
+      "center_mm": 69.23076923076923,
+      "start_mm": 93.8076923076923,
+      "end_mm": 115.46153846153845,
+      "length_mm": 21.653846153846146,
+      "height_mm": 40.0,
+      "thickness_mm": 3.0,
+      "practical_length_mm": 21.7,
+      "openings": []
+    }
+  ],
+  "openings": [
+    {
+      "id": "G01",
+      "name": "window_master_1",
+      "kind": "window",
+      "wall_id": "W01",
+      "wall_name": "wall_ext_north",
+      "offset_mm": 18.46153846153846,
+      "width_mm": 24.61538461538462,
+      "height_mm": 18.461538461538463,
+      "source_width_mm": 24.61538461538462,
+      "physical_adjustment": "",
+      "sill_mm": 13.846153846153847,
+      "leaf_width_mm": 24.11538461538462,
+      "leaf_height_mm": 17.961538461538463,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        18.461538461538463,
+        13.846153846153847,
+        1.5384615384615385
+      ]
+    },
+    {
+      "id": "G02",
+      "name": "window_master_bath",
+      "kind": "window",
+      "wall_id": "W01",
+      "wall_name": "wall_ext_north",
+      "offset_mm": 69.23076923076923,
+      "width_mm": 9.230769230769226,
+      "height_mm": 9.230769230769232,
+      "source_width_mm": 9.230769230769226,
+      "physical_adjustment": "",
+      "sill_mm": 23.076923076923077,
+      "leaf_width_mm": 8.730769230769226,
+      "leaf_height_mm": 8.730769230769232,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        69.23076923076923,
+        23.076923076923077,
+        1.5384615384615385
+      ]
+    },
+    {
+      "id": "G03",
+      "name": "window_bedroom2_1",
+      "kind": "window",
+      "wall_id": "W01",
+      "wall_name": "wall_ext_north",
+      "offset_mm": 101.53846153846153,
+      "width_mm": 21.538461538461547,
+      "height_mm": 18.461538461538463,
+      "source_width_mm": 21.538461538461547,
+      "physical_adjustment": "",
+      "sill_mm": 13.846153846153847,
+      "leaf_width_mm": 21.038461538461547,
+      "leaf_height_mm": 17.961538461538463,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        101.53846153846153,
+        13.846153846153847,
+        1.5384615384615385
+      ]
+    },
+    {
+      "id": "G04",
+      "name": "window_bedroom3_1",
+      "kind": "window",
+      "wall_id": "W01",
+      "wall_name": "wall_ext_north",
+      "offset_mm": 150.76923076923077,
+      "width_mm": 21.53846153846152,
+      "height_mm": 18.461538461538463,
+      "source_width_mm": 21.53846153846152,
+      "physical_adjustment": "",
+      "sill_mm": 13.846153846153847,
+      "leaf_width_mm": 21.03846153846152,
+      "leaf_height_mm": 17.961538461538463,
+      "hardware_channel": "WIN1",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        150.76923076923075,
+        13.846153846153847,
+        1.5384615384615385
+      ]
+    },
+    {
+      "id": "G05",
+      "name": "window_service_yard",
+      "kind": "window",
+      "wall_id": "W02",
+      "wall_name": "wall_ext_south",
+      "offset_mm": 12.307692307692307,
+      "width_mm": 21.538461538461533,
+      "height_mm": 18.461538461538463,
+      "source_width_mm": 21.538461538461533,
+      "physical_adjustment": "",
+      "sill_mm": 13.846153846153847,
+      "leaf_width_mm": 21.038461538461533,
+      "leaf_height_mm": 17.961538461538463,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        12.307692307692307,
+        13.846153846153847,
+        116.92307692307692
+      ]
+    },
+    {
+      "id": "D01",
+      "name": "main_door",
+      "kind": "door",
+      "wall_id": "W02",
+      "wall_name": "wall_ext_south",
+      "offset_mm": 77.6923076923077,
+      "width_mm": 13.846153846153854,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 13.846153846153854,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 12.346153846153854,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "DOOR1",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        77.6923076923077,
+        0.0,
+        116.92307692307692
+      ]
+    },
+    {
+      "id": "G06",
+      "name": "window_living_1",
+      "kind": "window",
+      "wall_id": "W02",
+      "wall_name": "wall_ext_south",
+      "offset_mm": 121.53846153846153,
+      "width_mm": 24.615384615384627,
+      "height_mm": 26.153846153846157,
+      "source_width_mm": 24.615384615384627,
+      "physical_adjustment": "",
+      "sill_mm": 7.6923076923076925,
+      "leaf_width_mm": 24.115384615384627,
+      "leaf_height_mm": 25.653846153846157,
+      "hardware_channel": "WIN2",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        121.53846153846153,
+        7.6923076923076925,
+        116.92307692307692
+      ]
+    },
+    {
+      "id": "G07",
+      "name": "window_living_2",
+      "kind": "window",
+      "wall_id": "W02",
+      "wall_name": "wall_ext_south",
+      "offset_mm": 155.3846153846154,
+      "width_mm": 24.61538461538464,
+      "height_mm": 26.153846153846157,
+      "source_width_mm": 24.61538461538464,
+      "physical_adjustment": "",
+      "sill_mm": 7.6923076923076925,
+      "leaf_width_mm": 24.11538461538464,
+      "leaf_height_mm": 25.653846153846157,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        155.3846153846154,
+        7.6923076923076925,
+        116.92307692307692
+      ]
+    },
+    {
+      "id": "G08",
+      "name": "window_master_2",
+      "kind": "window",
+      "wall_id": "W03",
+      "wall_name": "wall_ext_west",
+      "offset_mm": 15.461538461538463,
+      "width_mm": 18.461538461538456,
+      "height_mm": 18.461538461538463,
+      "source_width_mm": 18.461538461538456,
+      "physical_adjustment": "",
+      "sill_mm": 13.846153846153847,
+      "leaf_width_mm": 17.961538461538456,
+      "leaf_height_mm": 17.961538461538463,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "north",
+      "hinge_at_mm": [
+        1.5384615384615385,
+        13.846153846153847,
+        18.461538461538463
+      ]
+    },
+    {
+      "id": "G09",
+      "name": "window_kitchen",
+      "kind": "window",
+      "wall_id": "W03",
+      "wall_name": "wall_ext_west",
+      "offset_mm": 58.53846153846154,
+      "width_mm": 18.461538461538446,
+      "height_mm": 15.384615384615385,
+      "source_width_mm": 18.461538461538446,
+      "physical_adjustment": "",
+      "sill_mm": 15.384615384615385,
+      "leaf_width_mm": 17.961538461538446,
+      "leaf_height_mm": 14.884615384615385,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "north",
+      "hinge_at_mm": [
+        1.5384615384615385,
+        15.384615384615385,
+        61.53846153846154
+      ]
+    },
+    {
+      "id": "G10",
+      "name": "window_bedroom3_2",
+      "kind": "window",
+      "wall_id": "W04",
+      "wall_name": "wall_ext_east",
+      "offset_mm": 17.0,
+      "width_mm": 15.384615384615387,
+      "height_mm": 18.461538461538463,
+      "source_width_mm": 15.384615384615387,
+      "physical_adjustment": "",
+      "sill_mm": 13.846153846153847,
+      "leaf_width_mm": 14.884615384615387,
+      "leaf_height_mm": 17.961538461538463,
+      "hardware_channel": "",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "north",
+      "hinge_at_mm": [
+        186.15384615384616,
+        13.846153846153847,
+        20.0
+      ]
+    },
+    {
+      "id": "G11",
+      "name": "window_living_3",
+      "kind": "window",
+      "wall_id": "W04",
+      "wall_name": "wall_ext_east",
+      "offset_mm": 80.07692307692308,
+      "width_mm": 18.461538461538453,
+      "height_mm": 26.153846153846157,
+      "source_width_mm": 18.461538461538453,
+      "physical_adjustment": "",
+      "sill_mm": 7.6923076923076925,
+      "leaf_width_mm": 17.961538461538453,
+      "leaf_height_mm": 25.653846153846157,
+      "hardware_channel": "WIN3",
+      "movement": "lift-out first; optional sliding rail after measuring hardware",
+      "exterior": true,
+      "hinge_side": "north",
+      "hinge_at_mm": [
+        186.15384615384616,
+        7.6923076923076925,
+        83.07692307692307
+      ]
+    },
+    {
+      "id": "D02",
+      "name": "door_master_bedroom",
+      "kind": "door",
+      "wall_id": "W05",
+      "wall_name": "wall_north_corridor",
+      "offset_mm": 43.92307692307693,
+      "width_mm": 11.576923076923073,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 12.307692307692307,
+      "physical_adjustment": "East edge trimmed to 3 mm master/bath partition face",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 10.076923076923073,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        46.92307692307693,
+        0.0,
+        53.84615384615385
+      ]
+    },
+    {
+      "id": "D03",
+      "name": "door_common_bath",
+      "kind": "door",
+      "wall_id": "W05",
+      "wall_name": "wall_north_corridor",
+      "offset_mm": 65.46153846153847,
+      "width_mm": 10.76923076923076,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 10.76923076923076,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 9.26923076923076,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        68.46153846153845,
+        0.0,
+        53.84615384615385
+      ]
+    },
+    {
+      "id": "D04",
+      "name": "door_bedroom2",
+      "kind": "door",
+      "wall_id": "W05",
+      "wall_name": "wall_north_corridor",
+      "offset_mm": 86.23076923076921,
+      "width_mm": 12.30769230769232,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 12.30769230769232,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 10.80769230769232,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        89.23076923076923,
+        0.0,
+        53.84615384615385
+      ]
+    },
+    {
+      "id": "D05",
+      "name": "door_bedroom3",
+      "kind": "door",
+      "wall_id": "W05",
+      "wall_name": "wall_north_corridor",
+      "offset_mm": 135.46153846153845,
+      "width_mm": 12.30769230769232,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 12.30769230769232,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 10.80769230769232,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "DOOR2",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        138.46153846153845,
+        0.0,
+        53.84615384615385
+      ]
+    },
+    {
+      "id": "D06",
+      "name": "door_master_bath",
+      "kind": "door",
+      "wall_id": "W06",
+      "wall_name": "wall_master_masterbath",
+      "offset_mm": 8.538461538461538,
+      "width_mm": 10.769230769230772,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 10.769230769230772,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 9.269230769230772,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "north",
+      "hinge_at_mm": [
+        60.0,
+        0.0,
+        11.538461538461538
+      ]
+    },
+    {
+      "id": "D07",
+      "name": "door_kitchen",
+      "kind": "door",
+      "wall_id": "W10",
+      "wall_name": "wall_kitchen_corridor",
+      "offset_mm": 0.0384615384615401,
+      "width_mm": 12.307692307692292,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 12.307692307692292,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 10.807692307692292,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "north",
+      "hinge_at_mm": [
+        44.61538461538461,
+        0.0,
+        55.38461538461539
+      ]
+    },
+    {
+      "id": "D08",
+      "name": "door_service_yard",
+      "kind": "door",
+      "wall_id": "W11",
+      "wall_name": "wall_kitchen_yard",
+      "offset_mm": 13.92307692307692,
+      "width_mm": 12.30769230769231,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 12.30769230769231,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 10.80769230769231,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "west",
+      "hinge_at_mm": [
+        16.923076923076923,
+        0.0,
+        87.69230769230768
+      ]
+    },
+    {
+      "id": "D09",
+      "name": "door_shelter",
+      "kind": "door",
+      "wall_id": "W12",
+      "wall_name": "wall_shelter_north",
+      "offset_mm": 4.65384615384616,
+      "width_mm": 12.3076923076923,
+      "height_mm": 32.30769230769231,
+      "source_width_mm": 12.3076923076923,
+      "physical_adjustment": "",
+      "sill_mm": 0.0,
+      "leaf_width_mm": 10.8076923076923,
+      "leaf_height_mm": 31.807692307692307,
+      "hardware_channel": "",
+      "movement": "face-mounted inward tape hinge",
+      "exterior": false,
+      "hinge_side": "east",
+      "hinge_at_mm": [
+        63.07692307692307,
+        0.0,
+        92.3076923076923
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "name": "master_bedroom",
+      "width_mm": 58.46153846153846,
+      "depth_mm": 52.30769230769231,
+      "source_area_m2": 12.92
+    },
+    {
+      "name": "master_bath",
+      "width_mm": 27.69230769230769,
+      "depth_mm": 30.76923076923077,
+      "source_area_m2": 3.6
+    },
+    {
+      "name": "common_bath",
+      "width_mm": 27.69230769230769,
+      "depth_mm": 21.538461538461537,
+      "source_area_m2": 2.52
+    },
+    {
+      "name": "bedroom2",
+      "width_mm": 49.23076923076925,
+      "depth_mm": 52.30769230769231,
+      "source_area_m2": 10.88
+    },
+    {
+      "name": "bedroom3",
+      "width_mm": 49.23076923076922,
+      "depth_mm": 52.30769230769231,
+      "source_area_m2": 10.88
+    },
+    {
+      "name": "kitchen",
+      "width_mm": 43.07692307692307,
+      "depth_mm": 33.84615384615384,
+      "source_area_m2": 6.16
+    },
+    {
+      "name": "service_yard",
+      "width_mm": 43.07692307692307,
+      "depth_mm": 29.230769230769237,
+      "source_area_m2": 5.32
+    },
+    {
+      "name": "household_shelter",
+      "width_mm": 24.615384615384624,
+      "depth_mm": 24.61538461538461,
+      "source_area_m2": 2.56
+    },
+    {
+      "name": "corridor",
+      "width_mm": 141.53846153846152,
+      "depth_mm": 15.384615384615392,
+      "source_area_m2": 9.2
+    },
+    {
+      "name": "corridor_lobby",
+      "width_mm": 24.615384615384624,
+      "depth_mm": 23.076923076923077,
+      "source_area_m2": 2.4
+    },
+    {
+      "name": "dining",
+      "width_mm": 43.07692307692307,
+      "depth_mm": 47.692307692307686,
+      "source_area_m2": 8.68
+    },
+    {
+      "name": "living",
+      "width_mm": 73.84615384615384,
+      "depth_mm": 47.692307692307686,
+      "source_area_m2": 14.88
+    }
+  ],
+  "hardware": {
+    "status": "SSTuino, servos, limit switches and buttons specified; exact parts, mounting sizes, pins and power pending",
+    "primary_controls": "Door and window states; app fans, AC and purifier controls are separate software controls",
+    "reserved_panel_mm": [
+      190,
+      65
+    ],
+    "panel_holes": "Do not cut until actual parts are measured"
+  },
+  "cardboard_sheets": {
+    "total": 2,
+    "existing_base_3mm": 1,
+    "extra_all_walls_3mm": 1,
+    "roof": false,
+    "horizontal_gap_mm": 2,
+    "vertical_gap_mm": 5,
+    "nesting": [
+      {
+        "file": "all-walls-stock.svg",
+        "placements": [
+          {
+            "wall_id": "W01",
+            "rect_mm": [
+              10,
+              10,
+              197.69230769230768,
+              50.0
+            ]
+          },
+          {
+            "wall_id": "W02",
+            "rect_mm": [
+              10,
+              55,
+              197.69230769230768,
+              95.0
+            ]
+          },
+          {
+            "wall_id": "W05",
+            "rect_mm": [
+              10,
+              100,
+              191.69230769230768,
+              140.0
+            ]
+          },
+          {
+            "wall_id": "W03",
+            "rect_mm": [
+              10,
+              145,
+              122.46153846153845,
+              185.0
+            ]
+          },
+          {
+            "wall_id": "W06",
+            "rect_mm": [
+              124.46153846153845,
+              145,
+              173.8076923076923,
+              185.0
+            ]
+          },
+          {
+            "wall_id": "W13",
+            "rect_mm": [
+              175.8076923076923,
+              145,
+              197.46153846153845,
+              185.0
+            ]
+          },
+          {
+            "wall_id": "W04",
+            "rect_mm": [
+              10,
+              190,
+              122.46153846153845,
+              230.0
+            ]
+          },
+          {
+            "wall_id": "W09",
+            "rect_mm": [
+              124.46153846153845,
+              190,
+              149.15384615384613,
+              230.0
+            ]
+          },
+          {
+            "wall_id": "W11",
+            "rect_mm": [
+              151.15384615384613,
+              190,
+              191.26923076923075,
+              230.0
+            ]
+          },
+          {
+            "wall_id": "W07",
+            "rect_mm": [
+              10,
+              235,
+              59.34615384615385,
+              275.0
+            ]
+          },
+          {
+            "wall_id": "W08",
+            "rect_mm": [
+              61.34615384615385,
+              235,
+              110.6923076923077,
+              275.0
+            ]
+          },
+          {
+            "wall_id": "W10",
+            "rect_mm": [
+              112.6923076923077,
+              235,
+              172.8076923076923,
+              275.0
+            ]
+          },
+          {
+            "wall_id": "W12",
+            "rect_mm": [
+              174.8076923076923,
+              235,
+              199.4230769230769,
+              275.0
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "furniture": [
+    {
+      "name": "sofa",
+      "width_mm": 33.84615384615384,
+      "depth_mm": 13.846153846153852,
+      "height_mm": 13.076923076923077,
+      "center_x_mm": 149.23076923076923,
+      "center_z_mm": 77.6923076923077,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "coffee_table",
+      "width_mm": 15.384615384615385,
+      "depth_mm": 8.46153846153846,
+      "height_mm": 6.923076923076923,
+      "center_x_mm": 149.23076923076923,
+      "center_z_mm": 92.3076923076923,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "tv_console",
+      "width_mm": 27.692307692307704,
+      "depth_mm": 6.1538461538461595,
+      "height_mm": 7.6923076923076925,
+      "center_x_mm": 149.23076923076923,
+      "center_z_mm": 112.3076923076923,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "dining_table",
+      "width_mm": 21.538461538461544,
+      "depth_mm": 12.307692307692305,
+      "height_mm": 11.538461538461538,
+      "center_x_mm": 90.76923076923076,
+      "center_z_mm": 92.3076923076923,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "dining_chair_1",
+      "width_mm": 6.923076923076926,
+      "depth_mm": 6.923076923076926,
+      "height_mm": 13.846153846153847,
+      "center_x_mm": 84.61538461538461,
+      "center_z_mm": 83.07692307692308,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "dining_chair_2",
+      "width_mm": 6.923076923076926,
+      "depth_mm": 6.923076923076926,
+      "height_mm": 13.846153846153847,
+      "center_x_mm": 96.9230769230769,
+      "center_z_mm": 83.07692307692308,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "dining_chair_3",
+      "width_mm": 6.923076923076926,
+      "depth_mm": 6.923076923076913,
+      "height_mm": 13.846153846153847,
+      "center_x_mm": 84.61538461538461,
+      "center_z_mm": 101.53846153846153,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "dining_chair_4",
+      "width_mm": 6.923076923076926,
+      "depth_mm": 6.923076923076913,
+      "height_mm": 13.846153846153847,
+      "center_x_mm": 96.9230769230769,
+      "center_z_mm": 101.53846153846153,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "bed_master_queen",
+      "width_mm": 23.846153846153843,
+      "depth_mm": 31.538461538461537,
+      "height_mm": 7.6923076923076925,
+      "center_x_mm": 30.76923076923077,
+      "center_z_mm": 20.76923076923077,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "wardrobe_master",
+      "width_mm": 27.69230769230769,
+      "depth_mm": 9.230769230769232,
+      "height_mm": 33.84615384615385,
+      "center_x_mm": 24.615384615384617,
+      "center_z_mm": 48.46153846153846,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "bed_bedroom2_single",
+      "width_mm": 15.384615384615385,
+      "depth_mm": 29.999999999999996,
+      "height_mm": 7.6923076923076925,
+      "center_x_mm": 98.46153846153845,
+      "center_z_mm": 20.0,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "wardrobe_bedroom2",
+      "width_mm": 18.461538461538453,
+      "depth_mm": 9.23076923076923,
+      "height_mm": 33.84615384615385,
+      "center_x_mm": 126.15384615384615,
+      "center_z_mm": 7.6923076923076925,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "study_desk_bedroom2",
+      "width_mm": 18.461538461538463,
+      "depth_mm": 9.230769230769226,
+      "height_mm": 11.538461538461538,
+      "center_x_mm": 123.07692307692308,
+      "center_z_mm": 47.69230769230769,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "bed_bedroom3_single",
+      "width_mm": 15.384615384615385,
+      "depth_mm": 29.999999999999996,
+      "height_mm": 7.6923076923076925,
+      "center_x_mm": 175.3846153846154,
+      "center_z_mm": 20.0,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "wardrobe_bedroom3",
+      "width_mm": 18.461538461538453,
+      "depth_mm": 9.23076923076923,
+      "height_mm": 33.84615384615385,
+      "center_x_mm": 149.23076923076923,
+      "center_z_mm": 7.6923076923076925,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "study_desk_bedroom3",
+      "width_mm": 18.461538461538453,
+      "depth_mm": 9.230769230769226,
+      "height_mm": 11.538461538461538,
+      "center_x_mm": 149.23076923076923,
+      "center_z_mm": 47.69230769230769,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "kitchen_counter_1",
+      "width_mm": 9.23076923076923,
+      "depth_mm": 33.84615384615384,
+      "height_mm": 13.846153846153847,
+      "center_x_mm": 7.6923076923076925,
+      "center_z_mm": 70.76923076923076,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "kitchen_counter_2",
+      "width_mm": 27.692307692307693,
+      "depth_mm": 9.230769230769226,
+      "height_mm": 13.846153846153847,
+      "center_x_mm": 26.153846153846157,
+      "center_z_mm": 60.0,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "fridge",
+      "width_mm": 10.769230769230772,
+      "depth_mm": 10.769230769230772,
+      "height_mm": 27.692307692307693,
+      "center_x_mm": 37.69230769230769,
+      "center_z_mm": 80.76923076923077,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "washing_machine",
+      "width_mm": 9.23076923076923,
+      "depth_mm": 9.230769230769226,
+      "height_mm": 13.076923076923077,
+      "center_x_mm": 8.461538461538462,
+      "center_z_mm": 109.23076923076923,
+      "base_y_mm": 0.0
+    }
+  ],
+  "devices": [
+    {
+      "name": "fan_living",
+      "width_mm": 18.461538461538453,
+      "depth_mm": 18.461538461538463,
+      "height_mm": 6.153846153846152,
+      "center_x_mm": 149.23076923076923,
+      "center_z_mm": 93.07692307692307,
+      "base_y_mm": 33.84615384615385
+    },
+    {
+      "name": "fan_dining",
+      "width_mm": 18.461538461538463,
+      "depth_mm": 18.461538461538463,
+      "height_mm": 6.153846153846152,
+      "center_x_mm": 90.76923076923077,
+      "center_z_mm": 92.3076923076923,
+      "base_y_mm": 33.84615384615385
+    },
+    {
+      "name": "fan_master",
+      "width_mm": 18.46153846153846,
+      "depth_mm": 18.461538461538463,
+      "height_mm": 6.153846153846152,
+      "center_x_mm": 30.76923076923077,
+      "center_z_mm": 26.153846153846157,
+      "base_y_mm": 33.84615384615385
+    },
+    {
+      "name": "fan_bedroom2",
+      "width_mm": 18.461538461538463,
+      "depth_mm": 18.461538461538456,
+      "height_mm": 6.153846153846152,
+      "center_x_mm": 112.30769230769229,
+      "center_z_mm": 27.692307692307693,
+      "base_y_mm": 33.84615384615385
+    },
+    {
+      "name": "fan_bedroom3",
+      "width_mm": 18.461538461538453,
+      "depth_mm": 18.461538461538456,
+      "height_mm": 6.153846153846152,
+      "center_x_mm": 161.53846153846155,
+      "center_z_mm": 27.692307692307693,
+      "base_y_mm": 33.84615384615385
+    },
+    {
+      "name": "ac_living",
+      "width_mm": 3.3846153846153944,
+      "depth_mm": 13.846153846153838,
+      "height_mm": 4.615384615384619,
+      "center_x_mm": 183.84615384615387,
+      "center_z_mm": 92.3076923076923,
+      "base_y_mm": 33.07692307692307
+    },
+    {
+      "name": "ac_master",
+      "width_mm": 3.3846153846153846,
+      "depth_mm": 13.846153846153845,
+      "height_mm": 4.615384615384619,
+      "center_x_mm": 3.8461538461538463,
+      "center_z_mm": 16.923076923076923,
+      "base_y_mm": 33.07692307692307
+    },
+    {
+      "name": "ac_bedroom2",
+      "width_mm": 13.846153846153852,
+      "depth_mm": 3.384615384615381,
+      "height_mm": 4.615384615384619,
+      "center_x_mm": 112.3076923076923,
+      "center_z_mm": 52.15384615384616,
+      "base_y_mm": 33.07692307692307
+    },
+    {
+      "name": "ac_bedroom3",
+      "width_mm": 13.846153846153852,
+      "depth_mm": 3.384615384615381,
+      "height_mm": 4.615384615384619,
+      "center_x_mm": 161.53846153846152,
+      "center_z_mm": 52.15384615384616,
+      "base_y_mm": 33.07692307692307
+    },
+    {
+      "name": "ac_condenser_yard",
+      "width_mm": 13.076923076923078,
+      "depth_mm": 5.38461538461538,
+      "height_mm": 10.0,
+      "center_x_mm": 35.38461538461539,
+      "center_z_mm": 112.3076923076923,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "purifier_living",
+      "width_mm": 4.615384615384613,
+      "depth_mm": 4.6153846153846265,
+      "height_mm": 9.23076923076923,
+      "center_x_mm": 118.46153846153845,
+      "center_z_mm": 74.61538461538461,
+      "base_y_mm": 0.0
+    },
+    {
+      "name": "purifier_master",
+      "width_mm": 4.615384615384613,
+      "depth_mm": 4.615384615384616,
+      "height_mm": 9.23076923076923,
+      "center_x_mm": 53.84615384615385,
+      "center_z_mm": 7.6923076923076925,
+      "base_y_mm": 0.0
+    }
+  ],
+  "controls": [
+    {
+      "label": "G01",
+      "app_object": "window_master_1",
+      "category": "window",
+      "wall": "W01",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "G02",
+      "app_object": "window_master_bath",
+      "category": "window",
+      "wall": "W01",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "G03",
+      "app_object": "window_bedroom2_1",
+      "category": "window",
+      "wall": "W01",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "G04",
+      "app_object": "window_bedroom3_1",
+      "category": "window",
+      "wall": "W01",
+      "control": "open / closed",
+      "hardware_channel": "WIN1",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "G05",
+      "app_object": "window_service_yard",
+      "category": "window",
+      "wall": "W02",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "D01",
+      "app_object": "main_door",
+      "category": "door",
+      "wall": "W02",
+      "control": "open / closed",
+      "hardware_channel": "DOOR1",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "G06",
+      "app_object": "window_living_1",
+      "category": "window",
+      "wall": "W02",
+      "control": "open / closed",
+      "hardware_channel": "WIN2",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "G07",
+      "app_object": "window_living_2",
+      "category": "window",
+      "wall": "W02",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "G08",
+      "app_object": "window_master_2",
+      "category": "window",
+      "wall": "W03",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "north"
+    },
+    {
+      "label": "G09",
+      "app_object": "window_kitchen",
+      "category": "window",
+      "wall": "W03",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "north"
+    },
+    {
+      "label": "G10",
+      "app_object": "window_bedroom3_2",
+      "category": "window",
+      "wall": "W04",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "north"
+    },
+    {
+      "label": "G11",
+      "app_object": "window_living_3",
+      "category": "window",
+      "wall": "W04",
+      "control": "open / closed",
+      "hardware_channel": "WIN3",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "north"
+    },
+    {
+      "label": "D02",
+      "app_object": "door_master_bedroom",
+      "category": "door",
+      "wall": "W05",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "D03",
+      "app_object": "door_common_bath",
+      "category": "door",
+      "wall": "W05",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "D04",
+      "app_object": "door_bedroom2",
+      "category": "door",
+      "wall": "W05",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "D05",
+      "app_object": "door_bedroom3",
+      "category": "door",
+      "wall": "W05",
+      "control": "open / closed",
+      "hardware_channel": "DOOR2",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "D06",
+      "app_object": "door_master_bath",
+      "category": "door",
+      "wall": "W06",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "north"
+    },
+    {
+      "label": "D07",
+      "app_object": "door_kitchen",
+      "category": "door",
+      "wall": "W10",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "north"
+    },
+    {
+      "label": "D08",
+      "app_object": "door_service_yard",
+      "category": "door",
+      "wall": "W11",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "west"
+    },
+    {
+      "label": "D09",
+      "app_object": "door_shelter",
+      "category": "door",
+      "wall": "W12",
+      "control": "open / closed",
+      "hardware_channel": "",
+      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "hinge_side": "east"
+    },
+    {
+      "label": "A01",
+      "app_object": "fan_living",
+      "category": "fan",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A02",
+      "app_object": "fan_dining",
+      "category": "fan",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A03",
+      "app_object": "fan_master",
+      "category": "fan",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A04",
+      "app_object": "fan_bedroom2",
+      "category": "fan",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A05",
+      "app_object": "fan_bedroom3",
+      "category": "fan",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A06",
+      "app_object": "ac_living",
+      "category": "AC",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A07",
+      "app_object": "ac_master",
+      "category": "AC",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A08",
+      "app_object": "ac_bedroom2",
+      "category": "AC",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A09",
+      "app_object": "ac_bedroom3",
+      "category": "AC",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A10",
+      "app_object": "purifier_living",
+      "category": "purifier",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    },
+    {
+      "label": "A11",
+      "app_object": "purifier_master",
+      "category": "purifier",
+      "wall": "",
+      "control": "on / off",
+      "hardware_channel": "",
+      "physical": "Web-app control; no physical switch required for the current build",
+      "hinge_side": ""
+    }
+  ]
+}

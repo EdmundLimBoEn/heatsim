@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297">
+<title>Wall elevation templates 1 / 4</title>
+<rect width="210" height="297" fill="white"/>
+<style>text{font-family:Arial,sans-serif;fill:#17332e}</style>
+<text x="10.00000" y="12.00000" font-size="3" text-anchor="start" font-weight="bold">HEATSIM / PHYSICAL BUILD</text>
+<text x="10.00000" y="21.00000" font-size="5" text-anchor="start" font-weight="bold">Wall elevations / 1 of 4</text>
+<text x="10.00000" y="27.00000" font-size="2.6" text-anchor="start" font-weight="normal">Actual-size templates. Left = west/north. Coloured holes are removed; magenta marks hinge edge.</text>
+<text x="10.00000" y="37.00000" font-size="2.7" text-anchor="start" font-weight="normal">ext north / 3 mm card</text>
+<rect x="10.00000" y="40.00000" width="187.69231" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="43.20000" font-size="2.1" text-anchor="start" font-weight="bold">W01 · 187.69 × 40</text>
+<rect x="28.46154" y="47.69231" width="24.61538" height="18.46154" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="40.76923" y="56.92308" font-size="2.4" text-anchor="middle" font-weight="bold">G01</text>
+<rect x="79.23077" y="47.69231" width="9.23077" height="9.23077" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="83.84615" y="52.30769" font-size="2.4" text-anchor="middle" font-weight="bold">G02</text>
+<rect x="111.53846" y="47.69231" width="21.53846" height="18.46154" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="122.30769" y="56.92308" font-size="2.4" text-anchor="middle" font-weight="bold">G03</text>
+<rect x="160.76923" y="47.69231" width="21.53846" height="18.46154" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="171.53846" y="56.92308" font-size="2.4" text-anchor="middle" font-weight="bold">G04</text>
+<line x1="10.00000" y1="81.00000" x2="15.00000" y2="81.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="85.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 187.6923 mm; mark 187.7 mm. Height 40 mm.</text>
+<text x="10.00000" y="92.00000" font-size="2.7" text-anchor="start" font-weight="normal">ext south / 3 mm card</text>
+<rect x="10.00000" y="95.00000" width="187.69231" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="98.20000" font-size="2.1" text-anchor="start" font-weight="bold">W02 · 187.69 × 40</text>
+<rect x="22.30769" y="102.69231" width="21.53846" height="18.46154" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="33.07692" y="111.92308" font-size="2.4" text-anchor="middle" font-weight="bold">G05</text>
+<rect x="87.69231" y="102.69231" width="13.84615" height="32.30769" fill="#fff" stroke="#a8552b" stroke-width="0.2" stroke-dasharray=""/>
+<text x="94.61538" y="118.84615" font-size="2.4" text-anchor="middle" font-weight="bold">D01</text>
+<line x1="87.69231" y1="103.69231" x2="87.69231" y2="134.00000" stroke="#b3518d" stroke-width="0.55"/>
+<rect x="131.53846" y="101.15385" width="24.61538" height="26.15385" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="143.84615" y="114.23077" font-size="2.4" text-anchor="middle" font-weight="bold">G06</text>
+<rect x="165.38462" y="101.15385" width="24.61538" height="26.15385" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="177.69231" y="114.23077" font-size="2.4" text-anchor="middle" font-weight="bold">G07</text>
+<line x1="10.00000" y1="136.00000" x2="15.00000" y2="136.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="140.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 187.6923 mm; mark 187.7 mm. Height 40 mm.</text>
+<text x="10.00000" y="147.00000" font-size="2.7" text-anchor="start" font-weight="normal">ext west / 3 mm card</text>
+<rect x="10.00000" y="150.00000" width="112.46154" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="153.20000" font-size="2.1" text-anchor="start" font-weight="bold">W03 · 112.46 × 40</text>
+<rect x="25.46154" y="157.69231" width="18.46154" height="18.46154" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="34.69231" y="166.92308" font-size="2.4" text-anchor="middle" font-weight="bold">G08</text>
+<rect x="68.53846" y="159.23077" width="18.46154" height="15.38462" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="77.76923" y="166.92308" font-size="2.4" text-anchor="middle" font-weight="bold">G09</text>
+<line x1="10.00000" y1="191.00000" x2="15.00000" y2="191.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="195.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 112.4615 mm; mark 112.5 mm. Height 40 mm.</text>
+<text x="10.00000" y="202.00000" font-size="2.7" text-anchor="start" font-weight="normal">ext east / 3 mm card</text>
+<rect x="10.00000" y="205.00000" width="112.46154" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="208.20000" font-size="2.1" text-anchor="start" font-weight="bold">W04 · 112.46 × 40</text>
+<rect x="27.00000" y="212.69231" width="15.38462" height="18.46154" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="34.69231" y="221.92308" font-size="2.4" text-anchor="middle" font-weight="bold">G10</text>
+<rect x="90.07692" y="211.15385" width="18.46154" height="26.15385" fill="#fff" stroke="#2273a1" stroke-width="0.2" stroke-dasharray=""/>
+<text x="99.30769" y="224.23077" font-size="2.4" text-anchor="middle" font-weight="bold">G11</text>
+<line x1="10.00000" y1="246.00000" x2="15.00000" y2="246.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="250.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 112.4615 mm; mark 112.5 mm. Height 40 mm.</text>
+<line x1="10.00000" y1="280.00000" x2="60.00000" y2="280.00000" stroke="#526d66" stroke-width="0.6"/>
+<line x1="10.00000" y1="278.00000" x2="10.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<line x1="60.00000" y1="278.00000" x2="60.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<text x="35.00000" y="286.00000" font-size="2.5" text-anchor="middle" font-weight="normal">50 mm — measure before cutting</text>
+<text x="200.00000" y="280.00000" font-size="2.7" text-anchor="end" font-weight="bold">A4 · Actual size / 100%</text>
+<text x="200.00000" y="286.00000" font-size="2.5" text-anchor="end" font-weight="normal">All dimensions in mm · 1:65 scale</text>
+<text x="10.00000" y="293.00000" font-size="1.8" text-anchor="start" font-weight="normal">Written by gpt-6-astra in Codex on behalf of Edmund</text>
+</svg>

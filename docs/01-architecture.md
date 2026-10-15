@@ -1,5 +1,34 @@
 # 01 · Architecture
 
+## MVP amendment · implemented architecture
+
+**This section supersedes the original 3D/WebGPU architecture below.** The default and only live solver is the documented 2D fallback. See [simulation details](02-simulation.md), [run commands](../README.md) and [verification status](../CHECKLIST.md).
+
+All runtime work stays in the browser. `src/domain.ts` imports the canonical `assets/hdb-3d/hdb_4room_boxes.json`; the renderer and simulation use that geometry. There is no backend, account system, deployment dependency, live weather request or sensor feed. The app works with no board attached.
+
+| Implemented module | Responsibility |
+|---|---|
+| `src/app.ts` | DOM controls, current `Conditions`, scenarios, keyboard access, simulation clock, readings, exports and optimiser UI. |
+| `src/domain.ts` | Shared geometry, `Conditions`, room readings and `PlanField` contract. |
+| `src/plan-simulation.ts` | 64 × 48 floor-plan mask, steady pressure-flow approximation, heat/haze transport and room summaries. |
+| `src/scene.ts`, `src/scene-field.ts` | three.js WebGL scene built from JSON, opening/device animations, masked field texture and display tracers. |
+| `src/simulation.ts` | Six scenario records and presets; also contains a tested emergency well-mixed room model that the main app does not select. |
+| `src/config/slots.ts`, `src/config/mapping.ts` | Shared portable-device locations and exact hardware-to-opening names. |
+| `src/io/protocol.ts`, `src/hardware.ts`, `src/main.ts` | Pure protocol parser, optional Web Serial lifecycle and idempotent app/board state synchronization. |
+| `src/optimiser.ts`, `src/optimiser.worker.ts` | Same 2D engine in a dedicated worker; compares fresh scenarios and returns layouts for explicit Apply. |
+| `scripts/build-pack.py` | A4 templates, exact cut schedules, clearance checks and shareable ZIP. |
+
+The frame loop advances `stepSimulation(previous, conditions, deltaSeconds)` on the main thread and paints the HUD/scene data about four times per second. Rendering has its own animation loop. Playback offers 1×, 30× and 60×; elapsed simulation time and energy use the amount actually advanced. Hidden tabs do not advance. Frame delta is capped at 0.25 real seconds to avoid a large catch-up stall.
+
+The solver retains cached flow/source data while controls are unchanged. Fields are ordinary typed arrays, with no GPU readback. Nonfinite field values are bounded/recovered; unexpected simulation errors pause the loop with a notice. Optimiser work is isolated in a cancellable worker and a failed comparison does not replace the current layout.
+
+USB is optional. The default sketch defines two switch inputs and has servo outputs disabled. Actual board connection/upload remains pending board arrival; see [hardware guide](hardware.md). There is no WebSocket bridge or automatic 3D backend selection in this MVP.
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
+<details>
+<summary>Original roadmap / reference specification — not a statement of shipped functionality</summary>
+
 ## Runtime picture
 Everything runs on **one M4 Pro MacBook in Chrome** from `http://localhost` (a Vite dev server or `vite preview`). Web Serial and WebGPU both need a secure context, and `localhost` counts as one [U: confirm on the day by opening the page and checking `window.isSecureContext`]. There is no backend. The optional Bun bridge is a local helper process.
 
@@ -77,3 +106,5 @@ Every input path (hardware line, keyboard, on-screen button, scenario preset, op
 - If `navigator.gpu` is missing or `requestAdapter()` returns null: show a banner and switch to `fallback2d` automatically. The UI, protocol and optimiser keep working.
 - A serial disconnect must never crash the sim. Show "Model disconnected" and keep keyboard control.
 - Optimiser errors are caught in the worker and reported in the panel.
+
+</details>

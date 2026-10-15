@@ -97,14 +97,14 @@ manifest = dict(scale=SCALE, units='mm', outside_footprint_mm=[W,D], wall_height
                 material_thickness_mm=dict(exterior=EXT,interior=INT),
                 coordinate_origin='Outer northwest corner; x east, z south, y above floor',
                 walls=walls, openings=openings, rooms=rooms,
-                hardware=dict(status='SSTuino, servos, limit switches and buttons specified; exact parts, mounting sizes, pins and power pending',
+                hardware=dict(status='SSTuino planned but not yet available; servos, limit switches and buttons listed by the user; fitting, exact parts, mounting sizes, pins and power pending',
                               primary_controls='Door and window states; app fans, AC and purifier controls are separate software controls',
                               reserved_panel_mm=[190,65], panel_holes='Do not cut until actual parts are measured'))
 OUT.mkdir(parents=True, exist_ok=True)
 (OUT/'dimensions.json').write_text(json.dumps(manifest,indent=2)+'\n')
 def csv_file(name, rows):
     with (OUT/name).open('w',newline='') as f:
-        writer = csv.DictWriter(f,fieldnames=list(rows[0]))
+        writer = csv.DictWriter(f,fieldnames=list(rows[0]),lineterminator='\n')
         writer.writeheader()
         writer.writerows(rows)
 csv_file('cut-list.csv',[{k:round(v,4) if isinstance(v,float) else v for k,v in w.items() if k != 'openings'} for w in walls])
@@ -175,7 +175,7 @@ s.text(10,191,'ROOM LABELS ARE SOURCE ROOM RECTANGLES, NOT CLEAR INTERNAL DIMENS
 s.text(10,197,'All walls: 3 mm cardboard. Interior joints adjusted; D02 doorway narrowed to clear its partition. Keep cardboard inside the green footprints.',2.5)
 s.rect(10,205,190,65,stroke='#7d9690',dash='2 2')
 s.text(15,214,'REMOVABLE CONTROLS / ELECTRONICS AREA — 190 × 65 mm',2.8,weight='bold')
-s.text(15,221,'SSTuino + door/window buttons, limit switches and servo connections.',2.6)
+s.text(15,221,'SSTuino planned, not yet available. Buttons / servos listed; fitting pending.',2.6)
 s.text(15,227,'Layout reserve only. Measure actual boards, servo travel and cable plugs first.',2.6)
 s.text(15,233,'Do not cut mounting holes from this drawing. No pin assignments implied.',2.6)
 s.text(15,245,'Keep moving leaves and wires inside the A4 base. Use removable wiring routes.',2.5)
@@ -222,7 +222,7 @@ md+='''
 
 The model has **9 doors and 11 windows**. All openings and leaf clearances are in `openings.csv`. Offsets are from each panel's west/north cut end, not its centre. Sill is height above the floor. Cutout width/height are exact; reuse the 3 mm wall cutout scraps as leaves and trim 1.5 mm from door width (0.75 mm per side) and 0.5 mm from door height. Window lift-out inserts subtract 0.5 mm from both width and height. D09 (shelter) hinges on its east/right edge; other doors hinge on the west/left or north/start edge as listed in the schedule. Window inserts lift out using tape pull-tabs; sliding rails are optional and require clearance checks with the real servo. Use face-mounted tape hinges on the inside of the wall, so the 3 mm door leaves sit proud of the wall face when closed and swing inward. Check the actual thickness and travel before gluing. Clear scrap plastic may replace window leaves, but is optional.
 
-The confirmed controller is **SSTuino**, with **servos, limit switches and buttons** for basic door/window interaction with the web app. Reserve **190 × 65 mm** on the unused A4 base for a removable control panel. This is a planning area, not a guarantee that unspecified components fit. Mounting holes, servo brackets, travel clearances, power and pin assignments remain pending actual parts and measurements. Do not cut hardware holes yet. Keep all hardware and leaf motion inside the A4 sheet. App fan, AC and purifier toggles are separate software controls; they do not require 11 additional physical switches.
+The planned controller is **SSTuino**, but the board is **not yet available**. The user has listed **servos, limit switches and buttons** for basic door/window interaction with the web app; physical fitting remains pending. Reserve **190 × 65 mm** on the unused A4 base for a removable control panel. This is a planning area, not a guarantee that unspecified components fit. Mounting holes, servo brackets, travel clearances, power and pin assignments remain pending actual parts and measurements. Do not cut hardware holes yet. Keep all hardware and leaf motion inside the A4 sheet. App fan, AC and purifier toggles are separate software controls; they do not require 11 additional physical switches.
 
 ## Fast assembly order
 
@@ -230,7 +230,7 @@ The confirmed controller is **SSTuino**, with **servos, limit switches and butto
 2. Measure stock thickness. Mark and cut wall rectangles, then the door and window holes. Label each panel W01–W13 on its underside.
 3. Dry-fit the exterior rectangle; confirm 187.7 × 118.5 mm overall before gluing. Place all remaining walls over their printed footprints using the butt joints above.
 4. Reinforce narrow door junctions with tape. Add tape-hinged door leaves and lift-out window inserts, checking full travel with furniture and walls in place.
-5. Make the removable control panel after measuring the actual SSTuino, buttons and servo assemblies. Route cables away from hinge travel; keep the model roofless.
+5. Once the SSTuino is available, measure it and the buttons and servo assemblies before making the removable control panel. Route cables away from hinge travel; keep the model roofless.
 6. Add optional paper furniture and labels only after the model and controls work. Demonstrate each physical input against the matching web-app state.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
@@ -325,7 +325,7 @@ csv_file('devices.csv',devices)
 controls=[]
 for o in openings:
     controls.append(dict(label=o['id'],app_object=o['name'],category=o['kind'],wall=o['wall_id'],
-                         control='open / closed',hardware_channel=o['hardware_channel'],physical='SSTuino button / limit switch / servo channel; mapping pending actual hardware',
+                         control='open / closed',hardware_channel=o['hardware_channel'],physical='Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending',
                          hinge_side=o['hinge_side']))
 for b in devices:
     if b['name']=='ac_condenser_yard': continue
@@ -359,7 +359,7 @@ page='''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="v
 page+='''<div class="screen-only"><div class="eyebrow">HEATSIM / BUILDER HANDOFF / 1:65</div><h1>One flat.<br>Two sheets of cardboard.</h1><p class="lead">The complete physical model fits on your A4 base. Start with the floor plan, then cut all 13 walls from one extra sheet of 3 mm card. The layout follows the digital apartment, with butt joints and one doorway adjusted for the thicker physical card.</p><div class="metrics"><div class="metric"><strong>187.69 × 118.46 mm</strong><span>Outside building footprint · fits 200 × 150 mm</span></div><div class="metric"><strong>40 mm</strong><span>Wall height · 13 panels · 20 moving openings</span></div><div class="metric"><strong>1 extra A4 sheet</strong><span>Existing 3 mm base + 3 mm wall stock · no roof</span></div></div><div class="note"><strong>Print at 100% / Actual size.</strong> Disable “Fit to page” and browser headers/footers, and measure the 50 mm calibration bar. The two-sheet cardboard count is base + all walls, with no roof. Reuse the cutout scraps for moving leaves. Paper templates, tape and hardware are separate.</div><div class="downloads"><button onclick="window.print()">Print templates &amp; schedules</button>'''
 page+=''.join(f'<a href="{name}" download>{label}</a>' for name,label in links)+'</div></div>'
 page+='<div class="sheet">'+(OUT/'floor-plan.svg').read_text()+'</div>'
-page+='''<section class="screen-only"><h2>Get the material right</h2><div class="grid2"><div><h3>Exactly 2 A4 sheets total</h3><ul><li><strong>1 existing A4 base</strong> — 210 × 297 mm. Use your existing 3 mm cardboard.</li><li><strong>1 extra A4 of 3 mm card</strong> — all 13 walls in six rows.</li><li><strong>No roof.</strong> Reuse wall cutouts for moving door/window leaves.</li></ul><p class="small">The nesting layout keeps 10 mm outer margins, 2 mm horizontal cut gaps and 5 mm between rows. No other cardboard thickness is required. Use tape hinges; optional furniture can use scraps.</p></div><div><h3>Check the real electronics first</h3><p class="small">SSTuino, servos, limit switches and buttons control the doors/windows. A 190 × 65 mm removable electronics area is reserved on the A4 base. This is a space allowance, not a hardware mounting template.</p><p class="small"><strong>Do not cut servo, button or board holes before measuring the actual parts.</strong> Pins, channels, power and mounting dimensions are not defined by this mechanical pack. The app’s 11 fan/AC/purifier controls are software controls; they do not demand 11 extra physical switches.</p></div></div></section>'''
+page+='''<section class="screen-only"><h2>Get the material right</h2><div class="grid2"><div><h3>Exactly 2 A4 sheets total</h3><ul><li><strong>1 existing A4 base</strong> — 210 × 297 mm. Use your existing 3 mm cardboard.</li><li><strong>1 extra A4 of 3 mm card</strong> — all 13 walls in six rows.</li><li><strong>No roof.</strong> Reuse wall cutouts for moving door/window leaves.</li></ul><p class="small">The nesting layout keeps 10 mm outer margins, 2 mm horizontal cut gaps and 5 mm between rows. No other cardboard thickness is required. Use tape hinges; optional furniture can use scraps.</p></div><div><h3>Check the real electronics first</h3><p class="small">SSTuino is planned but the board is not yet available. The user has listed servos, limit switches and buttons for door/window control; physical fitting is pending. A 190 × 65 mm removable electronics area is reserved on the A4 base. This is a space allowance, not a hardware mounting template.</p><p class="small"><strong>Do not cut servo, button or board holes before measuring the actual parts.</strong> Pins, channels, power and mounting dimensions are not defined by this mechanical pack. The app’s 11 fan/AC/purifier controls are software controls; they do not demand 11 extra physical switches.</p></div></div></section>'''
 for filename,_,_ in stock_layouts:
     page+='<div class="sheet template">'+(OUT/filename).read_text()+'</div>'
 page+='<div class="sheet template">'+(OUT/'door-window-leaves.svg').read_text()+'</div>'
@@ -375,5 +375,9 @@ print('PASS: no wall overlaps; 2 A4 sheets total, all 3 mm, no roof; stock nesti
 with zipfile.ZipFile(OUT/'heatsim-build-pack.zip','w',zipfile.ZIP_DEFLATED) as bundle:
     for path in sorted(OUT.iterdir()):
         if path.is_file() and path.suffix!='.zip':
-            bundle.write(path,path.name)
+            entry = zipfile.ZipInfo(path.name,date_time=(1980,1,1,0,0,0))
+            entry.compress_type = zipfile.ZIP_DEFLATED
+            entry.create_system = 3
+            entry.external_attr = 0o100644 << 16
+            bundle.writestr(entry,path.read_bytes())
 print('Shareable ZIP generated: heatsim-build-pack.zip')

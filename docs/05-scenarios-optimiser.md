@@ -1,7 +1,9 @@
 # 05 · Scenarios and placement optimiser
 
-## 1. Scenario presets (`src/config/scenarios.ts`) [D, all numbers illustrative]
-Heat and haze come **only** from these presets (no sensors, no live API). Each scenario sets the OUTSIDE reservoir and initial indoor fields, then the user or hardware toggles openings and devices.
+**Demo implementation:** the app and optimiser use the spatial **2D plan-view toy CFD** in `src/plan-simulation.ts`. The original 3D WebGPU LBM design is deferred. This document describes the implemented fallback, including its limits.
+
+## 1. Scenario presets (`SCENARIOS` and `PRESETS` in `src/simulation.ts`) [V code; all numbers illustrative]
+Heat and haze come **only** from these presets or the on-screen scenario controls (no sensors, no live API). Each scenario sets the outdoor boundary conditions and initial indoor fields, then the user or hardware toggles openings and devices.
 
 Façade naming follows the JSON plan: **N = z<0 side** (master, bedroom2, bedroom3 windows), **S = z>7.5** (living windows, service yard window, main door), **W = x<0** (master window 2, kitchen window), **E = x>12** (bedroom3 window 2, living window 3).
 
@@ -12,18 +14,19 @@ Façade naming follows the JSON plan: **N = z<0 side** (master, bedroom2, bedroo
 | 3 `E` | `haze_outside` | Haze outside | 31 | **200** | 30 | 40 | none | S | yes | none |
 | 4 `R` | `hot_haze` | Hot + hazy | 34 | 150 | 31 | 40 | W | S | yes | none |
 | 5 `T` | `night_cool` | Evening cool-down | 27 | 20 | 31 | 15 | none | N (ρ 1.002) | yes | none |
-| 6 `Y` | `validation` | Validation case (matches doc 06) | 33 | 100 | 28 | 0 | none | N (ρ 1.003) | 100 W heat block in bedroom3 | per the 4 validation sub-cases |
+| 6 `Y` | `validation` | Validation case (setup from doc 06) | 33 | 100 | 28 | 0 | none | N (ρ 1.003) | 100 W heat block in bedroom3 | internal doors open; exterior openings selected manually |
 
-- The haze value 200 is anchored to the real NEA reading of **203 µg/m³ 1-h PM2.5 (west), 14 Oct 2026 9 PM** [V, from heat-haze-plan.md]. The UI labels it "scenario value inspired by NEA 14 Oct 2026", not live data.
-- Leeward and other façades: ρ = 1.000. TOP: 1.000.
-- Changing scenario: rewrite the OUTSIDE cells, reset the fields to the initial values, warm up 300 steps (doc 02 §5.7), and keep the openings and devices as they are unless the scenario has "Default open".
-- The UI shows the scenario's one-line story, e.g. "Haze outside: PM2.5 200 outside. Should Mdm Tan open the window?"
+- The original planning notes cite **203 µg/m³ 1-h PM2.5 (west), 14 Oct 2026 9 PM** as inspiration for the 200 haze preset. The application treats 200 as an illustrative scenario value and fetches no live NEA data.
+- The density values in the table remain scenario metadata from the LBM design. The implemented 2D pressure solve uses the windward façade and a heuristic pressure proportional to wind speed; it does not simulate lattice density. Preset wind speed is 1.2 m/s for `baseline` and `night_cool`, and 1.8 m/s otherwise.
+- Fresh preset objects start with devices off and openings closed, except validation's internal doors. In the UI, **changing scenario preserves the existing windows, doors, device states, positions and AC setpoint**, resets indoor fields and simulated time, and clears old optimiser results. Selecting `validation` additionally opens all internal doors; exterior openings and devices remain as set.
+- The fallback starts immediately from the specified indoor fields; there is no hidden 300-step LBM warm-up. Preset time is 20:00 for `night_cool` and 14:00 otherwise. Time of day scales west-sun heating. Humidity is a fixed comfort assumption, not a simulated moisture field.
+- The UI shows each scenario's one-line story, e.g. "PM2.5 is 200 outdoors. Should Mdm Tan open the window?"
 
 ## 2. Demo storyline using the presets
 1. `haze_outside`, all closed → indoor C stays low but T creeps up (people).
-2. Open WIN1 (bedroom3) and DOOR1 (main door) on the model → cross-flow; haze floods in along the corridor (particles turn brown).
-3. Close the windows, turn the purifier on at a bad slot → small effect. Press **Optimise** → it moves the purifier and fan and shows "−xx% haze in occupied rooms".
-4. Switch to `hot_afternoon` → the west rooms heat. Optimise with AC allowed vs fan-only → shows the energy trade-off (SDG 13).
+2. Open the **Bedroom 3 internal door** with `Shift+2` (`DOOR2`), then open WIN1 (bedroom3 north window, `1`) and DOOR1 (main door, `Shift+1`). All three must be open for the bedroom3 → corridor → dining ventilation path. Haze can then enter and spread along this path. For the separate validation demonstration, `Y` opens internal doors automatically; select the exterior openings manually.
+3. Close the windows, turn the purifier on at a chosen slot, then press **Compare layouts** (`O`). Review the suggested positions and the measured **combined heat + haze + power score**, then press **Apply** (`Enter`). The percentage is improvement in this combined score, not a percentage reduction in haze alone.
+4. Switch to `hot_afternoon` → the west rooms heat. Compare AC allowed vs fan-only to show the power trade-off (SDG 13). An allowed device can remain off if its benefit does not outweigh its power cost. Do not promise a positive improvement: the current layout may already be best.
 
 ## 3. Device slots (`src/config/slots.ts`) [D, positions in metres; snap to the nearest valid FLUID region at load]
 Yaw convention: `d = (sin yaw, 0, cos yaw)`, so **yaw 0° = south (+z), 90° = east (+x), 180° = north, 270° = west**. Hardware `FANANG` 0..180 maps to `yaw = baseYaw + (FANANG − 90)`.
@@ -49,55 +52,99 @@ Purifier slots (`PURPOS`):
 
 AC units: the four wall units in the JSON (`ac_living`, `ac_master`, `ac_bedroom2`, `ac_bedroom3`). At most one is on at a time today (keeps the UI simple).
 
-## 4. Optimiser (`src/optimiser/`, runs in a dedicated Web Worker) [D]
-### Problem
-Given the scenario and the user's current openings, choose a layout from a **budget** preset (UI dropdown):
-- `fan` = 1 portable fan
-- `fan+purifier` (default)
-- `fan+purifier+ac`
-- Option checkbox **"also suggest windows/doors"** (default ON): mapped openings only (doc 04 §3), so the result can be actuated on the model.
+## 4. Optimiser (`src/optimiser.ts`, `src/optimiser.worker.ts`) [V code and tests]
 
-Minimise the score `J` from doc 02 §6 (occupied-zone heat excess + haze + energy). Lower is better.
+### Problem and score
+Given a snapshot of the scenario and controls, compare layouts within an **available-device budget**:
 
-### Candidates
-- Fan: 5 slots × yaw offsets {−90, −45, 0, +45, +90} × speed 2 = **25**
-- Purifier: **6** slots
-- AC: **4** units, `setC = 25 °C`
-- Openings: each mapped opening toggled from the current state (**≤5**)
+- `fan`: at most one portable fan.
+- `fan+purifier` (default): at most one portable fan and one purifier.
+- `fan+purifier+ac`: also permit one of the four AC units, at 25 °C.
+- **"Also suggest windows and doors"** (default ON): only the five openings in `HARDWARE_OPENINGS` (doc 04 §3).
 
-### Greedy search
+Budgets allow equipment; they do not require it to be on. New proposals disable the existing fixed fans, fixed purifiers and AC units, then consider the devices above. The user's exact current layout is always retained as a comparison candidate, even if it uses more devices than the selected budget. If it wins, the recommendation can be to keep it.
+
+The score is computed from the final simulated room readings, with each room weighted by its JSON `area_m2`:
+
+```text
+A = sum(room.area_m2)
+heat  = sum(area × max(0, room.feelsLike − 28)) / A
+haze  = sum(area × room.pm25 / 35) / A
+power = result.powerWatts / 1000
+J = heat + haze + power
 ```
-layout = user's current openings, no devices
-if suggestOpenings: for each mapped opening (in order): try toggle; keep if J improves by >2%
-for device in budget order [ac?, purifier, fan]:     # big effects first
-    best = argmin over candidates(device) of evaluate(layout + candidate)
-    layout += best
-return top 3: final layout, plus the final layout with 2nd/3rd best choice for the last device
-also: J_you = evaluate(user's current layout)       # for "you vs optimiser"
+
+The API calls the power contribution `breakdown.energy`; it is **instantaneous illustrative power in kW**, not accumulated kWh. The weights on haze and power are both 1. The plan engine derives `feelsLike` from room temperature and airflow, with its fixed humidity comfort adjustment:
+
+```text
+feelsLike = T + max(0, T − 24) × max(0, humidity − 40) / 100 − min(3, 2.5 × speed)
 ```
-About 40 evaluations in total.
 
-### evaluate(layout)
-- A fresh sim from the scenario's initial state with the layout applied: run **1,200 steps** (12 s sim time at dt = 0.01 s) and average J over the last 300 steps (sample every 50 steps).
-- **Engine:** the same TS sim engine. It prefers **WebGPU inside the worker** at the `default` grid (Chrome supports `navigator.gpu` in dedicated workers [U, verify with a 5-line test first]). Otherwise it uses the **CPU reference at the `coarse` grid** (dx = 0.4, dt = 0.02 s, 600 steps). The UI shows which engine it used.
-- Deterministic: no randomness in the physics, so the same input always gives the same J.
-- Budget: the whole optimiser run should take **≤ 30 s** [U, not benchmarked]. If the first evaluation takes > 1 s, automatically halve the steps and show "fast mode".
-- While it runs, reduce the main sim's `stepsPerFrame` to 4 so the live view stays smooth.
+This is an illustrative comfort proxy, not a recognised heat-index or health standard. Room means come from the plan grid; there is no 3D occupied-height zone in this fallback. Lower `J` is better. The percentage is `100 × (J_you − J_suggestion) / J_you`, or zero when `J_you = 0`. Nonfinite or invalid readings fail the comparison instead of producing a recommendation.
 
-### Worker message API
+### Candidates and greedy search
+
+- Fan: 5 slots × hardware angles **{45°, 90°, 135°}**, all at speed 2 = **15 candidates**. These correspond to yaw offsets {−45°, 0°, +45°} from the slot's base heading.
+- Purifier: **6** slots, when allowed.
+- AC: **4** units, when allowed; setpoint 25 °C.
+- Openings: sequentially toggle each of the five mapped openings from the current greedy layout.
+- Include the unchanged user layout and the same openings with all devices off.
+
+```text
+score the user's exact current layout first
+layout = user's openings, devices off
+if suggestOpenings:
+    for each mapped opening:
+        score layout with that opening toggled
+        retain the toggle for later stages only if J improves by more than 2%
+for device in [AC if allowed, purifier if allowed, fan]:
+    score its candidates added to the current layout
+    keep the best improvement, or leave this device off
+return the three lowest-J distinct evaluated layouts, including the user's layout in the candidate pool
+```
+
+All evaluated candidates, including intermediate layouts, are eligible for the result. Repeated identical layouts reuse their score. There are **at most 32 evaluations**: 2 baselines + 5 openings + 4 AC + 6 purifier + 15 fan. With an initially empty layout the two baselines coincide, reducing the count by one. This is a bounded greedy search, not an exhaustive or globally optimal search. The first recommendation is never worse than the scored user layout; alternatives may be worse when fewer improvements exist.
+
+### Evaluation and runtime budget
+
+- Every candidate starts from the **same scenario's initial temperature and haze fields**, with that candidate's controls applied. It does not inherit the current live field or any previous candidate's field.
+- Run the same `createSimulation` / `stepSimulation` implementation as the live app in a dedicated worker: **240 calls × 0.5 simulated seconds = 120 simulated seconds**. The solver takes its own stable substeps within those calls.
+- Score the final 120-second reading. There is no final-window averaging and no WebGPU or coarse 3D LBM evaluation in this demo. The report identifies the engine as **`2d-plan`**.
+- Physics and candidate order are deterministic. Every completed candidate gets the same simulated duration, including when the run is time-limited.
+- The search stops starting new evaluations after a **25-second soft deadline**, returning already evaluated layouts with `partial: true`. Such a result can contain fewer than three layouts.
+- The main thread terminates the worker after **29 seconds** if no result arrives, reports an error, and leaves the user's controls unchanged. Cancel, replacement runs and disposal also terminate the worker. Worker errors and message-decoding errors are caught; stale worker events are ignored.
+- The live simulation continues independently. There is no LBM `stepsPerFrame` setting to change in this fallback.
+
+[V] During implementation, actual Bun worker runs completed a 27-evaluation haze `fan+purifier` comparison in about 6.4 seconds and a 31-evaluation full-budget comparison in about 7.4 seconds. These are local runtime checks, not a Chrome frame-rate guarantee. Unit tests cover deterministic ranking, budgets, mapped openings, baseline retention, invalid results, cancellation, progress and worker lifecycle failures.
+
+### Worker and app APIs
+
 ```ts
+// App API (src/optimiser.ts)
+createOptimiser({ onProgress, onResult, onError })
+// returns { run(conditions, budget, suggestOpenings), cancel(), dispose() }
+
 // main → worker
-{ type: "run", gridPreset, scenario, openings, mappedOpenings, budget, suggestOpenings, params }
-{ type: "cancel" }
+{ type: "run", conditions, budget, suggestOpenings }
+// Cancellation terminates the worker; there is no cancel message.
+
 // worker → main
-{ type: "progress", done: number, total: number, bestJ: number }
-{ type: "result", engine: "webgpu"|"cpu-coarse",
-  you: { J, breakdown: { heat, haze, energy } },
-  layouts: Array<{ openings, fan?, purifier?, ac?, J, breakdown, improvementPct }> }   // 3 entries, best first
-{ type: "error", message: string }
+{ type: "progress", progress: { done, total, bestJ } }
+{ type: "result", report: {
+  engine: "2d-plan",
+  you: { conditions, result, J, breakdown: { heat, haze, energy }, improvementPct },
+  layouts: [{ conditions, result, J, breakdown, improvementPct }],
+  evaluations, durationMs, simulatedSeconds: 120, partial
+} }
+{ type: "error", message }
 ```
 
-### Result UI
-- Ghost markers (semi-transparent) in 3D for the suggested positions, with an arrow for the fan direction.
-- Card: "Your layout J = 0.82 · Suggested J = 0.55 → **33% better** (simulated)", with heat/haze/energy bars.
-- **Apply** (`Enter`) sets AppState to the best layout. This sends commands to the model (`WIN1:1`, `FANPOS:2`, `FANANG:45`, `FAN:ON`), so the servos move. That is the demo's "the sim talks back" moment.
+### Result UI and Apply
+
+The result card displays the before/suggested score, combined-score improvement, heat/haze/power contributions, device positions, opening-change count, engine, evaluation count and comparison duration. A selector exposes the alternative layouts. Suggestions are text in the card; the model updates when applied.
+
+**Apply** (`Enter`) replaces the controls with the selected layout, restarts the live simulation, and keeps the comparison card available for presentation. The app sends changed, mapped control commands through the existing hardware path. Only firmware-enabled actuators physically move: fan and purifier positions are logical settings, not motorised relocation. Actual servo movement requires a connected, calibrated board and is a separate hardware acceptance check.
+
+Editing controls or changing scenario invalidates an old recommendation. Cancel and errors preserve the live setup. No result is automatically applied, and no improvement is fabricated from live readings after Apply.
+
+Written by gpt-6-astra in Codex on behalf of Edmund

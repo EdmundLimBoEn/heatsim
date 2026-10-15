@@ -1,6 +1,8 @@
-# 06 · Validation runs (SimScale primary, OpenFOAM fallback)
+# 06 · Planned reference validation (SimScale or OpenFOAM)
 
-**Purpose:** realistic reference images for the slides that sanity-check the *qualitative* behaviour of the live toy sim (where air enters, where it stagnates, which configuration ventilates best). They are **not** used inside the app (stretch: show them in a "Reference CFD" tab).
+**Status: planned, not performed.** No SimScale/OpenFOAM runs, geometry exporter, reference images or external agreement results are included in this MVP. The live app uses a qualitative 2D plan-view solver; it does not implement 3D buoyancy or turbulence. This document preserves a future comparison plan, not evidence of validation.
+
+**Purpose:** reference images for the slides that sanity-check the *qualitative* behaviour of the live toy sim (where air enters, where it stagnates, which configuration ventilates best). They are **not** used inside the app (stretch: show them in a "Reference CFD" tab).
 
 ## 1. The four cases [D]
 Same geometry and settings in every case. Only the two openings change. **All internal doors are open in every case.**
@@ -11,7 +13,7 @@ Same geometry and settings in every case. Only the two openings change. **All in
 | C · door only | closed | open | Single-sided exchange at the door; weak |
 | D · both open | open | open | Cross-ventilation N→S through bedroom3 → corridor → living/dining; strongest flushing |
 
-Common settings (mirror the `validation` scenario in doc 05):
+Proposed reference settings (share temperatures and heat-source strength with the `validation` scenario in doc 05; use a different 3D solver):
 - Air, incompressible with Boussinesq buoyancy, gravity −Y.
 - Outdoor air 33 °C. Indoor initial 28 °C.
 - Heat source: **100 W** solid/volumetric block, 0.4 × 1.0 × 0.4 m, standing in bedroom3 at about (10.0, 0–1.0, 1.6) m ("one person").
@@ -19,40 +21,40 @@ Common settings (mirror the `validation` scenario in doc 05):
 - Main door (when open): **pressure outlet, 0 Pa**, zero-gradient T/scalar (backflow at 33 °C / scalar 1).
 - Walls, floor, ceiling and furniture: no-slip, adiabatic. Simplify: drop furniture except beds and wardrobes if meshing struggles.
 - Turbulence: k-ω SST. Transient, 120 s of physical time (or steady if transient is too slow; note which in the slides).
-- The 0.5 Pa driving pressure equals the live sim's `ρ_out = 1.003` windward setting (doc 02 §4), so the two are comparable in kind.
+- **0.5 Pa is a proposed boundary condition for the external reference only.** The current live solver does not use `ρ_out` or calibrated pressure in pascals. Its pressure view is a relative index normalized to −1…+1 for each configuration; it cannot establish absolute pressure or compare pressure magnitudes between configurations.
 
 Outputs per case (same views every time):
 1. Horizontal slice at **y = 1.2 m**: velocity magnitude (0–1.0 m/s) and temperature (26–36 °C), fixed colour ranges.
 2. Vertical slice through bedroom3 at x = 10.4 m: temperature + vectors.
 3. Streamlines seeded at the window.
 4. Numbers: volume flow through the window (m³/s), and mean T and mean speed in bedroom3 at 0.2–1.8 m.
-Then screenshot the live sim under the **same** case and views, and put them side by side ("Reference CFD | HeatSim live").
+If these runs are completed, compare the live app under the same opening case using its horizontal plan view. Label any side-by-side images "Reference CFD | HeatSim live" and identify the different solvers. The MVP has no vertical slice or vertical velocity field, so reference-only vertical views cannot be presented as matched live results.
 
-**Agreement criterion (honest):** the *ranking* of the cases by bedroom3 mean speed and air-exchange (D > B ≈ C > A expected) and the main flow path should match. Absolute numbers will not match, and we say so.
+**Comparison hypothesis, not a result:** investigate whether case D has the strongest flushing and whether the main path passes through bedroom3 → corridor → living/dining. Single-opening exchange and buoyant plumes are not represented by the current steady 2D pressure-flow approximation, so B/C/A rankings may differ. Record disagreements as limits; do not claim matching air-exchange, pressure or temperature accuracy.
 
 ## 2. Geometry export (shared by SimScale and OpenFOAM)
-Build `validation/export_geometry.ts` (run with Bun or Node). It reads `assets/hdb-3d/hdb_4room_boxes.json` and writes:
+**Not implemented.** A future `validation/export_geometry.ts` would run with Bun or Node, read `assets/hdb-3d/hdb_4room_boxes.json` and write:
 - `validation/out/flat_fluid.stl`: the **air volume** (union of `room` boxes minus solids) as a closed surface, metres. For SimScale this is the flow region directly.
 - Separate named ASCII STL solids for the patches: `window_bedroom3_1`, `main_door`, `walls`, `heat_source`. Some tools import multi-solid ASCII STL as separate faces [U for SimScale; if it merges them, select the faces manually in SimScale's face picker or export STEP from Onshape/FreeCAD instead].
 - `validation/out/boxes_for_openfoam.txt`: `boxToCell` lines for `topoSet` (see §4).
 Optional simplification if meshing is slow: crop the domain to x ∈ [2.8, 12], z ∈ [0, 7.5] (bedroom3 + bedroom2 + corridor + living/dining) and close the cut plane as a wall.
 
-## 3. SimScale (primary)
+## 3. SimScale (planned reference option)
 | Fact | Tag |
 |---|---|
-| Free **Community** plan: **public projects only**, **10 simulations per year**, core-hour allowance stated as "up to 2000" on the pricing page (a forum reply and an older page say 3000) | [V] simscale.com/product/pricing, per cfd-3d-options.md |
+| Plan cost, run quota, core-hour allowance and project visibility | [U] verify current provider terms before using; not checked for this MVP |
 | Analysis type for buoyant room airflow: "Convective Heat Transfer" with incompressible + Boussinesq option | [U] check names in the UI |
 | Passive scalar / "passive species" for the haze tracer | [U] |
-| Runs are batch in the cloud (queue + run time), so **start them first** | [V] |
+| Runs require an external reference workflow and are outside the localhost MVP | [D] |
 
 Steps:
-1. Sign up (school email OK?). The project is **public**, so put nothing personal in it. Name: `HeatSim HDB 4-room ventilation (SST InnoScience 2026)`.
+1. Verify the chosen plan and project visibility before uploading geometry. Keep personal data out of any public project. Suggested name: `HeatSim HDB 4-room ventilation (SST InnoScience 2026)`.
 2. Upload `flat_fluid.stl` (or the cropped version). Check units = metres.
 3. Create the simulation with the settings in §1. Mesh: standard/automatic, fineness about 5/10, with a refinement region around the window, the door and the heat source.
-4. Run case D first (the most interesting), then B, C and A. **That's 4 of the 10 yearly runs. Do not burn runs on experiments.** Do a mesh-only check before each run.
+4. Do a mesh-only check, then run case D first, followed by B, C and A. Confirm that the chosen plan permits the four proposed runs before starting them.
 5. Post-process with the outputs in §1 and save PNGs to `validation/simscale/<case>_<view>.png`. Record the project URL in `validation/README.md`.
 
-## 4. OpenFOAM on the Mac (fallback, on-prem)
+## 4. OpenFOAM on the Mac (planned alternative, not installed or run here)
 | Fact | Tag |
 |---|---|
 | OpenFOAM on macOS: officially via a **Multipass Ubuntu VM** (openfoam.org download page) | [V] openfoam.org/download/macos, per cfd-3d-options.md |
@@ -63,10 +65,14 @@ Steps:
 1. `brew install --cask multipass` → `multipass launch 24.04 --name foam --cpus 6 --memory 8G --disk 30G` [U: check that the openfoam.org apt repo supports this Ubuntu release].
 2. In the VM, install OpenFOAM from the openfoam.org Ubuntu instructions (apt repo `dl.openfoam.org`, package `openfoam<version>`) [U package name], then `source /opt/openfoam<ver>/etc/bashrc`.
 3. `multipass mount ~/heatsim-foam foam:/home/ubuntu/case` so ParaView on macOS can open the results directly (install the native ParaView .dmg, open `case/<case>/case.foam`). No RDP needed.
-4. Mesh, the voxel way (fastest and identical to the live sim's geometry): `blockMesh` a box over the flat bounds at 0.1 m (122 × 27 × 77) → `topoSet` with `boxToCell` sets from `boxes_for_openfoam.txt` (solids) → `subsetMesh -overwrite` keeps the fluid → `createPatch` names the window/door faces. Alternatively `snappyHexMesh` with the STLs from §2.
+4. Proposed voxel meshing (same source boxes, but a different resolution and a 3D domain from the live 2D grid): `blockMesh` a box over the flat bounds at 0.1 m (122 × 27 × 77) → `topoSet` with `boxToCell` sets from `boxes_for_openfoam.txt` (solids) → `subsetMesh -overwrite` keeps the fluid → `createPatch` names the window/door faces. Alternatively `snappyHexMesh` with the STLs from §2.
 5. Copy `0/`, `constant/` and `system/` from `hotRoom`. Set gravity, the Boussinesq or perfect-gas thermophysics as in the tutorial, BCs per §1 (`totalPressure` / `prghTotalPressure` at the window, `prghPressure` / `fixedValue` 0 at the door [U: pick what the tutorial uses]), and a `fvModel`/`fvOption` `semiImplicitSource` for 100 W in the heat-source cellZone.
 6. Run 4 cases (copy the case directory per case and only change the patch types). Use `foamPostProcess`/ParaView for the same slices as §1. Save PNGs to `validation/openfoam/`.
-Time warning: expect **≥ 3 h** before a first good result [V estimate from cfd-3d-options.md]. Only start this if SimScale is blocked or failing by 12:00.
+This is separate future work. Installation, compatible solver syntax, meshing and reference-run duration have not been checked for this MVP.
 
-## 5. Slide text (draft)
-> "Our live model is a fast, simplified 'toy CFD' so that it reacts instantly to the cardboard model. To check it, we ran a professional-grade CFD simulation (SimScale / OpenFOAM) of the same flat for 4 cases. The two agree on *which* option ventilates best and on the airflow path, but not on exact numbers, which is expected for a simplified model."
+## 5. Slide text for the current MVP
+> "HeatSim is a standalone, qualitative toy CFD with a 2D plan-view simulation and a 3D model for presentation. It illustrates how opening and device settings affect simulated airflow, heat and haze. The pressure colours show a relative index, not pascals. We have not yet validated these results against professional CFD or physical measurements. Optional cardboard controls can be connected when the board is available."
+
+Only replace this wording with a validation claim after storing the actual cases, settings, outputs and comparison evidence.
+
+Written by gpt-6-astra in Codex on behalf of Edmund

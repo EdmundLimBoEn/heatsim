@@ -1,72 +1,25 @@
 # 03 · Rendering and UI
 
-## Renderer choice [D]
-- **three.js `WebGLRenderer`** (pin `three@0.169.0` or newer; ben's viewer uses 0.169.0 [V]) for drawing. **WebGPU is used only for the sim compute**, on its own `GPUDevice`.
-- Data path: sim → `copyBufferToBuffer` into a `MAP_READ` staging buffer → `mapAsync` (never awaited inside the frame) → `Float32Array` → `THREE.Data3DTexture` (`RedFormat`/`FloatType`, `LinearFilter`) per displayed field, plus a CPU copy of `u` for the particles.
-- Why not `WebGPURenderer` with shared storage textures: it would avoid the readback, but device sharing with three's WebGPU backend is less documented [U] and riskier for a one-day build. Readback is about 1 MB per snapshot, which is cheap on unified memory. Revisit only after the MVP works.
+## Implemented presentation
 
-## Scene
-- Load `assets/hdb-3d/hdb_4room.glb` with `GLTFLoader` (129 named nodes, metres, +Y up [V README]). Node `userData` carries `{role, sim_solid}` from glTF extras [V].
-- **Ceiling:** node `ceiling` (material alpha BLEND, opacity 0.25). Default opacity 0.15, adjustable. Ceiling `depthWrite=false, renderOrder=1`, slices `renderOrder=2`, particles `renderOrder=3`. This is the same trick as ben's viewer, so fields stay visible through the roof [V viewer.html].
-- **Cutaway:** optional horizontal clipping plane (`renderer.localClippingEnabled = true`) applied to walls only, height slider default 1.8 m.
-- **Doors and windows** animate to match `AppState.openings`. Doors rotate −90° about Y and windows −0.6 rad, about the hinge pivot already baked into the node [V README]. Tween over 300 ms. Some leaves swing through walls (known issue, cosmetic [V README]).
-- **Movable devices** (portable fan, purifier) are simple three.js meshes created in code (cylinder plus arrow for the fan, box for the purifier), placed at slot positions with the fan yawed by `angleDeg`. Hide the GLB's `purifier_living`/`purifier_master` nodes or use them as the purifier meshes. The AC on/off state is shown by tinting `ac_*` blue and drawing a small cold-jet arrow.
-- Camera: `OrbitControls` with three preset views on keys `V1/V2/V3` (top-down plan, isometric from SE, inside living room). Default isometric.
-- Outdoor ground plane plus a sun direction arrow for the sunny façade in the active scenario.
+**This document describes the working 2D MVP. The original GLB/WebGPU presentation plan was not implemented.** See [standalone demo instructions](../README.md), [the presentation walkthrough](presentation-demo.md), [solver limits](02-simulation.md) and [current QA status](../CHECKLIST.md).
 
-## Field display
-1. **Slice planes** (MVP: one horizontal plane at `sliceH` = 1.2 m; stretch: an additional vertical plane on x or z). A `ShaderMaterial` samples `uField` (sampler3D) at the world position mapped to grid UVW: `uvw = (pWorld − gridOrigin) / (gridSize·dx)`. Discard where the cell is SOLID or OUTSIDE (upload `cellType` as a second R8 3D texture, sampled `NEAREST`).
-2. **Colour maps** (`render/colormaps.ts`, 256-entry LUT texture):
-   - T: blue→white→red, fixed range **24–40 °C** (fixed, so scenarios are comparable; show the legend).
-   - C (PM2.5): white→yellow→brown→purple, **0–250 µg/m³**, with legend ticks at 12/35/55/150 [U: these resemble common PM2.5 band edges but are not NEA bands; label them as "guide"].
-   - Speed: viridis, 0–1.5 m/s.
-3. **Particles** (MVP: 4,000; stretch 10,000): `THREE.Points` with a small round sprite. CPU advection with trilinear `u` from the latest snapshot: `p += u_phys·dtVisual` with `dtVisual = 1/60 s × speed-up factor`. Respawn when a particle enters a SOLID/OUTSIDE cell, or after a lifetime of 4–8 s (random). Seed uniformly in FLUID cells, plus extra seeds at open exterior openings in haze scenarios. Colour by local C (haze mode) or T (heat mode). Optional short trails (stretch).
-4. **Vectors** (stretch): arrow glyphs on a 1 m lattice on the slice plane.
+`src/scene.ts` constructs the apartment in **three.js WebGL from the shared JSON boxes**, with refined materials, furniture, sliding window sashes, door pivots and portable-device markers. The original GLB is retained as an asset/reference; the live scene does not need to load it. Room labels, cutaway and dimension annotations are visual only. The initial view is roofless; the physical model also has no roof.
 
-## HUD and panel layout (1440×900 MacBook screen, mirrored to the projector)
-```
-┌──────────────────────────────────────────────────────────┬──────────────────┐
-│                                                          │ SCENARIO ▼       │
-│                     3D view                              │ [Hot afternoon]  │
-│                                                          │ OPENINGS         │
-│                                                          │  ☐ WIN1 bed3 win │
-│                                                          │  ☐ DOOR1 main    │
-│                                                          │  ...             │
-│                                                          │ DEVICES          │
-│                                                          │  Fan ON  ◀slot▶  │
-│                                                          │  angle ━━●━━ 45° │
-│                                                          │  AC ☐ unit ▼ 25° │
-│                                                          │  Purifier ☐ slot │
-├──────────────────────────────────────────────────────────┤ VIEW T | C | |u| │
-│ Room table: living 31.2°C 88µg │ master ... │ SIMULATED  │ [OPTIMISE]       │
-│ Sim time 02:31 (×4.8) · 60 fps · WebGPU · Model: ● USB   │ You 0.82 vs 0.55 │
-└──────────────────────────────────────────────────────────┴──────────────────┘
-```
-- The link indicator is green for "Model connected (Web Serial)", amber for "WS bridge" and grey for "keyboard only". The last 5 received lines appear in a collapsible log.
-- **Connect model** button (Web Serial requires a user gesture to call `requestPort`).
-- Toasts for "Sim reset (unstable)", "Model disconnected" and "Optimiser done (−34%)".
-- About box with the honesty text from doc 02 §8.
-- The fonts must be readable from the back of the auditorium: room table at ≥18 px, legend at ≥16 px.
+The toolbar offers a plain model view plus temperature, airflow, air-quality and qualitative pressure fields. The field is a masked **2D texture at y = 1.2 m**, not a 3D texture or volumetric solver. Fixed legend ranges are temperature **24–40 °C**, PM2.5 **0–250 µg/m³**, airflow **0–1.5 m/s**, and normalized pressure **−1 to +1**. Pressure is not in Pa and is not a measured or calibrated prediction. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts. Flow-direction arrows supplement the planar velocity view. Pressure labels, colors and directional arrows were observed in the native Zen WebGL browser; the checklist records that separately from headless checks.
 
-## Keyboard map (mirrors every hardware input) [D]
-| Key | Action | Equivalent line |
-|---|---|---|
-| `1`–`9` | toggle window WIN1..WIN9 | `WIN<n>:0/1` |
-| `Shift+1`–`Shift+9` | toggle door DOOR1..DOOR9 | `DOOR<n>:0/1` |
-| `F` | fan on/off | `FAN:ON/OFF` |
-| `[` / `]` | fan angle −15° / +15° (clamp 0–180) | `FANANG:<deg>` |
-| `,` / `.` | fan slot prev / next | `FANPOS:<n>` |
-| `-` / `=` | fan speed down / up (0–3) | `FANSPD:<n>` |
-| `A` | AC on/off | `AC:ON/OFF` |
-| `P` | purifier on/off | `PUR:ON/OFF` |
-| `Shift+P` | purifier slot next | `PURPOS:<n>` |
-| `Q` `W` `E` `R` `T` `Y` | scenario presets 1–6 (doc 05) | `SCN:<n>` |
-| `O` | run optimiser | n/a |
-| `Enter` | apply the optimiser's best layout | n/a |
-| `Space` | pause/resume | n/a |
-| `Backspace` | reset the scenario (re-initialise fields) | n/a |
-| `Tab` | cycle view field T → C → speed | n/a |
-| `↑` / `↓` | slice height ±0.2 m | n/a |
-| `C` | connect model (opens the Web Serial picker) | n/a |
-| `H` | toggle help overlay listing these keys | n/a |
-Keys must not fire while focus is in a text input.
+The field renderer uses **900 display tracers** in airflow/air-quality modes. They respawn if they leave valid fluid cells; they illustrate direction and local scalar color. Do not infer physical travel time from their screen animation. Isometric and top-down camera buttons, zoom/orbit, screenshots, room readings, CSV export and printable build-pack links support the presentation.
+
+### Controls that work without a board
+
+- Six scenario buttons and **Q W E R T Y**. Scenario changes reset fields and keep devices/openings; validation selected from the UI/keyboard additionally opens internal doors for its prescribed route. Hardware scenario messages preserve the reported physical door states.
+- **1 / 2 / 3**: bedroom 3 north / living south / living east windows. **Shift+1 / Shift+2**: main door / bedroom 3 internal door. Other mapped openings are available on screen; unmapped number keys do nothing.
+- **F / A / P**: portable fan / selected AC / purifier. **[ / ]** adjusts fan angle, **, / .** fan slot, **− / =** fan speed, and **Shift+P** purifier slot.
+- **O / Enter**: compare layouts / apply the reviewed suggestion when focus is outside a button or form control. For the demo, explicitly click **Apply layout**; Enter on the still-focused Compare button starts another comparison. **Space / Backspace**: pause/resume / reset fields. **H** opens help; **C** opens optional USB connection.
+- **Tab keeps normal keyboard focus navigation.** The original Tab-to-cycle-fields, slice-height shortcuts and inside-room camera presets are not implemented.
+
+Playback starts at **30×**, with 1× and 60× alternatives. Keyboard controls do not fire while typing into form fields or operating a dialog. Every hardware control used in the default demo has an on-screen/keyboard equivalent. The main workflow works with no SSTuino attached.
+
+The master-bath window is above the field slice and therefore changes only visually. There is no vertical slice, 3D buoyant plume or WebGPU backend. Physical USB, switches and servo movement remain pending hardware; an on-screen animation must not be presented as a confirmed servo action.
+
+Written by gpt-6-astra in Codex on behalf of Edmund

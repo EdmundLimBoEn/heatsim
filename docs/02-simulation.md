@@ -1,5 +1,53 @@
 # 02 · Simulation spec (the core)
 
+## MVP amendment · authoritative running solver
+
+**The shipped solver is `src/plan-simulation.ts`, the deliberate 2D fallback from original §7. It is not the 3D LBM/WebGPU engine described below.** The browser renders a 3D scene around a horizontal simulation slice. [CHECKLIST](../CHECKLIST.md) records actual checks; [doc 05](05-scenarios-optimiser.md) defines the six scenarios and comparison workflow.
+
+### Geometry and fields
+
+- Canonical input: `assets/hdb-3d/hdb_4room_boxes.json`, through `src/domain.ts`. Visual clipping, opacity, cutaway and physical-model scale never change the solver geometry.
+- **64 × 48 cells, dx = 0.20 m, origin (x,z) = (−0.3,−0.3), slice y = 1.2 m.** `PlanField` carries temperature, PM2.5, planar velocity and cell type; the pressure overlay is a normalized qualitative index, **−1 to +1, not Pa**.
+- Rooms become fluid; walls/furniture and intersecting fixed devices become solid. Openings traverse the full host-wall thickness. At this slice, all closed gives **1948 fluid / 429 solid cells** with no accidental fluid-to-outside face contact, verified by tests.
+- The master-bath window starts above this slice: its visual sash can move, but it does **not** open a 2D path. Ceiling fans and AC outlets are projected into the plan; no vertical plume or downwash is solved.
+
+### Flow, transport and device assumptions
+
+A graph pressure solve projects local fan/AC drives onto conservative face flows through the fluid mask. Outdoor reservoir differences depend on the selected scenario's windward side and the wind-speed setting. This is a steady pressure-flow approximation, not Navier–Stokes/LBM, measured pressure or turbulence modelling. Flow is recomputed after relevant control changes. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
+
+Temperature and PM2.5 use conservative upwind face transport and diffusion. The illustrative coefficients in the implementation are **0.025 m²/s for temperature** and **0.012 m²/s for haze**. Walls block transport. Exterior reservoirs retain the scenario/user outdoor values. New opening cells use adjacent valid fields; finite-value guards and bounds keep temperature in **10–60 °C** and PM2.5 in **0–1000 µg/m³**.
+
+| Source | Implemented assumption |
+|---|---|
+| Portable fan | Five slots, hardware angle 0–180° about each slot's base yaw, three nonzero speed levels; drives local flow, never directly reduces temperature. |
+| Ceiling fan | Optional planar circulation approximation. |
+| AC | Local 0.65 m outlet neighborhood, relaxation toward the selected setpoint at coefficient 0.8/s; projected planar jet. UI allows one active AC. |
+| Purifier | Six slots; local 0.65 m neighborhood, PM2.5 removal coefficient 0.2/s. No humidity treatment. |
+| West sun | West-adjacent cells receive an illustrative source up to 0.04 K/s, weighted by `max(0, sin((hour−6)π/12))` in sunny scenarios. |
+| People | Small localized heat sources in scenarios marked occupied. |
+| Validation | 100 W illustrative heat block in bedroom 3, distributed over the local slice cells using the flat's height. |
+
+These are **MVP fallback coefficients**, replacing the original lattice-unit constants for this implementation. Device powers are **fan 50 W, purifier 40 W, active AC 1000 W**; the power estimate is not thermostat cycling or an electricity-bill prediction. Energy integrates watts × actual simulated seconds / 3,600,000. Room means use fluid cells, with floor-area weighting for whole-home summaries.
+
+Humidity is a shared scenario setting used only in an illustrative comfort adjustment; it is not a transported field. Comfort is `T + max(T−24,0)·max(RH−40,0)/100 − min(3,2.5·speed)`, not a medical heat index or validated comfort standard. The UI follows scenario time/sun exposure. Pressure colors and flow arrows are qualitative visual aids, not pressure measurements.
+
+### Time, stability and evidence
+
+Each call advances at most **60 simulated seconds**, with substeps no larger than **0.25 s** and a tighter outgoing-flow/diffusion stability bound when needed. Longer offline runs must use multiple calls. The live UI's maximum 0.25 real-second frame delta at 60× requests at most 15 simulated seconds per call. It pauses advancement in hidden tabs.
+
+Tests cover sealed geometry, stationary baseline, pollutant conservation, correct opening updates, cross-ventilation, fans, purifiers, AC, nonfinite recovery and scenario behavior. A solver-only V8 stress probe remained finite for 300 simulated seconds; this is not the five-minute full-browser acceptance test. See [the checklist](../CHECKLIST.md) for the latest build and browser status.
+
+The well-mixed functions in `src/simulation.ts` are retained as an emergency/reference implementation and are tested separately. They are not the engine used by the app or optimiser. No CPU/GPU LBM equivalence, 3D buoyancy result, calibration, measured pressure or SimScale/OpenFOAM validation is claimed.
+
+### Honesty text for this build
+
+> HeatSim is a qualitative toy CFD demonstration in 2D plan-view mode. It uses a coarse 20 cm floor-plan grid and scenario conditions to illustrate how airflow, heat and haze may change. It has no vertical buoyancy or turbulence. Temperatures, comfort, pressure colors and energy are illustrative, not calibrated predictions. No sensors or live data are used, and no professional-CFD validation has been completed.
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
+<details>
+<summary>Original roadmap / reference specification — not a statement of shipped functionality</summary>
+
 **What it is:** a coarse, single-relaxation-time (BGK) **3D lattice Boltzmann method, D3Q19**, for weakly compressible (effectively incompressible, low-Mach) airflow. On top of it: **Boussinesq buoyancy** driven by a temperature field `T`, and a **passive PM2.5 scalar** `C`. Both scalars are advected by the LBM velocity. It runs on **WebGPU compute (WGSL)** in Chrome on an M4 Pro MacBook.
 
 **What it is not:** a validated CFD solver. It is a **qualitative toy CFD**. The UI, the README and the pitch must say so (see "Honesty" at the end).
@@ -168,10 +216,12 @@ Reynolds number at room scale in the sim is about 20, against about 10⁵ in rea
 - No buoyancy in 2D (it's a plan view). Label it "2D plan-view mode".
 
 ## 8. Honesty (must appear in the UI's "About" box and the pitch)
-> "HeatSim is a qualitative toy CFD: a coarse 20 cm lattice-Boltzmann model with artificially high viscosity and scenario-preset outdoor conditions. It shows how air, heat and haze tend to move, not exact temperatures or concentrations. No sensors are used. For realistic reference we ran SimScale/OpenFOAM (see slides)."
+> "HeatSim is a qualitative toy CFD: a coarse 20 cm lattice-Boltzmann model with artificially high viscosity and scenario-preset outdoor conditions. It shows how air, heat and haze tend to move, not exact temperatures or concentrations. No sensors are used. Reference CFD would require future SimScale/OpenFOAM runs; none were completed for this MVP."
 
 ## References (to read, not copy blindly)
 - MIT GPU-LatticeBoltzmann 3D demo: https://amiraa.pages.cba.mit.edu/GPU-LatticeBoltzmann/_Code/indexDynamic.html [V link opened, per cfd-3d-options.md; licence not checked]
 - WebLBM (2D WebGPU LBM, needs shader-f16): https://github.com/LennartPaduch/WebLBM [V link; licence not checked, so do not copy code without checking]
 - Guo, Zheng & Shi (2002), forcing scheme for LBM [U: standard reference, not re-checked today]
 - Krüger et al., *The Lattice Boltzmann Method: Principles and Practice* (2017) [U]
+
+</details>

@@ -1,0 +1,86 @@
+/* Shared tokens for all three workspaces. Names follow shadcn/ui's theming contract (shadcn --muted is --surface-muted here: style.css already uses --muted for text); values keep HeatSim's teal brand. */
+:root{
+  --background:#f4f7f5;--foreground:#17332d;
+  --card:#fff;--card-foreground:#17332d;
+  --primary:#184c43;--primary-hover:#21604f;--primary-foreground:#fff;
+  --secondary:#eef3ef;--secondary-foreground:#24493f;
+  --surface-muted:#eef3ef;--muted-foreground:#4f665c;
+  --accent:#e4efe7;--accent-foreground:#184c43;
+  --border:#dce5df;--input:#cdd9d1;--ring:#2f7d6b;
+  --warning:#faf4e2;--warning-foreground:#6b5627;--warning-border:#e6d4a3;
+  --radius:10px;--radius-sm:calc(var(--radius) - 4px);--radius-md:calc(var(--radius) - 2px);
+  --shadow-xs:0 1px 2px rgb(16 40 34 / .05);
+  --ink:var(--foreground);--line:var(--border);--teal-dark:var(--primary);
+  background:var(--background);color:var(--foreground)
+}
+body{background:var(--background)}
+
+/* Focus: one ring everywhere */
+:is(button,a,input,select,summary):focus-visible,
+.cooling-lab :focus-visible,.contractor-study :focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.toggle-control input:focus-visible+.switch-track{outline:2px solid var(--ring);outline-offset:2px}
+
+/* Header */
+.app-header{background:var(--card);border-color:var(--border)}
+.brand-mark{background:var(--primary)}
+
+/* Buttons: default / outline / ghost */
+.button,.cl-button,.cs-button{border-radius:var(--radius-md);font-weight:600;transition:background-color .15s,border-color .15s,color .15s}
+.button.primary,.cl-primary,.cs-primary,.play-button{background:var(--primary);color:var(--primary-foreground);box-shadow:var(--shadow-xs)}
+.button.primary:hover,.cl-primary:hover,.cs-primary:hover,.play-button:hover{background:var(--primary-hover)}
+.button.secondary,.cl-secondary,.cs-secondary{background:var(--card);border-color:var(--input);color:var(--secondary-foreground);box-shadow:var(--shadow-xs)}
+.button.secondary:hover,.cl-secondary:hover,.cs-secondary:hover{background:var(--accent);border-color:var(--input)}
+.icon-button{border-color:var(--border);border-radius:var(--radius-md);color:var(--muted-foreground)}
+.icon-button:hover{background:var(--accent);color:var(--accent-foreground)}
+
+/* Tabs / segmented controls: muted track, raised active item */
+.segmented{background:var(--surface-muted);border-color:transparent;border-radius:var(--radius);padding:3px}
+.model-toolbar .segmented,.view-tools .segmented{background:rgb(238 243 239 / .92);backdrop-filter:blur(6px)}
+.segmented button{border-radius:var(--radius-sm);color:var(--muted-foreground);font-weight:550}
+.segmented button[aria-pressed=true]{background:var(--card);color:var(--foreground);font-weight:650;box-shadow:0 1px 3px rgb(16 40 34 / .12)}
+.segmented button:hover:not([aria-pressed=true]){background:rgb(255 255 255 / .55);color:var(--foreground)}
+.control-tabs button{color:var(--muted-foreground)}
+.control-tabs button[aria-selected=true]{color:var(--foreground);border-color:var(--primary)}
+
+/* Cards */
+.workspace,.results-panel,.cl-controls,.cl-results,.cl-learning,.cs-brief,.cs-plan-section,.cs-results,.cs-weather-reference,.cooling-lab-model-slot{border-color:var(--border);border-radius:var(--radius);box-shadow:var(--shadow-xs)}
+.cs-plan-card{border-color:var(--border);border-radius:var(--radius-md)}
+
+/* Inputs and selects */
+.device-select,#room-select,.playback-row select,.cooling-lab select,.cs-field input,.cs-field select,.cs-placement-label select{background:var(--card);border:1px solid var(--input);border-radius:var(--radius-md);color:var(--foreground);box-shadow:var(--shadow-xs)}
+.cooling-lab select,.cs-field input,.cs-field select,.device-select{min-height:36px}
+.cs-field-pair{align-items:end}
+
+/* Labels and helper text share one muted tone */
+.section-note,.cl-help,.cs-help,.section-heading>span,.field-label,.cl-label,.cs-field>span,.range-control>span:first-child,.workspace-heading p,.cl-heading p,.cs-section-heading p{color:var(--muted-foreground)}
+
+/* Badges: SIMULATED and similar honesty tags */
+.simulated-tag,.cl-model-tag strong{background:var(--card);border:1px solid var(--input);color:var(--secondary-foreground);border-radius:999px;padding:2px 8px;font-size:11px;font-weight:650;letter-spacing:.4px}
+
+/* Secondary in-workspace headers sit below the workspace h1 */
+.cl-heading{margin:4px 0 20px}
+.cl-heading h2{font-size:19px;font-weight:600;letter-spacing:-.3px}
+.cs-hero{background:var(--card);border-color:var(--border);box-shadow:var(--shadow-xs);margin:4px 0 22px;padding:24px 28px;gap:36px}
+.cs-hero h2{font-size:26px;letter-spacing:-.6px;margin:8px 0 10px}
+.cs-eyebrow{color:var(--muted-foreground);font-size:11px}
+.cs-positioning{border-color:var(--border)}
+.cs-positioning strong{color:var(--primary)}
+.cs-step-title>span{border-color:var(--input);color:var(--muted-foreground);border-radius:var(--radius-sm)}
+
+/* Callouts: neutral muted panels, amber only for warnings */
+.cl-fairness,.cs-shortlist{background:var(--surface-muted);border-left-color:var(--ring);border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.cl-environment,.cs-format-note,.cs-recommendations article{background:var(--surface-muted);border-color:var(--border);border-radius:var(--radius-md)}
+.cl-run-controls,.cs-run-row,.simulation-controls{background:var(--surface-muted);border-color:var(--border)}
+.cs-run-row{border-radius:var(--radius)}
+.cl-caveat,.cs-warnings,.cl-capture-status{background:var(--warning);color:var(--warning-foreground);border:1px solid var(--warning-border);border-radius:var(--radius-md)}
+.cl-summary,.room-readings{background:#f8faf9}
+
+/* Scenario choice cards */
+.scenario-button{background:var(--card);border-color:var(--border);border-radius:var(--radius-md);color:var(--secondary-foreground)}
+.scenario-button:hover{background:var(--accent)}
+.scenario-button[aria-pressed=true]{background:var(--accent);border-color:var(--ring);color:var(--accent-foreground);box-shadow:inset 0 0 0 1px var(--ring)}
+
+dialog{border-color:var(--border);border-radius:calc(var(--radius) + 4px)}
+.toast{background:var(--primary);border-color:var(--primary)}
+
+@media(max-width:700px){.cs-hero{padding:20px}.cs-hero h2{font-size:22px}}

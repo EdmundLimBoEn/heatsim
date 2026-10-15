@@ -53,6 +53,9 @@ body{background:var(--background)}
 
 /* Labels and helper text share one muted tone */
 .section-note,.cl-help,.cs-help,.section-heading>span,.field-label,.cl-label,.cs-field>span,.range-control>span:first-child,.workspace-heading p,.cl-heading p,.cs-section-heading p{color:var(--muted-foreground)}
+.text-link{color:var(--primary)}
+.cs-preview>p{color:var(--muted-foreground)}
+.cs-plan-card[data-study-plan="1"] .cs-plan-letter,.cs-comparison-table thead th:nth-child(3) .cs-table-plan{background:#92652d}
 
 /* Badges: SIMULATED and similar honesty tags */
 .simulated-tag,.cl-model-tag strong{background:var(--card);border:1px solid var(--input);color:var(--secondary-foreground);border-radius:999px;padding:2px 8px;font-size:11px;font-weight:650;letter-spacing:.4px}
@@ -84,3 +87,10 @@ dialog{border-color:var(--border);border-radius:calc(var(--radius) + 4px)}
 .toast{background:var(--primary);border-color:var(--primary)}
 
 @media(max-width:700px){.cs-hero{padding:20px}.cs-hero h2{font-size:22px}}
+@media(max-width:740px){
+  .view-options{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:4px 8px;gap:12px}
+  .view-options label{min-height:24px}
+  .model-legend{bottom:164px}
+  .scene-message{inset:144px 0 188px;padding:8px 24px;gap:8px}
+  .scene-message>.icon{display:none}
+}

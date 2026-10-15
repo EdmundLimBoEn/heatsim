@@ -1,7 +1,7 @@
 // SSTuino II Rev A (core newer than 1.1.1), or Arduino Uno; USB protocol v1.
 #include <string.h>
 
-// One passive limit switch: COM -> GND, NO -> D5. Press = Bedroom 3 purifier ON.
+// D5 COM -> GND, NO -> D5: hold for purifier ON. D4 button -> GND: toggle Bedroom 3 windows.
 // Set to 0 to restore the optional two-opening WIN1/DOOR1 demonstration.
 #ifndef SINGLE_PURIFIER_SWITCH
 #define SINGLE_PURIFIER_SWITCH 1
@@ -9,7 +9,18 @@
 const uint8_t PURIFIER_SWITCH_PIN = 5;
 const bool PURIFIER_SWITCH_ACTIVE = LOW;
 bool purifierRaw = HIGH, purifierStable = HIGH;
-unsigned long purifierChangedAt = 0;
+uint32_t purifierChangedAt = 0;
+const uint8_t BEDROOM3_BUTTON_PIN = 4;
+bool bedroomButtonRaw = HIGH, bedroomButtonStable = HIGH;
+uint32_t bedroomButtonChangedAt = 0;
+const char* bedroomWindowKeys[] = {"WIN1", "WIN4"};
+bool bedroomWindowsOpen[] = {false, false};
+
+void printBedroomWindow(size_t index) {
+  Serial.print(bedroomWindowKeys[index]);
+  Serial.print(':');
+  Serial.println(bedroomWindowsOpen[index] ? 1 : 0);
+}
 
 // Set to 1 only after checking the servo supply and calibrating with horns detached.
 #define ENABLE_SERVOS 0
@@ -92,7 +103,8 @@ void handleLine(char* line) {
   if (strcmp(line, "PING") == 0) { Serial.println("PONG"); return; }
   if (strcmp(line, "GET:ALL") == 0) {
 #if SINGLE_PURIFIER_SWITCH
-    // Only PUR is physically owned; the app maps it to the Bedroom 3 corner.
+    // Report only owned states; leave unrelated openings, fan and weather unchanged.
+    for (size_t i = 0; i < 2; ++i) printBedroomWindow(i);
     printSetting(PURIFIER_SETTING_INDEX);
 #else
     for (size_t i = 0; i < FLAP_COUNT; ++i) printFlap(i);
@@ -104,6 +116,15 @@ void handleLine(char* line) {
   char* value = strchr(line, ':');
   if (!value) { Serial.println("ERR:UNKNOWN"); return; }
   *value++ = '\0';
+#if SINGLE_PURIFIER_SWITCH
+  for (size_t i = 0; i < 2; ++i) {
+    if (strcmp(line, bedroomWindowKeys[i]) != 0) continue;
+    if (strcmp(value, "0") != 0 && strcmp(value, "1") != 0) { Serial.println("ERR:RANGE"); return; }
+    bedroomWindowsOpen[i] = value[0] == '1';
+    printBedroomWindow(i);
+    return;
+  }
+#endif
   for (size_t i = 0; i < FLAP_COUNT; ++i) {
     if (strcmp(line, flaps[i].key) != 0) continue;
     if (strcmp(value, "0") != 0 && strcmp(value, "1") != 0) { Serial.println("ERR:RANGE"); return; }
@@ -149,6 +170,9 @@ void setup() {
   pinMode(PURIFIER_SWITCH_PIN, INPUT_PULLUP);
   purifierRaw = purifierStable = digitalRead(PURIFIER_SWITCH_PIN);
   settings[PURIFIER_SETTING_INDEX].value = purifierStable == PURIFIER_SWITCH_ACTIVE;
+  pinMode(BEDROOM3_BUTTON_PIN, INPUT_PULLUP);
+  bedroomButtonRaw = bedroomButtonStable = digitalRead(BEDROOM3_BUTTON_PIN);
+  bedroomWindowsOpen[0] = bedroomWindowsOpen[1] = false;
 #endif
   for (size_t i = 0; i < FLAP_COUNT; ++i) {
     Flap& flap = flaps[i];
@@ -159,12 +183,13 @@ void setup() {
   }
   Serial.println("HELLO:HEATSIM/1");
 #if SINGLE_PURIFIER_SWITCH
+  for (size_t i = 0; i < 2; ++i) printBedroomWindow(i);
   printSetting(PURIFIER_SETTING_INDEX);
 #endif
 }
 
 void loop() {
-  const unsigned long now = millis();
+  const uint32_t now = millis();
 #if SINGLE_PURIFIER_SWITCH
   const bool purifierReading = digitalRead(PURIFIER_SWITCH_PIN);
   if (purifierReading != purifierRaw) { purifierRaw = purifierReading; purifierChangedAt = now; }
@@ -172,6 +197,16 @@ void loop() {
     purifierStable = purifierReading;
     settings[PURIFIER_SETTING_INDEX].value = purifierStable == PURIFIER_SWITCH_ACTIVE;
     printSetting(PURIFIER_SETTING_INDEX);
+  }
+  const bool bedroomReading = digitalRead(BEDROOM3_BUTTON_PIN);
+  if (bedroomReading != bedroomButtonRaw) { bedroomButtonRaw = bedroomReading; bedroomButtonChangedAt = now; }
+  if (bedroomReading != bedroomButtonStable && uint32_t(now - bedroomButtonChangedAt) >= DEBOUNCE_MS) {
+    bedroomButtonStable = bedroomReading;
+    if (bedroomReading == LOW) {
+      const bool open = !(bedroomWindowsOpen[0] && bedroomWindowsOpen[1]);
+      bedroomWindowsOpen[0] = bedroomWindowsOpen[1] = open;
+      for (size_t i = 0; i < 2; ++i) printBedroomWindow(i);
+    }
   }
 #endif
   for (size_t i = 0; i < FLAP_COUNT; ++i) {

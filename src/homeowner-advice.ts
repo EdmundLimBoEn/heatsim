@@ -21,11 +21,11 @@ export function describeAdviceChanges(before: Conditions, after: Conditions): st
     if (!previousFan?.on) actions.push(`Turn on the fan in ${place} (${speed})`);
     else if (previousFan.slot !== fan.slot) actions.push(`Move the fan to ${place} (${speed})`);
     else if (previousFan.speed !== fan.speed) actions.push(`Set the fan in ${place} to ${speed}`);
-    if (previousFan?.on && previousFan.angleDeg !== fan.angleDeg) actions.push(`Turn the fan to ${fan.angleDeg}°`);
+    if (!previousFan?.on || previousFan.slot !== fan.slot || previousFan.angleDeg !== fan.angleDeg) actions.push(`Point the fan at ${fan.angleDeg}° on its direction control`);
   } else if (previousFan?.on) actions.push('Turn off the portable fan');
   const purifier = after.purifier;
   if (purifier?.on) {
-    const place = roomLabel(PURIFIER_SLOTS[purifier.slot]?.room ?? 'living');
+    const place = `${roomLabel(PURIFIER_SLOTS[purifier.slot]?.room ?? 'living')}${purifier.slot === 4 || purifier.slot === 2 ? ' corner' : ''}`;
     if (!before.purifier?.on) actions.push(`Turn on the purifier in ${place}`);
     else if (before.purifier.slot !== purifier.slot) actions.push(`Move the purifier to ${place}`);
   } else if (before.purifier?.on) actions.push('Turn off the portable purifier');
@@ -53,4 +53,9 @@ export function describeAdviceOutcome(before: SimulationResult, after: Simulatio
 
 export function purifierMatches(a: Conditions, b: Conditions): boolean {
   return (a.purifier?.on ?? false) === (b.purifier?.on ?? false) && (a.purifier?.slot ?? 0) === (b.purifier?.slot ?? 0);
+}
+
+/** The two physical switches own both Bedroom 3 windows and its portable purifier. */
+export function hardwareOwnedControlsMatch(a: Conditions, b: Conditions): boolean {
+  return purifierMatches(a, b) && ['window_bedroom3_1', 'window_bedroom3_2'].every(id => Boolean(a.windows[id]) === Boolean(b.windows[id]));
 }

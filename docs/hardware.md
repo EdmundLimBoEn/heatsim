@@ -1,27 +1,26 @@
 # Connect the cardboard model
 
-The current default uses **one limit switch over USB to control the simulated purifier in the Bedroom 3 corner**. Hold pressed for ON; release for OFF. The app targets purifier slot 2, at model coordinates x=11.5 m, z=2.8 m, on startup, reconnect and each physical state update. The switch does not measure position or power a real appliance. The earlier two-opening demonstration remains available by setting `SINGLE_PURIFIER_SWITCH` to `0`.
+The default sketch has **two Bedroom 3 controls**: press the D4 button once to toggle both windows together; hold the D5 limit switch to turn the corner purifier ON and release it for OFF. The app remains usable without the board. Neither input powers a physical appliance or drives a servo.
 
 ## Wire first, with USB unplugged
 
-| Switch terminal | Board connection | Purpose |
-|---|---|---|
-| COM | GND | Common return |
-| NO | D5, the digital pin labelled 5 | Press pulls the input LOW, turning the Bedroom 3 purifier ON |
-| NC | Leave unconnected | Not used |
+| Control | Signal connection | Other connection | Behaviour |
+|---|---|---|---|
+| Bedroom 3 window button | D4 | GND | One debounced press toggles both windows; release does nothing |
+| Purifier limit switch NO | D5 | COM to GND | Held pressed = ON; released = OFF |
+| Purifier limit switch NC | Leave unconnected | — | Not used |
 
-The sketch enables `INPUT_PULLUP`, so the open switch reads HIGH and the pressed switch reads LOW. **No wire goes to 5 V or 3.3 V.** Use the actual COM/NO markings; terminal position varies between switches. This assumes a bare passive switch, not a powered sensor module. USB powers the board only. [Arduino input-pullup example](https://docs.arduino.cc/tutorials/generic/digital-input-pullup/).
+Both inputs use `INPUT_PULLUP`: the open switch reads HIGH and pressing connects it to GND for LOW. **No wire goes to 5 V or 3.3 V.** Use actual COM/NO labels; terminal position varies. A four-leg tactile button has permanently joined pairs, so use opposite contact pairs and check continuity. This assumes passive contacts, not a powered sensor module. [Arduino input-pullup example](https://docs.arduino.cc/tutorials/generic/digital-input-pullup/).
 
-D5/D6 avoid the original SSTuino's Wi-Fi connections on D2/D4. They are also digital pins in the SSTuino II core. These assignments are a proposed demo wiring plan, not a measurement of your board. [Classic connections](https://github.com/d3lta-v/SSTuino/blob/master/README.md#startup-states-table), [SSTuino II pin definitions](https://github.com/FourierIndustries-LLP/SSTuino_II_Core/blob/master/megaavr/variants/uno-wifi/pins_arduino.h).
+The SSTuino II's official core defines D4 and D5 as digital header pins. The original SSTuino Classic uses D4 for its Wi-Fi connection: do not assume that older board's attached module leaves D4 free; use a verified unused input and change `BEDROOM3_BUTTON_PIN` for a Classic configuration. The requested D4 wiring targets SSTuino II. [SSTuino II pin definitions](https://github.com/FourierIndustries-LLP/SSTuino_II_Core/blob/master/megaavr/variants/uno-wifi/pins_arduino.h), [Classic connections](https://github.com/d3lta-v/SSTuino/blob/master/README.md#startup-states-table).
 
-The [complete sketch](../firmware/heatsim_board/heatsim_board.ino) defaults to `SINGLE_PURIFIER_SWITCH 1`, `PURIFIER_SWITCH_PIN = 5`, and `PURIFIER_SWITCH_ACTIVE = LOW`. Debounce takes 30 ms without blocking serial handling. It sends `PUR:ON` or `PUR:OFF` on stable changes, at startup, and when the browser requests state. Conflicting on-screen purifier power requests return `ERR:BUSY` and the switch's actual state. Disconnect the board to use on-screen purifier power independently. Fan controls remain independent of this switch.
+The [complete sketch](../firmware/heatsim_board/heatsim_board.ino) keeps `SINGLE_PURIFIER_SWITCH 1` as the default Bedroom 3 controls mode. `BEDROOM3_BUTTON_PIN = 4`, `PURIFIER_SWITCH_PIN = 5`, and debounce is 30 ms without blocking serial handling.
 
-**Alternative two-opening mode:** set `SINGLE_PURIFIER_SWITCH` to `0`. D5 then controls WIN1 (bedroom 3 north window), and D6 controls DOOR1 (main entrance). Each `flaps[]` row has `limitSwitch`:
+- D4 sends absolute `WIN1:0/1` (north window) and `WIN4:0/1` (east window). If both are open, a press closes both; otherwise it opens both. Holding or releasing the button does not repeat the toggle. Individual on-screen window changes still work and are echoed once by the board.
+- D5 sends `PUR:ON/OFF`. The app targets purifier slot 2 in the Bedroom 3 corner, x=11.5 m, z=2.8 m. A conflicting on-screen purifier power request returns `ERR:BUSY` and the actual switch state. Disconnect the board to control purifier power independently.
+- Boot initializes both logical windows closed and samples the current purifier switch. Startup and `GET:ALL` report `WIN1`, `WIN4` and `PUR`; the latter ends with `END`. A board reset returns windows to closed. Reconnecting without a board reset retains its logical window states. Fan settings, other openings, weather and the running simulation fields are not reset by these messages.
 
-- **`false`, default:** a momentary button toggles the opening once per press. Releasing the button does not toggle it again.
-- **`true`:** mount a limit switch so a fully closed flap presses it. Pressed means closed; released means open. The physical switch owns this state. A conflicting web command returns `ERR:BUSY` and the actual state, so the app returns to the physical position.
-
-Both modes debounce for 30 ms. Change the per-row setting to mix one button and one limit switch. Keep D0/D1 free for serial. Mount switches on removable tabs outside the building footprint until the team measures the actual bodies and lever travel. The model's tiny flaps do not set the switch mounting-hole dimensions.
+**Alternative opening demonstration:** set `SINGLE_PURIFIER_SWITCH` to `0`. This disables the D4 group control; D5 then controls WIN1 and D6 controls DOOR1. Each `flaps[]` row defaults to `limitSwitch=false` (toggle once per button press). Set it to `true` for a switch pressed by a closed flap; pressed then means closed, released means open, and conflicting host requests return `ERR:BUSY` plus actual state. Servos remain disabled. Mount switches on removable tabs until actual body dimensions and travel are measured; tiny flap dimensions do not define mounting holes.
 
 ## Upload and connect
 
@@ -30,21 +29,21 @@ Both modes debounce for 30 ms. Change the per-row setting to mix one button and 
 3. **Original SSTuino / Arduino Uno fallback:** select Arduino Uno for the Classic. Its NEU USB adapter uses CP2102; use the manufacturer's setup instructions if the port is missing. [Classic board selection](https://sstuino.fourier.industries/tutorials/helloWorld.html), [adapter setup](https://sstuino.fourier.industries/tutorials/gettingStarted.html).
 4. Upload. In Serial Monitor choose **115200 baud** and **Newline**. Enter `PING` and expect `PONG`; enter `GET:ALL` and expect states ending in `END`.
 5. **Close Serial Monitor** before connecting from the web app. Open the app in desktop Chrome or Edge at `http://localhost:5173`, click **Connect model**, and select the board's port. The web connection waits 1.5 seconds for reset, sends `HELLO` and `GET:ALL`, and uses the board's states.
-6. Open **Flat simulation** and look at the Bedroom 3 corner purifier. Press and hold the switch: purifier power should turn on. Release it: power should turn off. USB messages show `PUR:ON` and `PUR:OFF`. Unplug USB: the link should become disconnected while the app keeps running. Reconnect: the actual switch state targets the same Bedroom 3 corner; fan settings, weather, openings and the simulation clock are retained.
+6. In **Flat simulation**, press D4 once: both Bedroom 3 windows should open. Release and press again: both close. Hold D5: the Bedroom 3 corner purifier turns on; release it: the purifier turns off. Unplug/reconnect and verify the board state is restored while unrelated controls and the live simulation remain unchanged.
 
-For a quick Serial Monitor check, the default sketch replies to `GET:ALL` with only `PUR:ON` or `PUR:OFF`, then `END`. It intentionally omits unowned fan, opening and scenario states. Close Serial Monitor before browser connection. The purifier removes simulated haze locally; it does not refrigerate the room or act as an outdoor ventilation fan. Resume the simulation to see readings evolve.
+In Serial Monitor, `GET:ALL` returns `WIN1:0/1`, `WIN4:0/1`, `PUR:ON/OFF`, then `END`. Close Serial Monitor before browser connection. Resume the simulation to see readings evolve. The purifier removes simulated haze locally; it does not refrigerate the room.
 
 Web Serial requires a secure context and user permission for the port. Desktop Chrome supports it; `localhost` works. Safari and Firefox should use the app's on-screen controls. A reconnect can reuse a single already-permitted port. [Chrome Web Serial guide](https://developer.chrome.com/docs/capabilities/serial), [Web Serial specification](https://wicg.github.io/serial/).
 
 ## Servos: optional until the parts are identified
 
-**The default sketch drives no servos.** Optional opening servos belong only to the alternative `SINGLE_PURIFIER_SWITCH 0` mode. A servo is an actuator, not an input. The one-switch purifier connection uses only D5 and GND.
+**The default sketch drives no servos.** Optional opening servos belong only to the alternative `SINGLE_PURIFIER_SWITCH 0` mode. A servo is an actuator, not an input. The default controls use only D4, D5 and GND.
 
 The sketch contains an `ENABLE_SERVOS` switch, default `0`, and proposed signal pins D9 (WIN1) and D10 (DOOR1). To enable it, first identify the servo model, confirm its voltage/current requirements, compile the board-compatible `Servo` library, and verify its signal pins on the actual board. Supply servos from a suitable separate supply with its GND tied to board GND; do not power an unknown servo from a GPIO. SSTuino II's manufacturer specifically notes that servo current can reset the board. [Manufacturer FAQ](https://knowledge.fourier.industries/frequently-asked-questions-faq-sstuino-ii.html).
 
 Set `ENABLE_SERVOS` to `1` only after that check. The provisional 90° closed / 120° open values are **not calibrated for your linkage**. Start with the horn detached, set a safe neutral position, then fit and adjust each row's `closedDegrees` / `openDegrees` so the flap never pushes against a hard stop. Servos attach to move and detach after 600 ms. In limit-switch mode the channel remains a manual physical input and does not drive its servo.
 
-In the alternative `SINGLE_PURIFIER_SWITCH 0` button mode, typing `WIN1:1` changes its logical state and echoes `WIN1:1`; with calibrated servos enabled it also commands movement. The default single-switch mode rejects `WIN1` because it owns only purifier power. An opening echo confirms a requested command, not measured servo position. AC, fan and scenario remain software settings; no motors, relays, fan-yaw servo or sensor wiring is provided.
+In the alternative `SINGLE_PURIFIER_SWITCH 0` button mode, typing `WIN1:1` changes its logical state and echoes `WIN1:1`; with calibrated servos enabled it also commands movement. The default Bedroom 3 mode supports WIN1 and WIN4, while D5 owns purifier power. An opening echo confirms a requested command, not measured servo position. AC, fan and scenario remain software settings; no motors, relays, fan-yaw servo or sensor wiring is provided.
 
 ## Integration and checks
 
@@ -71,6 +70,12 @@ c++ -std=c++17 -Wall -Wextra -Werror -Wno-unused-parameter -DSINGLE_PURIFIER_SWI
 /tmp/heatsim-legacy-firmware-check
 ```
 
-The C++ checks exercise the actual sketch in both modes: startup and reconnect purifier state, press/release debounce, held switch, conflicting host commands, unowned-setting preservation, protocol bounds and the legacy opening controls. App tests separately check the Bedroom 3 corner mapping. These are not AVR board compiles or physical tests. No `arduino-cli` is installed here. Upload and the actual USB/switch round trip remain unverified until performed on the supplied board.
+The C++ checks exercise the actual sketch in both modes: startup and reconnect state, D4 bounce/hold/release/mixed-state group toggle and timer rollover, D5 press/release/rollover and physical authority, protocol bounds and the legacy opening controls. The default sketch also **compiled successfully for SSTuino II Rev A**, using installed core 1.1.3 and the Arduino IDE's bundled CLI: 4,226 bytes of program storage and 259 bytes of global RAM. Reproduce the board compile with:
+
+```sh
+'/Applications/Arduino IDE.app/Contents/Resources/app/lib/backend/resources/arduino-cli' compile --fqbn sstuino-ii:megaavr:4809 --warnings more firmware/heatsim_board
+```
+
+Compilation does not upload the sketch or establish physical operation. Upload, wiring and the actual USB/switch round trip remain unverified until performed on the supplied board.
 
 Written by gpt-6-astra in Codex on behalf of Edmund

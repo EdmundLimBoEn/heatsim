@@ -76,6 +76,7 @@ export function buildFlowArrows(field: PlanField): FlowArrow[] {
 
 export function createPlanFieldView(scene: THREE.Scene): {
   update(field: PlanField | undefined, mode: ViewMode): void;
+  setMotionEnabled(enabled: boolean): void;
   animate(dt: number): void;
   dispose(): void;
 } {
@@ -102,7 +103,7 @@ export function createPlanFieldView(scene: THREE.Scene): {
   slice.renderOrder = 2;
   slice.visible = false;
   scene.add(slice);
-  const arrowMaterial = new THREE.MeshBasicMaterial({ color: '#f8f8ed', transparent: true, opacity: 0.94, depthWrite: false, toneMapped: false });
+  const arrowMaterial = new THREE.MeshBasicMaterial({ color: '#193c43', depthWrite: false, toneMapped: false });
   const shaftGeometry = new THREE.CylinderGeometry(1, 1, 1, 5);
   const headGeometry = new THREE.ConeGeometry(1, 1, 6);
   const shafts = new THREE.InstancedMesh(shaftGeometry, arrowMaterial, 512);
@@ -120,6 +121,8 @@ export function createPlanFieldView(scene: THREE.Scene): {
   const up = new THREE.Vector3(0, 1, 0);
   let latest: PlanField | undefined;
   let mode: ViewMode = 'model';
+  let motionEnabled = true;
+  let renderedGridKey = '';
   let texture: THREE.DataTexture | undefined;
   let pixels = new Uint8Array();
   let fluid: number[] = [];
@@ -141,14 +144,36 @@ export function createPlanFieldView(scene: THREE.Scene): {
     lifetimes[index] = 4 + random() * 4;
   }
   function update(field: PlanField | undefined, newMode: ViewMode): void {
-    const changedGrid = latest?.nx !== field?.nx || latest?.nz !== field?.nz || latest?.dx !== field?.dx;
     latest = field;
     mode = newMode;
     slice.visible = Boolean(field && mode !== 'model');
-    particles.visible = Boolean(field && (mode === 'airflow' || mode === 'pm25'));
-    shafts.visible = heads.visible = Boolean(field && mode === 'airflow');
+    particles.visible = Boolean(motionEnabled && field && (mode === 'airflow' || mode === 'pm25'));
+    shafts.visible = heads.visible = Boolean(field);
     if (!field) return;
+    const arrows = buildFlowArrows(field);
+    shafts.count = heads.count = arrows.length;
+    arrows.forEach((arrow, index) => {
+      direction.set(arrow.end[0] - arrow.start[0], 0, arrow.end[1] - arrow.start[1]);
+      const length = direction.length();
+      const headLength = Math.min(0.12, length * 0.35);
+      direction.normalize();
+      arrowTransform.quaternion.setFromUnitVectors(up, direction);
+      arrowTransform.position.set(arrow.start[0] + direction.x * (length - headLength) / 2, 1.24, arrow.start[1] + direction.z * (length - headLength) / 2);
+      arrowTransform.scale.set(0.009, length - headLength, 0.009);
+      arrowTransform.updateMatrix();
+      shafts.setMatrixAt(index, arrowTransform.matrix);
+      arrowTransform.position.set(arrow.end[0] - direction.x * headLength / 2, 1.24, arrow.end[1] - direction.z * headLength / 2);
+      arrowTransform.scale.set(Math.min(0.036, field.dx * 0.18), headLength, Math.min(0.036, field.dx * 0.18));
+      arrowTransform.updateMatrix();
+      heads.setMatrixAt(index, arrowTransform.matrix);
+    });
+    shafts.instanceMatrix.needsUpdate = true;
+    heads.instanceMatrix.needsUpdate = true;
+    if (mode === 'model') return;
+    const gridKey = `${field.nx}:${field.nz}:${field.dx}:${field.origin[0]}:${field.origin[1]}`;
+    const changedGrid = renderedGridKey !== gridKey;
     if (changedGrid || !texture) {
+      renderedGridKey = gridKey;
       texture?.dispose();
       pixels = new Uint8Array(field.nx * field.nz * 4);
       texture = new THREE.DataTexture(pixels, field.nx, field.nz, THREE.RGBAFormat);
@@ -175,27 +200,6 @@ export function createPlanFieldView(scene: THREE.Scene): {
       pixels[pixel + 3] = isFluid ? 255 : 0;
     }
     texture.needsUpdate = true;
-    if (mode === 'airflow') {
-      const arrows = buildFlowArrows(field);
-      shafts.count = heads.count = arrows.length;
-      arrows.forEach((arrow, index) => {
-        direction.set(arrow.end[0] - arrow.start[0], 0, arrow.end[1] - arrow.start[1]);
-        const length = direction.length();
-        const headLength = Math.min(0.12, length * 0.35);
-        direction.normalize();
-        arrowTransform.quaternion.setFromUnitVectors(up, direction);
-        arrowTransform.position.set(arrow.start[0] + direction.x * (length - headLength) / 2, 1.24, arrow.start[1] + direction.z * (length - headLength) / 2);
-        arrowTransform.scale.set(0.009, length - headLength, 0.009);
-        arrowTransform.updateMatrix();
-        shafts.setMatrixAt(index, arrowTransform.matrix);
-        arrowTransform.position.set(arrow.end[0] - direction.x * headLength / 2, 1.24, arrow.end[1] - direction.z * headLength / 2);
-        arrowTransform.scale.set(Math.min(0.036, field.dx * 0.18), headLength, Math.min(0.036, field.dx * 0.18));
-        arrowTransform.updateMatrix();
-        heads.setMatrixAt(index, arrowTransform.matrix);
-      });
-      shafts.instanceMatrix.needsUpdate = true;
-      heads.instanceMatrix.needsUpdate = true;
-    }
     if (changedGrid) for (let i = 0; i < count; i++) respawn(i);
   }
   function animate(dt: number): void {
@@ -226,7 +230,10 @@ export function createPlanFieldView(scene: THREE.Scene): {
     particleGeometry.attributes.position.needsUpdate = true;
     particleGeometry.attributes.color.needsUpdate = true;
   }
-  return { update, animate, dispose: () => {
+  return { update, animate, setMotionEnabled: enabled => {
+    motionEnabled = enabled;
+    particles.visible = Boolean(enabled && latest && (mode === 'airflow' || mode === 'pm25'));
+  }, dispose: () => {
     texture?.dispose();
     particleGeometry.dispose();
     particleMaterial.dispose();

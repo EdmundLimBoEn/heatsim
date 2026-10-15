@@ -36,6 +36,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   let baseline: ThermalConfig | null = null;
   let report: ThermalComparisonResult | null = null;
   let running = false;
+  let runFailed = false;
   let request = 0;
   const roomNames = [...new Set(THERMAL_OPENINGS.map(opening => opening.room))];
   let selectedRoom = options.selectedRoom?.() ?? 'bedroom3';
@@ -83,14 +84,14 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
         ${range('cl-absorptance', 'Solar absorptance', 0.05, 0.95, 0.05, config.envelope.solarAbsorptance, '')}
         ${range('cl-shade', 'External shading', 0, 100, 5, config.envelope.shadeFraction * 100, '%')}
         <p class="cl-help">Illustrative full-size flat properties. Conductance is outside-to-surface heat transfer, not a certified wall U-value. The cardboard thickness is unrelated.</p></section>
-        <div class="cl-run-controls"><button class="cl-button cl-primary" id="cl-run" type="submit">Compare fan off / on</button><button class="cl-button cl-secondary" id="cl-cancel" type="button" hidden>Cancel</button><progress id="cl-progress" max="100" value="0" aria-label="Comparison progress" hidden></progress><p id="cl-status" role="status" aria-live="polite">Both trials start from identical scenario temperatures, not the live 3D readings.</p></div>
+        <div class="cl-run-controls"><button class="cl-button cl-primary" id="cl-run" type="submit">Compare fan off / on</button><button class="cl-button cl-secondary" id="cl-cancel" type="button" hidden>Cancel comparison</button><progress id="cl-progress" max="100" value="0" aria-label="Comparison progress" hidden></progress><p id="cl-status" role="status" aria-live="polite">Choose a room and fan direction, then compare. Both trials start from the same scenario temperatures.</p><button id="cl-view-results" class="cl-button cl-secondary" type="button" hidden>View results</button></div>
       </form>
       <div class="cl-main">
         <div data-lab-model-slot class="cooling-lab-model-slot"></div>
         <div class="cl-fairness"><strong id="cl-fairness-title">One controlled change</strong><span id="cl-fairness-copy">Identical initial air and surface temperatures, weather, openings and devices. Only the installed vent fan changes.</span></div>
-        <section id="cl-results" class="cl-results" aria-label="Fan comparison results">
+        <section id="cl-results" class="cl-results" aria-label="Fan comparison results" tabindex="-1" aria-busy="false">
           <div class="cl-results-heading"><div><h3>What changes after <span id="cl-duration-label">20 minutes</span>?</h3><p id="cl-comparison-description">Captured lab setup · fan on minus fan off. Negative temperature differences mean cooler air.</p></div><button class="cl-button cl-secondary" type="button" id="cl-export" disabled>Export comparison CSV</button></div><div id="cl-compared-inputs" class="cl-compared-inputs"></div>
-          <div id="cl-summary" class="cl-summary"><p class="cl-empty">Run a comparison to see the temperatures, electricity and particle changes.</p></div>
+          <p id="cl-export-status" class="cl-export-status" role="status"></p><div id="cl-summary" class="cl-summary"><p class="cl-empty">Choose a room and fan direction, then select <strong>Compare fan off / on</strong>. You’ll see temperature, PM2.5 and electricity differences for the same starting conditions.</p></div>
           <div class="cl-visuals"><section class="cl-chart-panel"><h4>Occupied-layer temperature</h4><div class="cl-chart-key"><span class="cl-line-off">Fan off</span><span class="cl-line-on">Fan on</span></div><div id="cl-chart"><p class="cl-empty">Both traces will start at the same temperature and use the same time axis.</p></div></section><section class="cl-section-panel"><h4 id="cl-section-title">Two air layers and one surface</h4><div id="cl-cross-section"><p class="cl-empty">The section will show the second trial’s final state in your selected room.</p></div><p class="cl-help">Nodal illustration, not a resolved plume or 3D temperature field. Layer boundaries and arrows are schematic.</p></section></div>
           <div class="cl-result-bottom"><section><h4>Actual exchange & make-up air</h4><div id="cl-flow-result"><p class="cl-empty">A blocked route can limit exchange. The fan rating alone does not establish the flow.</p></div></section><section><h4>Heat budget of the whole flat</h4><div id="cl-budget"><p class="cl-empty">Conduction, radiation, ventilation and internal heat sources will be shown separately.</p></div></section></div>
         </section>
@@ -110,7 +111,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   };
   const form = $('#cl-form');
   const [comparison, setup, weather, openings, envelope] = [...form.querySelectorAll<HTMLElement>(':scope > section')];
-  const more = disclosure('cl-more-settings', 'More settings', 'cl-more-settings');
+  const more = disclosure('cl-more-settings', 'Weather, openings & advanced comparisons', 'cl-more-settings');
   const fanSettings = document.createElement('section');
   const fanHeading = document.createElement('h3'); fanHeading.textContent = 'Fan rating and test length';
   fanSettings.append(fanHeading);
@@ -126,6 +127,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   const resultDetails = disclosure('cl-result-details', 'Air exchange and heat balance', 'cl-result-details');
   const resultBottom = $('.cl-result-bottom');
   resultBottom.before(resultDetails); resultDetails.append(resultBottom);
+  $('.cl-visuals').hidden = true; resultDetails.hidden = true;
   const about = disclosure('cl-about-test', 'About this test', 'cl-learning cl-about-test');
   const learning = $('.cl-learning-grid');
   for (const details of [...learning.querySelectorAll<HTMLDetailsElement>(':scope > details')]) {
@@ -136,6 +138,11 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     section.append(...details.childNodes); about.append(section);
   }
   learning.replaceWith(about);
+
+  function setStatus(message: string, state: 'idle' | 'working' | 'error' | 'success' = 'idle'): void {
+    $('#cl-status').textContent = message;
+    $('#cl-status').dataset.state = state;
+  }
 
   function updateOpenings(): void {
     const openings = THERMAL_OPENINGS.filter(opening => opening.room === selectedRoom);
@@ -195,7 +202,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     $<HTMLInputElement>('#cl-fan-on').checked = config.vent.on;
     $('#cl-corridor-fields').hidden = !config.corridor?.enabled;
     $<HTMLButtonElement>('#cl-run').disabled = running || (general && !baseline);
-    $('#cl-run').textContent = general ? 'Compare baseline / candidate' : 'Compare fan off / on';
+    $('#cl-run').textContent = running ? 'Comparing…' : runFailed ? 'Retry comparison' : general ? 'Compare baseline / candidate' : 'Compare fan off / on';
     $('#cl-fairness-title').textContent = general ? 'Matched shared conditions' : 'One controlled change';
     $('#cl-fairness-copy').textContent = general ? 'Baseline captures interventions only. Current weather, corridor conditions, scenario initial temperatures and duration apply identically to both trials.' : 'Identical initial air and surface temperatures, weather, openings and devices. Only the installed vent fan changes.';
     $('#cl-comparison-description').textContent = general ? 'Candidate minus baseline. Negative temperature or PM2.5 differences mean a reduction.' : 'Captured lab setup · fan on minus fan off. Negative temperature differences mean cooler air.';
@@ -212,12 +219,15 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     refreshCaptureStatus();
   }
   function clearReport(message: string): void {
-    request++; runner.cancel(); running = false; report = null;
-    $<HTMLButtonElement>('#cl-run').disabled = false;
+    request++; runner.cancel(); running = false; runFailed = false; report = null;
+    $<HTMLButtonElement>('#cl-run').disabled = comparisonMode === 'configuration' && !baseline;
     $('#cl-cancel').hidden = true; $('#cl-progress').hidden = true;
+    $('#cl-view-results').hidden = true; $('.cl-visuals').hidden = true; $('#cl-result-details').hidden = true;
+    $('#cl-results').setAttribute('aria-busy', 'false'); $('#cl-export-status').textContent = '';
     $<HTMLButtonElement>('#cl-export').disabled = true;
-    $('#cl-status').textContent = message;
-    $('#cl-summary').innerHTML = '<p class="cl-empty">Settings updated. Run a new matched comparison.</p>';
+    setStatus(message);
+    $('#cl-run').textContent = comparisonMode === 'configuration' ? 'Compare baseline / candidate' : 'Compare fan off / on';
+    $('#cl-summary').innerHTML = '<p class="cl-empty">No current result. Compare again to use the current settings.</p>';
     $('#cl-chart').innerHTML = '<p class="cl-empty">New paired traces appear after the comparison.</p>';
     $('#cl-cross-section').innerHTML = '<p class="cl-empty">The selected room’s final state in the second trial will appear here.</p>';
     $('#cl-flow-result').innerHTML = '<p class="cl-empty">Actual exchange will be calculated from the configured route.</p>';
@@ -285,6 +295,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     const convection = (snapshot: ThermalSnapshot) => snapshot.rooms.reduce((sum, reading) => sum + reading.wallToAirWatts, 0);
     $('#cl-budget').innerHTML = `<p class="cl-help">Final heat rates in W. Positive adds heat; negative removes it.</p><div class="cl-table-scroll"><table><thead><tr><th scope="col">Mechanism</th><th scope="col">${before}</th><th scope="col">${after}</th></tr></thead><tbody>${budgetLabels.map(([key, label]) => `<tr><th scope="row">${label}</th><td>${signed(result.off.final.heatBudgetW[key])}</td><td>${signed(result.on.final.heatBudgetW[key])}</td></tr>`).join('')}<tr class="cl-net"><th scope="row">Net external + source heat</th><td>${signed(result.off.final.heatBudgetW.net)}</td><td>${signed(result.on.final.heatBudgetW.net)}</td></tr></tbody></table></div><p class="cl-help">Surface-to-air convection: ${signed(convection(result.off.final))} W ${before.toLowerCase()} / ${signed(convection(result.on.final))} W ${after.toLowerCase()}. This redistributes heat inside the flat and is not added again to the net heat budget.</p><p class="cl-help">Stored-energy difference: ${signed(result.difference.storedEnergyJ / 1000, 2)} kJ ${after.toLowerCase()} minus ${before.toLowerCase()}. These final rates are not the time-integrated energy balance.</p>`;
     $<HTMLButtonElement>('#cl-export').disabled = false;
+    $('.cl-visuals').hidden = false; $('#cl-result-details').hidden = false; $('#cl-view-results').hidden = false;
   }
   function renderExpansion(): void {
     try {
@@ -305,24 +316,29 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     const token = ++request;
     running = true; report = null;
     $<HTMLButtonElement>('#cl-run').disabled = true; $<HTMLButtonElement>('#cl-export').disabled = true;
+    $('#cl-run').textContent = 'Comparing…'; $('#cl-results').setAttribute('aria-busy', 'true');
+    $('#cl-summary').innerHTML = '<p class="cl-empty">Comparing both trials from the same starting conditions. You can cancel or change the settings.</p>';
     $('#cl-cancel').hidden = false; $('#cl-progress').hidden = false;
     $<HTMLProgressElement>('#cl-progress').value = 0;
-    $('#cl-status').textContent = comparisonMode === 'configuration' ? 'Running matched baseline and candidate trials…' : 'Running matched fan-off and fan-on trials…';
+    setStatus(comparisonMode === 'configuration' ? 'Running matched baseline and candidate trials…' : 'Running matched fan-off and fan-on trials…', 'working');
     try {
       const onProgress = (progress: ThermalComparisonProgress) => {
         if (token !== request) return;
         $<HTMLProgressElement>('#cl-progress').value = progress.total > 0 ? progress.done / progress.total * 100 : 0;
+        $('#cl-progress').setAttribute('aria-valuetext', `${number(progress.elapsedSeconds / 60, 1)} of ${frozen.durationSeconds / 60} simulated minutes`);
         $('#cl-status').textContent = `Comparing both trials: ${number(progress.elapsedSeconds / 60, 1)} / ${frozen.durationSeconds / 60} simulated minutes.`;
       };
       const result = comparisonMode === 'configuration' && baseline ? await runner.compare(structuredClone(baseline), frozen, onProgress) : await runner.run(frozen, onProgress);
       if (token !== request) return;
       report = result; renderResult(result);
-      $('#cl-status').textContent = `Comparison complete: ${result.durationSeconds / 60} simulated minutes per trial in ${number(result.runtimeMs / 1000)} real seconds.`;
+      setStatus(`Comparison complete: ${result.durationSeconds / 60} simulated minutes per trial. View the results or download the CSV.`, 'success');
     } catch (error) {
       if (token !== request) return;
-      $('#cl-status').textContent = error instanceof DOMException && error.name === 'AbortError' ? 'Comparison cancelled.' : error instanceof Error ? error.message : 'Comparison failed. Your flat setup is unchanged.';
+      runFailed = !(error instanceof DOMException && error.name === 'AbortError');
+      setStatus(runFailed ? `${error instanceof Error ? error.message : 'The comparison could not finish.'} Your settings are saved here. Select Retry comparison to try again.` : 'Comparison cancelled. Your settings are retained.', runFailed ? 'error' : 'idle');
+      $('#cl-summary').innerHTML = '<p class="cl-empty">No result was produced. Your settings are retained; run the comparison again when ready.</p>';
     } finally {
-      if (token === request) { running = false; $<HTMLButtonElement>('#cl-run').disabled = false; $('#cl-cancel').hidden = true; $('#cl-progress').hidden = true; }
+      if (token === request) { running = false; $('#cl-cancel').hidden = true; $('#cl-progress').hidden = true; $('#cl-results').setAttribute('aria-busy', 'false'); sync(); }
     }
   }
   function change(input: HTMLInputElement | HTMLSelectElement): void {
@@ -370,6 +386,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   container.addEventListener('input', event => { const input = event.target as HTMLInputElement; if (input.matches('input[type="range"][data-cl]')) change(input); }, { signal: events.signal });
   container.addEventListener('change', event => { const input = event.target as HTMLSelectElement | HTMLInputElement; if (input.matches('select[data-cl], input[type="checkbox"][data-cl]')) change(input); }, { signal: events.signal });
   $('#cl-cancel').addEventListener('click', () => { clearReport('Comparison cancelled. Your flat setup is unchanged.'); $('#cl-run').focus(); }, { signal: events.signal });
+  $('#cl-view-results').addEventListener('click', () => { $('#cl-results').focus({ preventScroll: true }); $('#cl-results').scrollIntoView({ block: 'start' }); }, { signal: events.signal });
   $('#cl-recapture').addEventListener('click', () => {
     capturedBase = structuredClone(options.readConditions());
     weatherOverrides = {}; openingOverrides = null; purifierOverride = undefined; deviceOverrides = {};
@@ -389,8 +406,9 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
       const url = URL.createObjectURL(new Blob([thermalComparisonCsv(report)], { type: 'text/csv;charset=utf-8' }));
       const anchor = document.createElement('a'); anchor.href = url; anchor.download = `heatsim-cooling-${report.durationSeconds / 60}min.csv`; anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      $('#cl-status').textContent = 'Comparison CSV exported with its captured configuration and both traces.';
-    } catch (error) { $('#cl-status').textContent = error instanceof Error ? error.message : 'Export failed. Run a new comparison and try again.'; }
+      $('#cl-export-status').textContent = 'CSV download started. It includes both trials and the settings used.';
+      $('#cl-export-status').dataset.state = 'success';
+    } catch (error) { $('#cl-export-status').textContent = `${error instanceof Error ? error.message : 'The CSV download could not start.'} Your result is retained. Try Export comparison CSV again.`; $('#cl-export-status').dataset.state = 'error'; }
   }, { signal: events.signal });
   $('#cl-opening-controls').innerHTML = model.boxes.filter(box => box.type === 'window' || box.type === 'door').map(box => `<label class="cl-check"><input type="checkbox" data-cl="opening-state" data-opening-id="${box.name}"><span>${escape(openingLabel(box.name))}</span></label>`).join('');
   $('#cl-fixed-purifiers').innerHTML = Object.keys(deviceRoom).filter(id => id.startsWith('purifier_')).map(id => `<label class="cl-check"><input type="checkbox" data-cl="fixed-purifier" data-fixed-purifier="${id}"><span>${roomLabel(deviceRoom[id])} fixed purifier</span></label>`).join('');

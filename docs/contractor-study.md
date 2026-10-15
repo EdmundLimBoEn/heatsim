@@ -1,25 +1,25 @@
-# Contractor Study: pre-design option comparisons
+# Compare floor plans: homeowner option comparisons
 
-This **noncommercial hackathon demo** explores a separate Contractor Study workflow for a contractor to describe a measured floor plan, record shared assumptions, compare three plan/configuration options, and discuss the result with a client. Its intended place is **between an informal guess and a site-specific professional assessment**: a repeatable way to examine options and make assumptions visible before deciding what needs measurement or specialist design.
+This **noncommercial hackathon demo** helps a homeowner compare three floor plans or configurations under shared assumptions before renovating or moving. The workspace is labelled **Compare floor plans**; its internal modules retain the Contractor Study name. Its intended place is between an informal placement idea and a site-specific professional assessment: a repeatable way to inspect options and record what still needs measurement or specialist design.
 
 This is an **uncalibrated reduced-order thermal/ventilation model**, not professional CFD, a compliance assessment, an equipment-sizing certificate or a guarantee of comfort, safe air or energy savings. The useful output is a transparent comparison under stated assumptions. A model-valid plan is not a professionally verified plan.
 
 ## Scope boundary
 
-The user authorized imported plans for **this workspace only**. The original **Flat simulation**, **Cooling Lab**, hardware mapping and two-A4-sheet cardboard pack continue to use the canonical HDB geometry. A new study must actually derive room volumes, opening connections and envelope areas from its validated input. It must not silently run the HDB flat while displaying a different plan.
+The user authorized imported plans for **this workspace only**. The original **My flat**, **Window fan test** (Cooling Lab), hardware mapping and two-A4-sheet cardboard pack continue to use the canonical HDB geometry. A new study must actually derive room volumes, opening connections and envelope areas from its validated input. It must not silently run the HDB flat while displaying a different plan.
 
 Input is structured JSON in **metres**, with axis-aligned rectangular rooms and explicit openings. A person must measure or transcribe a plan and check its scale and connections. There is **no automatic PDF/image interpretation**, CAD recognition or reconstruction of an arbitrary scanned floor plan. The validator checks the supported geometric contract; it cannot establish that the dimensions match a building.
 
 ## Run a three-plan study
 
-1. Start the app with `bun run dev`, then open **Contractor Study**. Fill in **Project / study name** and a location label. Coordinates locate the weather reference; they do not fetch model inputs.
-2. Click **Load 3 example plans**, or import a supported JSON into each of **A**, **B** and **C**. Inspect the actual room preview, dimensions, geographic north and connection states. Use **Download JSON schema** when preparing an input, and **Download this plan JSON** to retain a configured option.
+1. Start the app with `bun run dev`, then open **Compare floor plans**. Under **Weather source & details**, fill in the project/study name and a location label. Coordinates locate the weather reference; they do not fetch model inputs.
+2. Click **Try the 3 example plans**, or import a supported JSON into each of **A**, **B** and **C**. Inspect the actual room preview, dimensions, geographic north and connection states. Use **Download JSON schema** when preparing an input, and **Download this plan JSON** to retain a configured option.
 3. Set one shared outdoor temperature, PM2.5, reference wind speed/FROM direction, humidity and local hour. Record whether each set of input values is an illustrative assumption, copied forecast or manually entered observation, together with source/model, valid time/time zone and wind reference height. A forecast at 10 m is not a measurement at a window.
 4. Set shared initial indoor air/surface temperature and PM2.5, total people per plan, and **10/20/30 minutes** (default 20). Review each plan's opening/equipment states. Device markers can be moved between rooms; use the room selector for the same change without dragging. All three plans need distinct plan IDs; to study configuration variants of the same geometry, copy its JSON with different plan IDs and change only the intended interventions.
 5. Click **Compare three plans**. The worker uses each plan's own geometry/state and the same requested conditions/horizon. Editing inputs invalidates old results; **Cancel** keeps the inputs and stops the worker. This is a comparison of three supplied options, not an automated layout search.
-6. Review per-metric advantages, room results, floor area and enabled equipment. Download the **handoff report** and **Study JSON**. Open the HTML report locally and use the browser's Print command to save a PDF if needed; the application does not read that PDF back as geometry.
+6. Review per-metric advantages, room results, floor area and enabled equipment. Click **Download comparison** for the HTML report and **Save comparison JSON** for the captured data. Open the HTML report locally and use the browser's Print command to save a PDF if needed; the application does not read that PDF back as geometry.
 
-The session stays in the browser. Download inputs/results before refreshing or closing it; no account or cloud project store is implemented. **Study JSON** is an archival export; the current import controls accept individual plan JSON, not a whole saved study report.
+The session stays in the browser. Download inputs/results before refreshing or closing it; no account or cloud project store is implemented. **Save comparison JSON** is an archival export; the current import controls accept individual plan JSON, not a whole saved study report.
 
 ### Read the comparison correctly
 
@@ -101,9 +101,9 @@ For this noncommercial hackathon demonstration, enter latitude/longitude, open *
 
 The [official Windy embed generator](https://embed.windy.com/config/map) produces a key-free map iframe. This is different from a Point Forecast API integration. Preserve the map's attribution and links, and provide an external reference link if the embed is unavailable. No scraping, forecast extraction or automatic import is part of this study. The future commercial product pitch does not assert a commercial Windy license; an actual commercial integration would need its own review against [Windy's applicable terms](https://account.windy.com/agreements/windy-general-terms-of-use).
 
-## Business position
+## Scope of the current launch
 
-The future B2B pitch hypothesis is a repeatable pre-design workflow for contractors: save the plan and assumptions, compare options under the same conditions, and give the client a reviewable report. Its value would be clearer discussions about openings, air-cleaning devices, ventilation and envelope choices, with a record of what changed and what was held constant.
+The current interface serves homeowners and stays local, without accounts or payment. The earlier B2B pitch remains only a future hypothesis. That hypothesis is a repeatable pre-design workflow for contractors: save the plan and assumptions, compare options under the same conditions, and give the client a reviewable report. Its value would be clearer discussions about openings, air-cleaning devices, ventilation and envelope choices, with a record of what changed and what was held constant.
 
 Per-contractor or team licensing is a **future pitch hypothesis**, not a commercial launch, a feature already built or evidence of willingness to pay. This local MVP has no accounts, billing, subscriptions, shared cloud projects or entitlement enforcement. A pilot should test whether contractors can prepare valid inputs and whether the comparison/report improves a real client conversation before committing to a commercial product.
 

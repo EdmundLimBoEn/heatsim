@@ -1,10 +1,22 @@
 # MVP verification and handoff
 
-**Contractor Study software checkpoint: 15 October 2026. All three workspaces run standalone; the current application gate passes 250 tests and 162 browser assertions. A SSTuino and one limit switch are available; physical operation remains unverified.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
+**Launch handoff: 15 October 2026. My flat, Window fan test and Compare floor plans work without hardware. The supplied SSTuino's physical operation remains unverified.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
 
-## Contractor Study and appliance placement
+## Homeowner launch and Bedroom 3 inputs
 
-The current application gate below includes Contractor Study and placement. The separate physical measurement-guide review also passed; it changes instructions, not cutting geometry or material quantity.
+The current launch changes use D4 for both Bedroom 3 windows and D5 for its purifier. The final software gate is **265 tests across 20 files** plus **254 browser assertions**; the dated 250-test/162-browser checkpoint below predates these changes.
+
+- [x] Host firmware checks passed in both default and legacy modes, including D4's 30 ms press latch (`WIN1` north + `WIN4` east), no repeated hold/release toggle, D5 hold-to-enable purification, owned-state startup/reconnect and 32-bit timer rollover. Serial/protocol focused tests: **25 passed**. Host checks use mocked Arduino functions, not the physical board.
+- [x] Actual **SSTuino II Rev A** compilation passed with installed core **1.1.3**, FQBN `sstuino-ii:megaavr:4809` and Arduino IDE's bundled CLI: default **4226 program bytes / 259 RAM bytes**; legacy **4217 / 281**. This is a board-target build, not an upload or physical USB test.
+- [x] The CPU frame cap is implemented and verified: each frame advances at most **one simulated second**, with elapsed time/energy matching the advance. In a warmed high-wind/all-open/fan Bun probe, 15-second calls took median **125.10 ms** versus **8.32 ms** for capped one-second calls (20 calls each; maxima **126.74 / 10.06 ms**). These are solver diagnostics, not browser FPS. Actual worker lifecycle probes passed with no worker handles left active.
+- [x] Current browser gate passed **254 assertions**: serial **40**, outdoor controls **17**, Cooling Lab **69**, three-plan study **63**, homeowner **31**, launch **34**. The launch checks cover five named dialogs/focus/shortcut protection, fallback-plan keyboard room selection, **106 actual solver arrows** retained across five overlay modes versus zero when still, advice startup-error retry, and standalone behavior with cancelled/denied/unavailable USB or missing WebGPU. Headless WebGL was unavailable and USB was mocked; these are browser-behavior results, not physical USB or native 3D/GPU proof.
+- [x] Final combined gate at **13:25 SGT** passed **265 tests across 20 files**, strict TypeScript/Vite production build, `bun src/scene-check.ts` and `git diff --check`. Scene checks cover actual arrows in all five modes, reduced motion, hidden-texture skip/resume and disposal. After the final fallback-label/spacing correction, TypeScript/production build and diff checks passed again. Vite retains its **807.87 kB** main-chunk size warning; the build succeeds.
+- [x] Final visual review passed at **390, 640 and 1280 px** in all three workspaces: no horizontal or interactive-control overflow, sampled visible DOM text contrast passed (including About), and the corrected 390 px fallback labels/caption are readable. Native keyboard Enter selected a fallback room; Escape restored dialog focus with a visible ring. Native 3D review remains separate from the headless assertions. At actual 200% zoom, the UI stays operable but 3D labels can be dense or overlap at intermediate widths; the room list/selector remain available.
+- [ ] Actual board upload, D4 press/hold/release and D5 hold/release verified through USB.
+
+## Prior Contractor Study and appliance placement checkpoint
+
+This earlier application gate includes Contractor Study and placement. The separate physical measurement-guide review also passed; it changes instructions, not cutting geometry or material quantity.
 
 - [x] `tests/contractor-plan.test.ts`: **26 focused validation tests passed**, including the three distinct 80/72/84 m² example inputs, unsupported/invalid geometry, permanent passages and minimum aperture dimensions.
 - [x] Canonical/imported-model suite: **35 tests passed** across `tests/thermal-model.test.ts` (**18**) and `tests/thermal-factory.test.ts` (**17**). Geometry/state isolation, actual plan volumes/connectivity/orientation, device effects and opening/envelope checks are covered. Six canonical 600-second differential cases retained the earlier numerical behavior.
@@ -13,7 +25,7 @@ The current application gate below includes Contractor Study and placement. The 
 - [x] Contractor UI owner reports strict TypeScript passed with final controls, explicit official Windy reference-map loading, room selectors/dragging and HTML/JSON exports. This is not a browser-rendering result.
 - [x] Final application gate at **11:35:52 SGT**: **250 tests across 18 files passed**; strict TypeScript/Vite build, `bun src/scene-check.ts` and `git diff --check` passed. This includes final comparison, placement and export tests. Canonical source geometry and the original 173-test baseline remain unchanged; the new physical reference-page guard is separate.
 - [x] Actual three-example worker runs at **1200/7200 seconds per plan** completed in about **109/271 ms**, with at most 121 samples per plan. Cancellation/retry and parent heartbeat checks passed. These are local runtime timings, not browser FPS.
-- [x] Current-source browser regression: **162 assertions passed**: **63 Contractor Study + 69 Cooling Lab + 17 outdoor controls + 13 mocked serial**. Contractor coverage includes validated geometry and orientation, invalid imports, provenance, actual worker/shared conditions/horizon, chart/report correspondence, downloads, cancellation/error/stale behavior, workspace isolation and placement pointer-event/room-selector behavior.
+- [x] Browser regression at that checkpoint: **162 assertions passed**: **63 Contractor Study + 69 Cooling Lab + 17 outdoor controls + 13 mocked serial**. Contractor coverage includes validated geometry and orientation, invalid imports, provenance, actual worker/shared conditions/horizon, chart/report correspondence, downloads, cancellation/error/stale behavior, workspace isolation and placement pointer-event/room-selector behavior.
 - [x] The browser's 1200-second three-plan run took about **63 ms**, retaining **121 samples per plan**, with a maximum **20 ms** parent-heartbeat gap. At **390 px**, document width stayed 390 without horizontal overflow; native Tab moved Project → Location. Study placement used dispatched pointer events; a trusted native study drag is not separately claimed.
 - [x] Optional Windy integration behavior verified: no default map, explicit load only with valid coordinates, coordinate edits clear the old frame, and loading does not change shared weather. **Actual external map tiles/attribution were not visually verified** in the headless environment; the official full iframe and external-link/manual-input fallback remain separate from simulation data.
 - [x] Native **Zen/WebGL** portable dragging: fan Bedroom 3 → Living (selector 3), purifier Living → Bedroom 2 (selector 4), invalid outside drop retained state and orbit resumed. Lab → Study → Flat retained positions and re-enabled portable dragging. Escape/pointer-cancel handlers were reviewed but not separately UI-triggered by the atomic-drag automation. Fixed AC does not move.
@@ -93,7 +105,7 @@ This path runs planar heat/haze transport only. Geometry and airflow stay on the
 - [x] `scripts/browser-check.js`: **9 browser assertions passed**, covering standalone keyboard/no-USB use, scenarios, dialog shortcut protection, CSV settings, the actual optimiser worker and retained Apply state.
 - [x] The tested browser optimiser run evaluated **27 arrangements in about 1.45 seconds**, comparing a combined score of **4.97 → 4.86**. This is one measured scenario/run, not a guarantee for every setup or a percent-haze reduction.
 - [x] `scripts/browser-serial-check.js`: **9 mocked browser assertions passed**, covering baud/handshake, scenario messages preserving a closed physical door, one-time echo handling, invalid input rejection, disconnect and continued standalone controls.
-- [x] [Presentation walkthrough](docs/presentation-demo.md) is written, with reproducible engine probes and the validation-door setup. Use **click Apply layout** to avoid Enter activating a focused Compare button.
+- [x] [Presentation walkthrough](docs/presentation-demo.md) is written, with reproducible engine probes and the validation-door setup. The earlier button was labelled **Apply layout**; the current homeowner UI uses **Apply these changes**. Click it explicitly to avoid activating another focused button.
 - [x] Production preview at localhost:4173: native WebGL renders, keyboard loads haze, actual worker compares 27 layouts in 1.1 seconds, Apply updates fan/purifier and keeps the report. Build-pack index, ZIP and both cutting-plan SVGs serve successfully.
 - [x] Responsive controls at 390 px: all five overlay tabs remain reachable, with no horizontal page overflow. This checks layout, not mobile GPU performance.
 - [ ] Formal five-minute full-browser FPS/reset record on the presentation machine.
@@ -104,13 +116,13 @@ Headless Chromium's 3D rendering was blocked by its SwiftShader/driver environme
 ## Remaining physical setup and checks
 
 - [ ] Verify the printed 50 mm bar, cardboard thickness and 187.692 × 118.462 mm outer footprint; dry-fit walls and hinges.
-- [ ] Confirm the supplied SSTuino's board package and labelled D5 input; wire the passive switch COM→GND, NO→D5, leaving NC unconnected.
-- [ ] Compile/upload the actual board sketch. The default `SINGLE_PURIFIER_SWITCH = 1` has one purifier-switch input and `ENABLE_SERVOS = 0`. Flag `0` restores the alternative WIN1/D5 and DOOR1/D6 inputs.
-- [ ] Check hold pressed→Bedroom 3 corner purifier ON and release→OFF, 30 ms debounce and physical-state authority; confirm startup/reconnect uses the same corner without changing fan, weather or openings.
+- [ ] Confirm the supplied SSTuino version/board package and the guide's D4 compatibility note. Wire the D4 button to GND and the D5 passive switch COM→GND, NO→D5, leaving NC unconnected.
+- [ ] Upload the board-target-compiled sketch to the actual SSTuino. The default `SINGLE_PURIFIER_SWITCH = 1` enables the D4 window button and D5 purifier switch, with `ENABLE_SERVOS = 0`. Flag `0` restores the alternative WIN1/D5 and DOOR1/D6 inputs.
+- [ ] Check D4 press toggles both Bedroom 3 windows; holding/releasing does not repeat. Check D5 held→corner purifier ON and release→OFF, 30 ms debounce and physical-state authority. Confirm startup/reconnect reports these owned states without changing the fan, weather or other openings.
 - [ ] USB connect, `HELLO` / `GET:ALL`, one press → one app update, unplug/reconnect and keyboard-only fallback on actual hardware.
 - [ ] Only if servos will be used: identify supply/current needs, verify common ground, calibrate horns detached, check linkage travel, then enable and test one servo.
 
-The host C++ check exercises the sketch with mocked Arduino functions. No AVR upload, live USB integration, physical switch operation or servo motion is claimed as verified. See [hardware instructions](docs/hardware.md).
+The host C++ check exercises the sketch with mocked Arduino functions; the SSTuino II board-target compile is recorded above. No board upload, live USB integration, physical switch operation or servo motion is claimed as verified. See [hardware instructions](docs/hardware.md).
 
 ## Original acceptance tests: current disposition
 

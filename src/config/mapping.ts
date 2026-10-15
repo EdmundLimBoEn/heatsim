@@ -2,6 +2,7 @@ export const HARDWARE_OPENINGS = {
   WIN1: 'window_bedroom3_1',
   WIN2: 'window_living_1',
   WIN3: 'window_living_3',
+  WIN4: 'window_bedroom3_2',
   DOOR1: 'main_door',
   DOOR2: 'door_bedroom3',
 } as const;

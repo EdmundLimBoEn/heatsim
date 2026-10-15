@@ -9,7 +9,7 @@
   window.heatSimSerialResult = { status: 'running', checks, writes, observations };
   const assert = (condition, label) => { if (!condition) throw new Error(label); checks.push(label); };
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-  const key = () => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '1', code: 'Digit1', bubbles: true }));
+  const key = (digit = '1') => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: digit, code: `Digit${digit}`, bubbles: true }));
   let stream;
   const encoder = new TextEncoder(), decoder = new TextDecoder();
   const send = line => stream.enqueue(encoder.encode(`${line}\n`));
@@ -19,7 +19,7 @@
       const line = decoder.decode(bytes).trim(); writes.push(line);
       if (line === 'HELLO') send('HELLO:HEATSIM/1');
       else if (line === 'PING') send('PONG');
-      else if (line === 'GET:ALL') { send('WIN1:0'); send('DOOR2:0'); send('SCN:6'); send('PUR:OFF'); send('END'); }
+      else if (line === 'GET:ALL') { send('WIN1:0'); send('WIN4:0'); send('DOOR2:0'); send('SCN:6'); send('PUR:OFF'); send('END'); }
       else send(line);
     } }),
     async open(options) { assert(options.baudRate === 115200, 'Uses protocol baud rate'); },
@@ -43,6 +43,8 @@
     const startup = app.readConditions();
     startup.purifier = { on: true, slot: 0 };
     startup.portableFan = { on: true, slot: 2, angleDeg: 75, speed: 2 };
+    startup.windows.window_bedroom3_1 = true;
+    startup.windows.window_bedroom3_2 = true;
     app.replaceConditions(startup);
     button.disabled = false; reveal(button).click();
     await wait(1800);
@@ -50,6 +52,7 @@
     assert(app.readConditions().scenarioId === 'validation' && !app.readConditions().doors.door_bedroom3, 'Hardware scenario preserves authoritative closed door');
     assert(document.querySelector('#hardware-status').textContent.includes('protocol v1'), 'Mock handshake reaches connected state');
     assert(!app.readConditions().purifier.on && app.readConditions().purifier.slot === 2 && JSON.stringify(app.readConditions().portableFan) === JSON.stringify(startup.portableFan), 'Startup PUR state selects the Bedroom 3 corner without changing the fan');
+    assert(!app.readConditions().windows.window_bedroom3_1 && !app.readConditions().windows.window_bedroom3_2, 'Startup reads the north and east Bedroom 3 windows independently');
     const count = writes.filter(line => line.startsWith('WIN1:')).length;
     key(); await wait(100);
     assert(app.readConditions().windows.window_bedroom3_1 && writes.filter(line => line.startsWith('WIN1:')).length === count + 1, 'Keyboard sends one command and echo does not loop');
@@ -75,6 +78,33 @@
     send('SCN:6'); await wait(300);
     assert(clock !== '00:00:00' && document.querySelector('#elapsed-time').textContent === clock && document.querySelector('#energy').textContent === energy, 'Repeated hardware scenario preserves completed time and energy');
     assert(writes.filter(line => line.startsWith('SCN:')).length === scenarioWrites, 'Hardware scenario reset and duplicate do not echo');
+
+    const withoutBedroom3Windows = conditions => {
+      const copy = structuredClone(conditions);
+      delete copy.windows.window_bedroom3_1; delete copy.windows.window_bedroom3_2;
+      return JSON.stringify(copy);
+    };
+    const pairBaseline = withoutBedroom3Windows(app.readConditions());
+    const pairPm = document.querySelector('#bedroom3-pm25').textContent;
+    const pairWrites = () => writes.filter(line => /^WIN[14]:/.test(line)).length;
+    const beforePairWrites = pairWrites();
+    send('WIN1:1'); send('WIN4:1'); await wait(100);
+    assert(app.readConditions().windows.window_bedroom3_1 && app.readConditions().windows.window_bedroom3_2, 'D4 absolute pair opens both Bedroom 3 windows');
+    assert(withoutBedroom3Windows(app.readConditions()) === pairBaseline && document.querySelector('#elapsed-time').textContent === clock && document.querySelector('#energy').textContent === energy && document.querySelector('#bedroom3-pm25').textContent === pairPm, 'D4 pair preserves purifier, fan, weather, other openings and paused fields');
+    send('WIN1:1'); send('WIN4:1'); await wait(100);
+    assert(pairWrites() === beforePairWrites && document.querySelector('#elapsed-time').textContent === clock, 'Repeated D4 absolute state neither echoes nor resets elapsed time');
+    send('WIN1:0'); send('WIN4:0'); await wait(100);
+    assert(!app.readConditions().windows.window_bedroom3_1 && !app.readConditions().windows.window_bedroom3_2, 'D4 absolute pair closes both Bedroom 3 windows');
+    const beforeEastKey = pairWrites();
+    key('4'); await wait(100);
+    assert(!app.readConditions().windows.window_bedroom3_1 && app.readConditions().windows.window_bedroom3_2 && pairWrites() === beforeEastKey + 1 && writes.filter(line => /^WIN[14]:/.test(line)).at(-1) === 'WIN4:1', 'Keyboard 4 changes only the east window and sends one WIN4 command');
+    send('WIN1:1'); send('WIN4:1'); await wait(100);
+    assert(app.readConditions().windows.window_bedroom3_1 && app.readConditions().windows.window_bedroom3_2 && withoutBedroom3Windows(app.readConditions()) === pairBaseline, 'D4 opens both from a mixed per-window state without rewriting other controls');
+    const beforeGroupClick = pairWrites();
+    reveal(document.querySelector('#bedroom3-window-toggle')).click(); await wait(100);
+    assert(!app.readConditions().windows.window_bedroom3_1 && !app.readConditions().windows.window_bedroom3_2 && pairWrites() === beforeGroupClick + 2 && document.querySelector('#bedroom3-window-status').textContent.match(/North.*closed.*East.*closed/i), 'Visible Bedroom 3 group control closes both windows and sends each absolute state once');
+    reveal(document.querySelector('#bedroom3-window-toggle')).click(); await wait(100);
+    assert(app.readConditions().windows.window_bedroom3_1 && app.readConditions().windows.window_bedroom3_2 && withoutBedroom3Windows(app.readConditions()) === pairBaseline && document.querySelector('#elapsed-time').textContent === clock, 'Visible Bedroom 3 group control opens both without resetting other settings or time');
 
     const beforeInvalidPurifier = JSON.stringify(app.readConditions());
     assert(app.applyHardwarePurifier('ON') === false && JSON.stringify(app.readConditions()) === beforeInvalidPurifier, 'Purifier hardware API rejects non-boolean input');
@@ -124,7 +154,7 @@
     assert(Math.abs(pm() - offPm) <= 0.2, 'Switching OFF stops removal in sealed Bedroom 3 without restoring its starting pollution');
 
     send('PUR:ON'); send('WIN1:1'); send('DOOR2:1'); send('DOOR1:1');
-    app.applyHardwareControl('window', 'window_bedroom3_2', true);
+    send('WIN4:1');
     await wait(100);
     assert(app.readConditions().windows.window_bedroom3_1 && app.readConditions().doors.door_bedroom3 && app.readConditions().doors.main_door && app.readConditions().purifier.on, 'Window and door switch controls remain live alongside purifier power');
     const beforeDirtyAir = pm(), beforeDirtyClock = clockText();

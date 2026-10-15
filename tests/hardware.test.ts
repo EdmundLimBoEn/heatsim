@@ -16,6 +16,7 @@ describe('hardware messages', () => {
     expect(parseHardwareLine('DOOR1:1')).toEqual({ kind: 'door', id: 'main_door', open: true });
     expect(parseHardwareLine('WIN1:0')).toEqual({ kind: 'window', id: 'window_bedroom3_1', open: false });
     expect(parseHardwareLine('WIN2:1')).toEqual({ kind: 'window', id: 'window_living_1', open: true });
+    expect(parseHardwareLine('WIN4:1')).toEqual({ kind: 'window', id: 'window_bedroom3_2', open: true });
   });
 
   test('ignores invalid, unknown, and unmapped input', () => {
@@ -84,11 +85,34 @@ describe('USB lifecycle', () => {
     const board = fakeBoard();
     await board.connection.connect();
     expect(await board.connection.sendOpening('window', 'window_bedroom3_1', true)).toBe(true);
+    expect(await board.connection.sendOpening('window', 'window_bedroom3_2', false)).toBe(true);
     expect(await board.connection.sendOpening('door', 'main_door', false)).toBe(true);
     expect(await board.connection.sendOpening('door', 'window_bedroom3_1', true)).toBe(false);
     expect(await board.connection.sendOpening('window', 'window_master_1', true)).toBe(false);
     expect(await board.connection.send('WIN1:1\nDOOR1:1')).toBe(false);
-    expect(board.sent).toEqual(['WIN1:1\n', 'DOOR1:0\n']);
+    expect(board.sent).toEqual(['WIN1:1\n', 'WIN4:0\n', 'DOOR1:0\n']);
+  });
+
+  test('delivers both Bedroom 3 window states across split reads without changing another opening or echoing', async () => {
+    const board = fakeBoard();
+    await board.connection.connect();
+    board.stream.enqueue(new TextEncoder().encode('WIN1:0\nWIN4:0\nPUR:OFF\nEND\n'));
+    await Promise.resolve();
+    expect(board.events).toEqual([
+      { kind: 'window', id: 'window_bedroom3_1', open: false },
+      { kind: 'window', id: 'window_bedroom3_2', open: false },
+    ]);
+    board.stream.enqueue(new TextEncoder().encode('WIN1:1\nWIN'));
+    await Promise.resolve();
+    expect(board.events.at(-1)).toEqual({ kind: 'window', id: 'window_bedroom3_1', open: true });
+    board.stream.enqueue(new TextEncoder().encode('4:1\nPUR:ON\nWIN4:0\n'));
+    await Promise.resolve();
+    expect(board.events.slice(2)).toEqual([
+      { kind: 'window', id: 'window_bedroom3_1', open: true },
+      { kind: 'window', id: 'window_bedroom3_2', open: true },
+      { kind: 'window', id: 'window_bedroom3_2', open: false },
+    ]);
+    expect(board.sent).toEqual([]);
   });
 
   test('requests the authoritative board state after the reset delay', async () => {

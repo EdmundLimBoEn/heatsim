@@ -26,6 +26,7 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   let report: ContractorComparisonResult | null = null;
   let generation = 0;
   let running = false;
+  let runFailed = false;
   let disposed = false;
   const $ = <T extends HTMLElement = HTMLElement>(selector: string): T => {
     const node = container.querySelector<T>(selector);
@@ -51,9 +52,9 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
         ${field('cs-source-name', 'Provider / source', '', 'text', 'maxlength="160" placeholder="For example, Windy or a site log"')}${field('cs-source-model', 'Forecast model / observation method', '', 'text', 'maxlength="160" placeholder="Record the model shown by your source"')}${field('cs-source-url', 'Source URL (optional)', '', 'url', 'maxlength="500" placeholder="https://…"')}${field('cs-valid-time', 'Forecast / observation valid time', '', 'datetime-local')}${field('cs-time-zone', 'Time zone for that time', Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Singapore', 'text', 'maxlength="80"')}${field('cs-reference-height', 'Wind reference height · m', 10, 'number', 'min="0.1" max="1000" step="0.1" required')}
         <p class="cs-help">A 10 m reference forecast is not a measurement at an apartment window. Sheltering, building height and local obstructions require on-site verification.</p></details>
       </section><section><h3>Matched starting conditions</h3><div class="cs-field-pair">${field('cs-initial-temperature', 'Initial indoor air & surface · °C', scenario.initialTemperature, 'number', 'min="10" max="60" step="0.1" required')}${field('cs-initial-pm25', 'Initial indoor PM2.5 · µg/m³', scenario.initialPm25, 'number', 'min="0" max="1000" step="0.1" required')}</div><div class="cs-field-pair">${field('cs-occupancy', 'People per plan', 4, 'number', 'min="0" max="100" step="1" required')}<label class="cs-field" for="cs-duration"><span>Simulated duration</span><select id="cs-duration" data-study-field><option value="600">10 minutes</option><option value="1200" selected>20 minutes</option><option value="1800">30 minutes</option></select></label></div><p class="cs-help">All plans start at the same temperatures and particle concentration. The same total occupancy is distributed by room area. Equipment and opening states remain specific to each plan.</p></section>
-    </form><div class="cs-main"><details class="cs-weather-reference"><summary>Optional Windy weather reference</summary><p class="cs-help">This external map is a reference for the educational prototype. Copy wind, temperature and forecast source/time into the shared brief. Loading the map does not change simulation inputs.</p><button id="cs-load-windy" class="cs-button cs-secondary" type="button" disabled>Show Windy at these coordinates</button><div id="cs-windy-map"></div></details><section class="cs-plan-section" aria-labelledby="cs-plans-title"><div class="cs-section-heading"><div class="cs-step-title"><span>02</span><div><h3 id="cs-plans-title">Three actual floor plans</h3><p>Upload the supported JSON room-and-opening format, or start with the examples.</p></div></div><button id="cs-load-examples" class="cs-button cs-primary" type="button">Load 3 example plans</button></div><div class="cs-format-note"><span>Rectangular rooms · metres · explicit openings · north orientation</span><button id="cs-schema" class="cs-text-button" type="button">Download JSON schema</button></div><p class="cs-help cs-format-copy">These inputs describe geometry and connections. Images, PDFs and scanned drawings are not automatically converted. The examples are illustrative layouts, not surveyed properties.</p><p id="cs-preview-key" class="cs-help cs-preview-key">Geometry view · blue windows, amber doors. F = fan, P = purifier, A = air conditioning. Appliance moves snap to a room.</p><div class="cs-plan-cards">${[0, 1, 2].map(index => `<article class="cs-plan-card" data-study-plan="${index}"><header><span class="cs-plan-letter" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span><h4 id="cs-plan-name-${index}">Add a floor plan</h4></header><div id="cs-preview-${index}" class="cs-preview"><p>Actual room geometry will appear here after a valid JSON import.</p></div><div id="cs-plan-meta-${index}" class="cs-plan-meta">No plan loaded</div><label class="cs-file-label" for="cs-file-${index}">Import plan ${String.fromCharCode(65 + index)} · JSON, up to 500 KB</label><input id="cs-file-${index}" class="cs-file" data-study-file="${index}" type="file" accept=".json,application/json"><p id="cs-plan-status-${index}" class="cs-plan-status" role="status"></p><div id="cs-plan-controls-${index}"></div><button class="cs-text-button" data-study-download-plan="${index}" type="button" disabled>Download this plan JSON</button></article>`).join('')}</div></section>
-      <div class="cs-run-row"><div><strong id="cs-readiness">Add three plans to compare</strong><p>Results use one shared weather case. Layout, equipment and area differences remain visible.</p></div><div class="cs-run-actions"><button id="cs-run" class="cs-button cs-primary" type="button" disabled>Compare three plans</button><button id="cs-cancel" class="cs-button cs-secondary" type="button" hidden>Cancel</button></div><progress id="cs-progress" max="100" value="0" hidden aria-label="Three-plan comparison progress"></progress><p id="cs-status" role="status" aria-live="polite">Your comparison stays in this browser session. No account or board is needed.</p></div>
-      <section id="cs-results" class="cs-results" aria-labelledby="cs-results-title"><div class="cs-section-heading"><div class="cs-step-title"><span>03</span><div><h3 id="cs-results-title">A shortlist with its trade-offs</h3><p id="cs-results-context">Run the three plans to compare model outputs under your shared assumptions.</p></div></div><div class="cs-export-actions"><button id="cs-export-html" class="cs-button cs-secondary" type="button" disabled>Download handoff report</button><button id="cs-export-json" class="cs-text-button" type="button" disabled>Study JSON</button></div></div><div id="cs-result-content"><p class="cs-empty">No result yet. Compare the plans to see temperature, air quality and electricity trade-offs.</p></div></section>
+    </form><div class="cs-main"><details class="cs-weather-reference"><summary>Optional Windy weather reference</summary><p class="cs-help">This external map is a reference for the educational prototype. Copy wind, temperature and forecast source/time into the shared brief. Loading the map does not change simulation inputs.</p><button id="cs-load-windy" class="cs-button cs-secondary" type="button" disabled>Show Windy at these coordinates</button><p id="cs-windy-status" class="cs-help" role="status">Enter latitude and longitude in the location fields to load the map.</p><a id="cs-windy-fallback" class="cs-link" target="_blank" rel="noopener noreferrer" hidden>Open weather reference in Windy ↗</a><div id="cs-windy-map"></div></details><section class="cs-plan-section" aria-labelledby="cs-plans-title"><div class="cs-section-heading"><div class="cs-step-title"><span>02</span><div><h3 id="cs-plans-title">Three actual floor plans</h3><p>Upload the supported JSON room-and-opening format, or start with the examples.</p></div></div><button id="cs-load-examples" class="cs-button cs-primary" type="button">Load 3 example plans</button></div><div class="cs-format-note"><span>Rectangular rooms · metres · explicit openings · north orientation</span><button id="cs-schema" class="cs-text-button" type="button">Download JSON schema</button></div><p class="cs-help cs-format-copy">These inputs describe geometry and connections. Images, PDFs and scanned drawings are not automatically converted. The examples are illustrative layouts, not surveyed properties.</p><p id="cs-preview-key" class="cs-help cs-preview-key">Geometry view · blue windows, amber doors. F = fan, P = purifier, A = air conditioning. Appliance moves snap to a room.</p><div class="cs-plan-cards">${[0, 1, 2].map(index => `<article class="cs-plan-card" data-study-plan="${index}"><header><span class="cs-plan-letter" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span><h4 id="cs-plan-name-${index}">Add a floor plan</h4></header><div id="cs-preview-${index}" class="cs-preview"><p>Choose a JSON plan for this slot, or load the examples above.</p></div><div id="cs-plan-meta-${index}" class="cs-plan-meta">No plan loaded</div><label class="cs-file-label" for="cs-file-${index}">Import plan ${String.fromCharCode(65 + index)} · JSON, up to 500 KB</label><input id="cs-file-${index}" class="cs-file" data-study-file="${index}" type="file" accept=".json,application/json"><p id="cs-plan-status-${index}" class="cs-plan-status" role="status"></p><div id="cs-plan-controls-${index}"></div><button class="cs-text-button" data-study-download-plan="${index}" type="button" disabled>Download this plan JSON</button></article>`).join('')}</div></section>
+      <div class="cs-run-row"><div><strong id="cs-readiness">Add three plans to compare</strong><p>Results use one shared weather case. Layout, equipment and area differences remain visible.</p></div><div class="cs-run-actions"><button id="cs-run" class="cs-button cs-primary" type="button" disabled>Compare three plans</button><button id="cs-cancel" class="cs-button cs-secondary" type="button" hidden>Cancel comparison</button><button id="cs-view-results" class="cs-button cs-secondary" type="button" hidden>View results</button></div><progress id="cs-progress" max="100" value="0" hidden aria-label="Three-plan comparison progress"></progress><p id="cs-status" role="status" aria-live="polite">Your comparison stays in this browser session. No account or board is needed.</p></div>
+      <section id="cs-results" class="cs-results" aria-labelledby="cs-results-title" tabindex="-1" aria-busy="false"><div class="cs-section-heading"><div class="cs-step-title"><span>03</span><div><h3 id="cs-results-title">A shortlist with its trade-offs</h3><p id="cs-results-context">Run the three plans to compare model outputs under your shared assumptions.</p></div></div><div class="cs-export-actions"><button id="cs-export-html" class="cs-button cs-secondary" type="button" disabled>Download handoff report</button><button id="cs-export-json" class="cs-text-button" type="button" disabled>Study JSON</button></div></div><p id="cs-export-status" class="cs-export-status" role="status"></p><div id="cs-result-content"><p class="cs-empty">Start with the three example plans, or import a plan into each slot. Then compare their temperature, PM2.5 and electricity results.</p></div></section>
     </div></div>
   </section>`;
 
@@ -68,6 +69,7 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   $('#cs-load-examples').classList.replace('cs-primary', 'cs-secondary');
   $('#cs-load-examples').textContent = 'Try the 3 example plans';
   $('#cs-export-html').textContent = 'Download comparison';
+  $('#cs-export-html').title = 'Download an HTML report. Open it and choose Print to save a PDF.';
   $('#cs-export-json').textContent = 'Save comparison JSON';
   const grid = $('.cs-grid'), brief = $('#cs-brief'), planSection = $('.cs-plan-section');
   grid.prepend(planSection);
@@ -76,37 +78,63 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   const weatherQuick = document.createElement('section'); weatherQuick.className = 'cs-weather-quick';
   weatherQuick.innerHTML = `<div><h3>Weather for all three plans</h3><p id="cs-weather-summary" class="cs-help"></p></div><label class="cs-field" for="cs-scenario"><span>Choose the day</span><select id="cs-scenario" data-study-field><option value="captured">Use my flat’s weather</option>${PRESETS.filter(preset => preset.id !== 'validation').map(preset => `<option value="${escape(preset.id)}">${escape(preset.name)}</option>`).join('')}</select></label>`;
   brief.append(weatherQuick, weatherDetails);
+  const validation = document.createElement('p'); validation.id = 'cs-validation'; validation.className = 'cs-validation'; validation.setAttribute('role', 'status'); validation.hidden = true;
+  weatherQuick.after(validation);
   const format = disclosure('cs-plan-format', 'Plan format and limits');
   const formatNote = $('.cs-format-note'), formatCopy = $('.cs-format-copy');
   formatNote.before(format); format.append(formatNote, formatCopy);
 
   const input = (id: string) => $<HTMLInputElement>(`#${id}`).value;
+  function setStatus(message: string, state: 'idle' | 'working' | 'error' | 'success' = 'idle'): void {
+    $('#cs-status').textContent = message; $('#cs-status').dataset.state = state;
+  }
+  function validateBrief(): void {
+    const fields = Array.from($<HTMLFormElement>('#cs-brief').querySelectorAll<HTMLInputElement | HTMLSelectElement>('input,select'));
+    fields.forEach(field => field.setAttribute('aria-invalid', String(!field.validity.valid)));
+    const invalid = fields.find(field => !field.validity.valid);
+    $('#cs-validation').hidden = !invalid;
+    $('#cs-validation').textContent = invalid ? `${invalid.closest('label')?.querySelector('span')?.textContent ?? 'Study setting'}: ${invalid.validationMessage}` : '';
+  }
   function weatherSummary(): void {
-    $('#cs-weather-summary').textContent = `${input('cs-temperature')}°C outside · PM2.5 ${input('cs-pm25')} µg/m³ · wind ${input('cs-wind-speed')} m/s from ${input('cs-wind-from')}. The same weather is used for every plan.`;
+    const value = (id: string) => input(id).trim() !== '' && Number.isFinite(Number(input(id))) ? input(id) : '—';
+    $('#cs-weather-summary').textContent = `${value('cs-temperature')}°C outside · PM2.5 ${value('cs-pm25')} µg/m³ · wind ${value('cs-wind-speed')} m/s from ${input('cs-wind-from')}. Same weather for every plan.`;
   }
   function windLink(): void {
     const lat = input('cs-latitude'), lon = input('cs-longitude');
+    const paired = (lat === '') === (lon === '');
+    $<HTMLInputElement>('#cs-latitude').setCustomValidity(paired ? '' : 'Enter both coordinates, or leave both empty.');
+    $<HTMLInputElement>('#cs-longitude').setCustomValidity(paired ? '' : 'Enter both coordinates, or leave both empty.');
     const valid = lat !== '' && lon !== '' && Number.isFinite(Number(lat)) && Number.isFinite(Number(lon)) && Math.abs(Number(lat)) <= 90 && Math.abs(Number(lon)) <= 180;
     const anchor = $<HTMLAnchorElement>('#cs-windy');
     anchor.setAttribute('aria-disabled', String(!valid));
     if (valid) anchor.href = `https://www.windy.com/${Number(lat)}/${Number(lon)}`;
     else anchor.removeAttribute('href');
     $<HTMLButtonElement>('#cs-load-windy').disabled = !valid;
+    const fallback = $<HTMLAnchorElement>('#cs-windy-fallback'); fallback.hidden = !valid;
+    if (valid) fallback.href = anchor.href; else fallback.removeAttribute('href');
+    if (!container.querySelector('#cs-windy-map iframe')) $('#cs-windy-status').textContent = valid ? 'Load the map to inspect weather, then enter the chosen values yourself.' : 'Enter both coordinates to load Windy. Location is optional for a comparison.';
     const iframe = container.querySelector<HTMLIFrameElement>('#cs-windy-map iframe');
     if (iframe && iframe.dataset.coordinates !== `${lat},${lon}`) $('#cs-windy-map').textContent = 'Coordinates changed. Reload the weather reference to view the new location.';
   }
   function ready(): void {
     const count = plans.filter(Boolean).length;
-    $('#cs-readiness').textContent = count === 3 ? 'Three plans ready for a matched comparison' : `${count} / 3 plans ready`;
+    const loading = pendingFiles.some(Boolean) || examplesAbort !== null;
+    $('#cs-readiness').textContent = running ? 'Comparing the three plans' : loading ? 'Loading plan inputs…' : count === 3 ? 'Three plans ready to compare' : `${count} of 3 plans loaded`;
     $<HTMLButtonElement>('#cs-run').disabled = count !== 3 || running || pendingFiles.some(Boolean) || examplesAbort !== null;
+    $('#cs-run').textContent = running ? 'Comparing…' : runFailed ? 'Retry comparison' : 'Compare three plans';
+    $('#cs-cancel').hidden = !running && !loading;
+    $('#cs-cancel').textContent = loading ? 'Cancel loading' : 'Cancel comparison';
+    $('#cs-load-examples').textContent = examplesAbort ? 'Loading examples…' : 'Try the 3 example plans';
+    $('#cs-results').setAttribute('aria-busy', String(running));
   }
   function invalidate(message: string): void {
-    generation++; runner.cancel(); running = false; report = null;
+    generation++; runner.cancel(); running = false; runFailed = false; report = null;
     $('#cs-cancel').hidden = true; $('#cs-progress').hidden = true;
     $<HTMLButtonElement>('#cs-export-html').disabled = true; $<HTMLButtonElement>('#cs-export-json').disabled = true;
+    $('#cs-view-results').hidden = true; $('#cs-export-status').textContent = '';
     $('#cs-result-content').innerHTML = '<p class="cs-empty">Inputs changed. Run a fresh comparison to produce a matching shortlist.</p>';
     $('#cs-results-context').textContent = 'Results will use the current shared conditions and all three plan configurations.';
-    $('#cs-status').textContent = message; ready();
+    setStatus(message); ready();
     $('#cs-preview-key').textContent = 'Geometry view · blue windows, amber doors. F = fan, P = purifier, A = air conditioning. Appliance moves snap to a room.';
     plans.forEach((plan, index) => { if (plan) $(`#cs-preview-${index}`).innerHTML = preview(plan, index); });
   }
@@ -172,37 +200,46 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
       <div class="cs-recommendations">${result.recommendations.map(recommendation => `<article><span>${escape(recommendation.label)}</span><h4>${escape(names(recommendation.planIds))}</h4><strong>${display(recommendation.value, 2)} <small>${escape(recommendation.unit)}</small></strong><p>${recommendation.planIds.length > 1 ? 'Tied options. ' : ''}${escape(recommendation.reason)}</p></article>`).join('')}</div>
       <div class="cs-shortlist"><strong>Plans worth a closer look: ${escape(names(result.shortlistPlanIds))}</strong><p>${result.shortlistPlanIds.length === result.cases.length ? 'Every tested plan retains a trade-off; none clearly dominates all three screening metrics.' : 'These options are not clearly worse across all three screening metrics: mean temperature, final mean PM2.5 and total electricity.'} This is a shortlist under the stated assumptions, not a universal best layout or installation instruction.</p></div>
       ${result.warnings.length ? `<ul class="cs-warnings">${result.warnings.map(warning => `<li>${escape(warning)}</li>`).join('')}</ul>` : ''}
-      <div class="cs-comparison-scroll"><table class="cs-comparison-table"><caption>Three plans under the same weather, starting concentrations, total occupancy and duration</caption><thead><tr><th scope="col">Model output</th>${result.cases.map((option, index) => `<th scope="col"><span class="cs-table-plan" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span>${escape(option.plan.name)}</th>`).join('')}</tr></thead><tbody>${rows.map(([label, unit, value, decimals]) => `<tr><th scope="row">${label}<small>${unit}</small></th>${result.cases.map(option => `<td>${display(value(option), decimals)}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Active equipment<small>Declared states, not an equal equipment budget</small></th>${result.cases.map(option => `<td>${option.enabledEquipment.fans} fans<br>${option.enabledEquipment.purifiers} purifiers<br>${option.enabledEquipment.ac} AC</td>`).join('')}</tr></tbody></table></div>
+      <div class="cs-comparison-scroll" tabindex="0" aria-label="Results table; scroll horizontally for more columns"><table class="cs-comparison-table"><caption>Three plans under the same weather, starting concentrations, total occupancy and duration</caption><thead><tr><th scope="col">Model output</th>${result.cases.map((option, index) => `<th scope="col"><span class="cs-table-plan" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span>${escape(option.plan.name)}</th>`).join('')}</tr></thead><tbody>${rows.map(([label, unit, value, decimals]) => `<tr><th scope="row">${label}<small>${unit}</small></th>${result.cases.map(option => `<td>${display(value(option), decimals)}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Active equipment<small>Declared states, not an equal equipment budget</small></th>${result.cases.map(option => `<td>${option.enabledEquipment.fans} fans<br>${option.enabledEquipment.purifiers} purifiers<br>${option.enabledEquipment.ac} AC</td>`).join('')}</tr></tbody></table></div>
       <section class="cs-result-chart"><h4>Mean air temperature over time</h4><div class="cs-chart-legend">${result.cases.map((option, index) => `<span style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)} · ${escape(option.plan.name)}</span>`).join('')}</div>${chart}<p class="cs-help">Means include both room air layers. Floor area, room connectivity and equipment differ between plans; per-area electricity is context, not a substitute for the absolute energy demand.</p></section>
-      <div class="cs-room-results">${result.cases.map(option => `<details class="cs-details"><summary>${escape(option.plan.name)} · room readings</summary><div class="cs-comparison-scroll"><table class="cs-room-table"><thead><tr><th scope="col">Room</th><th scope="col">Lower °C</th><th scope="col">Upper °C</th><th scope="col">PM2.5 µg/m³</th><th scope="col">Direct boundary ACH</th></tr></thead><tbody>${option.final.rooms.map(room => `<tr><th scope="row">${escape(option.plan.rooms.find(item => item.id === room.room)?.label ?? room.room)}</th><td>${display(room.lowerTemperature, 2)}</td><td>${display(room.upperTemperature, 2)}</td><td>${display(room.pm25, 2)}</td><td>${display(room.boundaryAirChangesPerHour, 2)}</td></tr>`).join('')}</tbody></table></div></details>`).join('')}</div>
+      <div class="cs-room-results">${result.cases.map(option => `<details class="cs-details"><summary>${escape(option.plan.name)} · room readings</summary><div class="cs-comparison-scroll" tabindex="0" aria-label="Results table; scroll horizontally for more columns"><table class="cs-room-table"><thead><tr><th scope="col">Room</th><th scope="col">Lower °C</th><th scope="col">Upper °C</th><th scope="col">PM2.5 µg/m³</th><th scope="col">Direct boundary ACH</th></tr></thead><tbody>${option.final.rooms.map(room => `<tr><th scope="row">${escape(option.plan.rooms.find(item => item.id === room.room)?.label ?? room.room)}</th><td>${display(room.lowerTemperature, 2)}</td><td>${display(room.upperTemperature, 2)}</td><td>${display(room.pm25, 2)}</td><td>${display(room.boundaryAirChangesPerHour, 2)}</td></tr>`).join('')}</tbody></table></div></details>`).join('')}</div>
       <div class="cs-site-checks"><h4>Before making changes at home</h4><p>Check the real dimensions, window sizes and orientation, nearby obstructions, and equipment ratings before acting on a result. Ask a qualified installer about noise, safe mounting and installation constraints. This room-by-room model does not resolve furniture, air jets or three-dimensional turbulence.</p><p>To test weather sensitivity, change the shared conditions and rerun all three plans. Export each captured report before replacing the result.</p></div>`;
     result.cases.forEach((option, index) => { $(`#cs-preview-${index}`).innerHTML = preview(option.plan, index, option.final); });
     $('#cs-preview-key').textContent = 'Solved opening exchange · solid arrows: lower layer; dashed: upper layer. Opposing arrows show counterflow. Room-network illustration, not resolved 3D airflow.';
   }
   async function run(): Promise<void> {
     const form = $<HTMLFormElement>('#cs-brief');
+    windLink(); validateBrief();
     const invalid = form.querySelector<HTMLElement>(':invalid');
     for (let parent = invalid?.parentElement; parent; parent = parent.parentElement) {
       if (parent instanceof HTMLDetailsElement) parent.open = true;
     }
-    if (!form.reportValidity() || running) return;
+    if (!form.reportValidity()) { setStatus('Check the highlighted settings, then compare again.', 'error'); return; }
+    if (running) return;
     if (plans.some(plan => !plan) || pendingFiles.some(Boolean) || examplesAbort !== null) {
       $('#cs-status').textContent = 'Wait until all three valid plans finish loading before comparing.'; return;
     }
     try {
       const config = capture(); invalidate('Running the three plans under matched conditions…');
       const token = ++generation; running = true; ready(); $('#cs-cancel').hidden = false; $('#cs-progress').hidden = false; $<HTMLProgressElement>('#cs-progress').value = 0;
+      setStatus('Comparing each plan under the same weather and starting conditions…', 'working');
+      $('#cs-result-content').innerHTML = '<p class="cs-empty">The three comparisons are running. You can cancel or edit a setting to stop this run.</p>';
       try {
         const result = await runner.run(config, progress => { if (token !== generation) return; $<HTMLProgressElement>('#cs-progress').value = progress.total ? progress.done / progress.total * 100 : 0; $('#cs-status').textContent = `${progress.planName}: ${display(progress.elapsedSeconds / 60)} / ${progress.durationSeconds / 60} simulated minutes.`; });
         if (token !== generation || disposed) return;
         report = result; renderResults(result);
         $<HTMLButtonElement>('#cs-export-html').disabled = false; $<HTMLButtonElement>('#cs-export-json').disabled = false;
-        $('#cs-status').textContent = `Three-plan comparison complete in ${display(result.runtimeMs / 1000)} seconds. Results are conditional on the recorded inputs.`;
-      } catch (error) { if (token === generation && !disposed) $('#cs-status').textContent = error instanceof Error ? error.message : 'Comparison failed. Your plan inputs are unchanged.'; }
+        $('#cs-view-results').hidden = false;
+        setStatus('Comparison complete. View the results or download the comparison to keep this run.', 'success');
+      } catch (error) { if (token === generation && !disposed) {
+        runFailed = true;
+        setStatus(`${error instanceof Error ? error.message : 'The comparison could not finish.'} Plans and settings are retained. Select Retry comparison to try again.`, 'error');
+        $('#cs-result-content').innerHTML = '<p class="cs-empty">No result was produced. Retry the comparison with the current plans and settings.</p>';
+      } }
       finally { if (token === generation && !disposed) { running = false; $('#cs-cancel').hidden = true; $('#cs-progress').hidden = true; ready(); } }
-    } catch (error) { $('#cs-status').textContent = error instanceof Error ? error.message : 'Check the study inputs.'; }
+    } catch (error) { setStatus(error instanceof Error ? error.message : 'Check the study inputs.', 'error'); }
   }
-  container.addEventListener('input', event => { const target = event.target as HTMLElement; if (target.matches('[data-study-field]') && target.id !== 'cs-scenario') { windLink(); weatherSummary(); invalidate('Shared study inputs changed. Run a new comparison.'); } }, { signal: events.signal });
+  container.addEventListener('input', event => { const target = event.target as HTMLElement; if (target.matches('[data-study-field]') && target.id !== 'cs-scenario') { windLink(); weatherSummary(); validateBrief(); invalidate('Settings changed. Compare again to update the results.'); } }, { signal: events.signal });
   container.addEventListener('change', async event => {
     const target = event.target as HTMLInputElement;
     if (target.id === 'cs-scenario') {
@@ -216,20 +253,25 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
       $<HTMLSelectElement>('#cs-source-type').value = 'assumption';
       $<HTMLInputElement>('#cs-source-name').value = target.value === 'captured' ? 'My flat scenario settings' : initial.name;
       for (const id of ['cs-source-model', 'cs-source-url', 'cs-valid-time']) $<HTMLInputElement>(`#${id}`).value = '';
-      weatherSummary(); invalidate('Day changed for all three plans. Run a new comparison.'); return;
+      weatherSummary(); validateBrief(); invalidate('Day changed for all three plans. Run a new comparison.'); return;
     }
     if (target.matches('select[data-study-field]')) { weatherSummary(); invalidate('Shared study inputs changed. Run a new comparison.'); return; }
     if (target.dataset.studyFile !== undefined) {
       const index = Number(target.dataset.studyFile), file = target.files?.[0]; if (!file) return;
       examplesAbort?.abort(); examplesAbort = null;
       const token = ++importTokens[index]; pendingFiles[index] = true; invalidate('Loading floor-plan geometry…');
+      $(`#cs-plan-status-${index}`).textContent = `Reading ${file.name}…`; $(`#cs-plan-status-${index}`).dataset.state = 'working';
       try {
         if (file.size > MAX_FILE_BYTES) throw new Error('This file exceeds the 500 KB plan limit. Use the compact JSON template.');
         const plan = parseContractorPlan(await file.text());
         if (token !== importTokens[index] || disposed) return;
         plans[index] = plan; renderPlan(index); $(`#cs-plan-status-${index}`).textContent = `${file.name}: geometry consistency checks passed. This does not verify surveyed dimensions.`;
-      } catch (error) { if (token === importTokens[index] && !disposed) $(`#cs-plan-status-${index}`).textContent = error instanceof Error ? error.message : 'Unable to read this plan.'; }
-      finally { if (token === importTokens[index] && !disposed) { pendingFiles[index] = false; ready(); } }
+        $(`#cs-plan-status-${index}`).dataset.state = 'success';
+      } catch (error) { if (token === importTokens[index] && !disposed) {
+        $(`#cs-plan-status-${index}`).textContent = `${error instanceof Error ? error.message : 'Unable to read this plan.'} ${plans[index] ? 'The previous plan is retained.' : 'This slot is still empty.'} Correct the JSON and choose the file again.`;
+        $(`#cs-plan-status-${index}`).dataset.state = 'error';
+      } }
+      finally { if (token === importTokens[index] && !disposed) { pendingFiles[index] = false; target.value = ''; ready(); } }
       return;
     }
     const index = Number(target.dataset.studyIndex), plan = plans[index];
@@ -255,8 +297,8 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
       const loaded = await Promise.all(CONTRACTOR_EXAMPLES.map(async example => { const response = await fetch(example.url, { signal: controller.signal }); if (!response.ok) throw new Error(`Could not load ${example.name}.`); return parseContractorPlan(await response.text()); }));
       if (disposed || controller.signal.aborted || tokens.some((token, index) => token !== importTokens[index])) return;
       loaded.forEach((plan, index) => { plans[index] = plan; pendingFiles[index] = false; renderPlan(index); $(`#cs-plan-status-${index}`).textContent = 'Illustrative example. Review dimensions and equipment before drawing conclusions.'; });
-      $('#cs-status').textContent = 'Three different example geometries loaded. Review the shared brief, then compare.';
-    } catch (error) { if (!controller.signal.aborted && !disposed) $('#cs-status').textContent = error instanceof Error ? error.message : 'Example loading failed; existing plans are unchanged.'; }
+      setStatus('Three example plans loaded. Move an appliance or change the weather, then compare.', 'success');
+    } catch (error) { if (!controller.signal.aborted && !disposed) setStatus(`${error instanceof Error ? error.message : 'The example plans could not load.'} Existing plans are retained. Try loading the examples again or import a JSON plan.`, 'error'); }
     finally { if (examplesAbort === controller) examplesAbort = null; if (!disposed) { $<HTMLButtonElement>('#cs-load-examples').disabled = false; ready(); } }
   }, { signal: events.signal });
   container.addEventListener('click', event => {
@@ -266,15 +308,25 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   }, { signal: events.signal });
   $('#cs-brief').addEventListener('submit', event => { event.preventDefault(); void run(); }, { signal: events.signal });
   $('#cs-run').addEventListener('click', () => void run(), { signal: events.signal });
-  $('#cs-cancel').addEventListener('click', () => { invalidate('Comparison cancelled. The current plans and brief are retained.'); $('#cs-run').focus(); }, { signal: events.signal });
+  $('#cs-cancel').addEventListener('click', () => {
+    examplesAbort?.abort(); examplesAbort = null;
+    pendingFiles.forEach((pending, index) => { if (pending) { $(`#cs-plan-status-${index}`).textContent = 'Loading cancelled. The previous plan is retained, if one was loaded.'; $(`#cs-plan-status-${index}`).dataset.state = 'idle'; $<HTMLInputElement>(`#cs-file-${index}`).value = ''; } importTokens[index]++; });
+    pendingFiles.fill(false); $<HTMLButtonElement>('#cs-load-examples').disabled = false;
+    invalidate('Cancelled. Your loaded plans and settings are retained.');
+    ($<HTMLButtonElement>('#cs-run').disabled ? $('#cs-load-examples') : $('#cs-run')).focus();
+  }, { signal: events.signal });
+  $('#cs-view-results').addEventListener('click', () => { $('#cs-results').focus({ preventScroll: true }); $('#cs-results').scrollIntoView({ block: 'start' }); }, { signal: events.signal });
   $('#cs-schema').addEventListener('click', () => download(JSON.stringify(CONTRACTOR_PLAN_SCHEMA, null, 2), 'heatsim-plan.schema.json', 'application/schema+json'), { signal: events.signal });
   $('#cs-load-windy').addEventListener('click', () => {
     windLink(); if ($<HTMLButtonElement>('#cs-load-windy').disabled) return;
     const parameters = new URLSearchParams({ type: 'map', location: 'coordinates', metricRain: 'default', metricTemp: '°C', metricWind: 'm/s', zoom: '10', overlay: 'wind', product: '', level: 'surface', lat: String(Number(input('cs-latitude'))), lon: String(Number(input('cs-longitude'))) });
     const iframe = document.createElement('iframe'); iframe.src = `https://embed.windy.com/embed.html?${parameters}`; iframe.title = 'Windy external weather reference'; iframe.loading = 'lazy'; iframe.referrerPolicy = 'no-referrer'; iframe.dataset.coordinates = `${input('cs-latitude')},${input('cs-longitude')}`;
+    $('#cs-windy-status').textContent = 'Loading the external map. If it stays blank, use the Windy link below. Model inputs stay as entered.';
+    iframe.addEventListener('load', () => { if (!disposed && iframe.isConnected) $('#cs-windy-status').textContent = 'Weather reference only. Check the map’s forecast time and units before copying values. If the map is blank, open Windy using the link below.'; }, { signal: events.signal });
+    iframe.addEventListener('error', () => { if (!disposed && iframe.isConnected) $('#cs-windy-status').textContent = 'The external map could not load. Open the Windy link below, or continue using manually entered conditions.'; }, { signal: events.signal });
     $('#cs-windy-map').replaceChildren(iframe);
   }, { signal: events.signal });
-  for (const kind of ['html', 'json'] as const) $(`#cs-export-${kind}`).addEventListener('click', () => { if (!report) return; try { download(kind === 'html' ? contractorStudyHtml(report) : contractorStudyJson(report), `heatsim-contractor-study.${kind}`, kind === 'html' ? 'text/html;charset=utf-8' : 'application/json'); $('#cs-status').textContent = kind === 'html' ? 'Handoff report downloaded. Open it locally and use Print to save a PDF.' : 'Reproducible study JSON downloaded with captured plans and assumptions.'; } catch (error) { $('#cs-status').textContent = error instanceof Error ? error.message : 'Export failed.'; } }, { signal: events.signal });
+  for (const kind of ['html', 'json'] as const) $(`#cs-export-${kind}`).addEventListener('click', () => { if (!report) return; try { download(kind === 'html' ? contractorStudyHtml(report) : contractorStudyJson(report), `heatsim-contractor-study.${kind}`, kind === 'html' ? 'text/html;charset=utf-8' : 'application/json'); $('#cs-export-status').textContent = kind === 'html' ? 'HTML report download started. Open it locally and choose Print to save a PDF.' : 'Study JSON download started with the captured plans and conditions.'; $('#cs-export-status').dataset.state = 'success'; } catch (error) { $('#cs-export-status').textContent = `${error instanceof Error ? error.message : 'The download could not start.'} Your result is retained. Try the download again.`; $('#cs-export-status').dataset.state = 'error'; } }, { signal: events.signal });
   const disposePlacement = bindContractorPlacement(container, {
     getPlan: slot => plans[Number(slot)],
     onMove(slot, nextPlan, deviceId, roomId) {

@@ -10,7 +10,7 @@ import './theme.css';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { openingForKey } from './config/mapping';
 import { createOptimiser, type OptimiserReport, type OptimiserBudget } from './optimiser';
-import { describeAdviceChanges, describeAdviceOutcome, purifierMatches } from './homeowner-advice';
+import { describeAdviceChanges, describeAdviceOutcome, hardwareOwnedControlsMatch } from './homeowner-advice';
 import { pm25ToUsAqiEquivalent, usAqiEquivalentToPm25, US_PM25_AQI_EQUIVALENT_LABEL, US_PM25_AQI_EQUIVALENT_NOTE, US_PM25_AQI_SOURCE } from './air-quality';
 
 const icons: Record<string, string> = {
@@ -44,6 +44,7 @@ if (bedroom3PurifierSlot >= 0) conditions.purifier = { on: conditions.purifier?.
 let result = createSimulation(conditions);
 let view = { ...defaultView, selectedRoom: 'living' as string | null };
 let scene: SceneController | null = null;
+let fallbackPlan = false;
 type Workspace = 'flat' | 'lab' | 'study';
 let workspace: Workspace = 'flat';
 let coolingLab: ReturnType<typeof mountCoolingLab> | null = null;
@@ -81,10 +82,10 @@ $('#app').innerHTML = `
   <header class="app-header">
     <a class="brand" href="/" aria-label="HeatSim home"><span class="brand-mark">${icon('house')}</span><span>heatsim<span class="brand-dot">.</span></span></a>
     <span class="brand-description">Home airflow simulator</span>
-    <div class="header-actions"><button class="simulation-status" data-action="about">Simulated, not measured</button><span id="model-connection-chip" hidden>Model connected</span><details id="more-menu" class="more-menu"><summary>More ${icon('chevron')}</summary><div class="more-content"><button class="button text-button" data-action="build">Build the cardboard model</button><button class="button text-button" data-action="readings">All room readings</button><button class="button text-button" data-action="export">Export readings (CSV)</button><button class="button text-button" data-action="screenshot">Download map image</button><details id="science-settings"><summary>Science views</summary><label class="option-check"><input id="science-views" type="checkbox">Show pressure and validation</label><div id="science-status"></div></details><div id="hardware-menu-slot"></div><button class="button text-button" data-action="about">How this model works</button><button class="button text-button" data-action="help">Keyboard shortcuts</button></div></details></div>
+    <div class="header-actions"><button class="simulation-status" data-action="about">Simulated, not measured</button><span id="model-connection-chip" hidden>Model connected</span><details id="more-menu" class="more-menu"><summary>More ${icon('chevron')}</summary><div class="more-content"><button class="button text-button" data-action="guide">How to use HeatSim</button><button class="button text-button" data-action="build">Build the cardboard model</button><button class="button text-button" data-action="readings">All room readings</button><button class="button text-button" data-action="export">Export readings (CSV)</button><button class="button text-button" data-action="screenshot">Download map image</button><details id="science-settings"><summary>Science views</summary><label class="option-check"><input id="science-views" type="checkbox">Show pressure and validation</label><div id="science-status"></div></details><div id="hardware-menu-slot"></div><button class="button text-button" data-action="about">How this model works</button><button class="button text-button" data-action="help">Keyboard shortcuts</button></div></details></div>
   </header>
   <main>
-    <div class="workspace-heading workspace-navigation"><nav class="segmented" aria-label="HeatSim workspace"><button data-workspace="flat" aria-controls="flat-workspace" aria-pressed="true">${icon('house')}My flat</button><button data-workspace="lab" aria-controls="cooling-lab-workspace" aria-pressed="false">${icon('wind')}Window fan test</button><button data-workspace="study" aria-controls="contractor-study-workspace" aria-pressed="false">${icon('plan')}Compare floor plans</button></nav></div>
+    <div class="workspace-heading workspace-navigation"><nav class="segmented" aria-label="HeatSim workspace"><button data-workspace="flat" aria-controls="flat-workspace" aria-pressed="true">${icon('house')}My flat</button><button data-workspace="lab" aria-controls="cooling-lab-workspace" aria-pressed="false">${icon('wind')}Window fan test</button><button data-workspace="study" aria-controls="contractor-study-workspace" aria-pressed="false">${icon('plan')}Compare floor plans</button></nav><button class="text-link start-guide-link" data-action="guide">How to use HeatSim</button></div>
     <section id="flat-workspace" aria-label="Flat simulation">
     <div class="question-bar"><h1 class="sr-only">My flat</h1><label for="day-select">It’s a <select id="day-select" aria-label="Choose the day">${PRESETS.map(preset => `<option value="${preset.id}" ${preset.id === 'validation' ? 'hidden' : ''}>${escape(preset.name)}</option>`).join('')}</select><span> in your 4-room flat.</span></label><span id="custom-day-note" hidden>Custom settings</span><div id="playback-slot"></div></div>
     <div class="workspace">
@@ -93,13 +94,13 @@ $('#app').innerHTML = `
           ${(['model', 'temperature', 'airflow', 'pressure', 'pm25'] as ViewMode[]).map(mode => `<button data-mode="${mode}" ${mode === 'pressure' ? 'hidden' : ''} aria-pressed="${mode === 'model'}">${({ model: 'Model', temperature: 'Heat', airflow: 'Air movement', pressure: 'Pressure', pm25: 'Haze' })[mode]}</button>`).join('')}
         </div></div>
         <div id="scene" class="scene" aria-label="3D apartment. Drag to orbit, scroll to zoom. Use room selector for keyboard access."><div id="scene-loading" class="scene-message" role="status"><span class="loading-mark">${icon('cube')}</span><strong>Setting up your home</strong><span>Preparing the 3D floor plan…</span></div></div>
-        <div class="model-title"><span id="view-label">Your home, in perspective</span><p id="view-description">Select a room to explore its controls.</p></div>
+        <div class="model-title"><span id="view-label">Your home, in perspective</span><p id="view-description">Select a room to explore its controls. Arrows show airflow; none appear in still air.</p></div>
         <div class="view-tools"><div class="segmented camera-modes" role="group" aria-label="Camera view"><button data-camera="perspective" aria-pressed="true">${icon('cube')}<span>Isometric</span></button><button data-camera="top" aria-pressed="false">${icon('plan')}<span>Floor plan</span></button></div><button class="icon-button" data-action="reset-camera" title="Reset view" aria-label="Reset camera view">${icon('reset')}</button></div>
         <details class="view-disclosure"><summary>View</summary><div class="view-options" aria-label="Model display options"><label><input type="checkbox" data-view="cutaway" checked>Cutaway</label><label><input type="checkbox" data-view="labels" checked>Room labels</label><label><input type="checkbox" data-view="dimensions">Dimensions</label></div></details>
         <div class="model-legend" id="model-legend" hidden></div>
 
       </section>
-      <aside class="control-panel" id="controls" aria-label="Simulation controls">
+      <aside class="control-panel" id="controls" aria-labelledby="manual-controls-title" tabindex="-1"><div class="manual-controls-heading"><h2 id="manual-controls-title">Make your own changes</h2><p>Adjust a room, place devices or set the weather.</p></div>
         <div class="control-tabs" role="tablist" aria-label="Control section"><button role="tab" id="tab-room" aria-controls="panel-room" aria-selected="true" data-tab="room">Windows & doors</button><button role="tab" id="tab-devices" aria-controls="panel-devices" aria-selected="false" tabindex="-1" data-tab="devices">Devices</button><button role="tab" id="tab-environment" aria-controls="panel-environment" aria-selected="false" tabindex="-1" data-tab="environment">Weather</button></div>
         <div class="control-scroll">
           <section id="panel-environment" role="tabpanel" aria-labelledby="tab-environment" hidden>
@@ -146,12 +147,12 @@ $('#app').innerHTML = `
           </section>
           <details class="hardware-section"><summary>${icon('usb')}Connect physical model (USB)<span class="details-plus">+</span></summary><div id="hardware-controls"><p class="hardware-state"><span class="status-dot"></span><strong>SSTuino not connected</strong></p><p class="section-note">Everything works with the on-screen controls and keyboard. When your model is ready, connect USB to use its switches and buttons.</p><button class="button secondary full-width" id="connect-hardware" type="button">Connect SSTuino</button><p class="hardware-help" id="hardware-status" role="status">USB serial works in desktop Chrome or Edge.</p></div></details>
         </div>
-        <div class="simulation-controls"><div class="simulation-clock"><span class="running-dot"></span><span id="play-status">Simulation running</span><output id="elapsed-time">00:00:00</output></div><div class="playback-row"><button class="button play-button" data-action="play">${icon('pause')}<span>Pause</span></button><select id="simulation-speed" aria-label="Simulation speed"><option value="1">1× speed</option><option value="30" selected>30× speed</option><option value="60">60× speed</option></select><button class="icon-button" data-action="reset" aria-label="Reset simulation time and readings" title="Reset readings">${icon('reset')}</button></div><p class="speed-help">1 real second = <span id="speed-description">30 simulated seconds</span></p><p id="simulation-engine" role="status">CPU · 2D</p></div>
+        <div class="simulation-controls"><div class="simulation-clock"><span class="running-dot"></span><span id="play-status">Simulation running</span><output id="elapsed-time" aria-label="Elapsed simulated time" title="Elapsed simulated time">00:00:00</output></div><div class="playback-row"><button class="button play-button" data-action="play">${icon('pause')}<span>Pause</span></button><select id="simulation-speed" aria-label="Simulation speed"><option value="1">1× speed</option><option value="30" selected>30× speed</option><option value="60">60× speed</option></select><button class="icon-button" data-action="reset" aria-label="Reset simulation time and readings" title="Reset readings">${icon('reset')}</button></div><p class="speed-help">Target: 1 real second = <span id="speed-description">30 simulated seconds</span>. Actual progress may slow on busy devices.</p><p id="simulation-engine" role="status">CPU · 2D</p></div>
       </aside>
     </div>
     <section class="results-panel" aria-label="Simulated room readings">
       <div class="rooms-heading"><h2>Rooms</h2><span class="simulated-tag">SIMULATED</span><span id="room-sort-label">Warmest first</span></div>
-      <div class="room-readings" aria-label="Select a room">${primaryRooms.map(room => `<div class="room-row" data-room-row="${room}"><button class="room-reading ${room === 'living' ? 'selected' : ''}" data-room="${room}" aria-pressed="${room === 'living'}"><span>${roomLabel(room)}</span><strong id="reading-${room}">—</strong><span class="room-reading-detail" id="airflow-${room}">—</span></button>${room === 'bedroom3' ? `<details id="bedroom3-purifier-monitor" class="bedroom-monitor" aria-label="Bedroom 3 simulated air quality"><summary><span id="bedroom3-purifier-status"></span> · PM2.5 <output id="bedroom3-pm25">—</output></summary><p>SIMULATED · ${escape(US_PM25_AQI_EQUIVALENT_LABEL)}: <output id="bedroom3-aqi-equivalent">—</output>. ${escape(US_PM25_AQI_EQUIVALENT_NOTE)} Particle levels respond gradually. The physical D5 switch controls the Bedroom 3 corner purifier.</p></details>` : ''}</div>`).join('')}</div>
+      <div class="room-readings" aria-label="Select a room">${primaryRooms.map(room => `<div class="room-row" data-room-row="${room}"><button class="room-reading ${room === 'living' ? 'selected' : ''}" data-room="${room}" aria-pressed="${room === 'living'}"><span>${roomLabel(room)}</span><strong id="reading-${room}">—</strong><span class="room-reading-detail" id="airflow-${room}">—</span></button>${room === 'bedroom3' ? `<details id="bedroom3-purifier-monitor" class="bedroom-monitor" aria-label="Bedroom 3 simulated air quality"><summary><span id="bedroom3-purifier-status"></span> · PM2.5 <output id="bedroom3-pm25">—</output></summary><p>SIMULATED · ${escape(US_PM25_AQI_EQUIVALENT_LABEL)}: <output id="bedroom3-aqi-equivalent">—</output>. ${escape(US_PM25_AQI_EQUIVALENT_NOTE)} Particle levels respond gradually. D5 held down turns the Bedroom 3 purifier on; releasing it turns it off.</p><p><strong>Bedroom 3 windows</strong><br><output id="bedroom3-window-status"></output></p><button class="button secondary full-width" id="bedroom3-window-toggle" data-action="bedroom3-windows">Open both windows</button><p>D4 toggles both windows together. The individual controls remain independent.</p></details>` : ''}</div>`).join('')}</div>
       <button class="text-link show-all-rooms" data-action="show-all-rooms" aria-expanded="false">Show all rooms</button>
       <div class="flat-summary">Whole flat: <strong id="mean-temperature">—</strong> · PM2.5 <strong id="mean-pm25">—</strong> · <strong id="power">—</strong></div>
       <details class="reading-detail"><summary>Comfort & electricity</summary><span id="feels-like">Feels like —</span> · <span id="energy">0.000 kWh used</span><svg id="temperature-history" viewBox="0 0 160 32" aria-label="Average temperature trend" role="img"><path d="M0 24H160"/></svg></details>
@@ -170,13 +171,20 @@ $('#app').innerHTML = `
   <dialog id="build-dialog" class="build-dialog" aria-labelledby="build-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">From screen to cardboard</span><h2 id="build-dialog-title">Your physical build pack</h2></div><button class="icon-button" data-close aria-label="Close build guide">${icon('close')}</button></div><div class="build-content"><div class="build-plan"><img src="/build-pack/floor-plan.svg" alt="Dimensioned HDB four-room floor plan at 1:65 scale"><span>Print at 100% / Actual size. Do not fit to page.</span></div><div class="build-details"><p class="build-intro">A full floor plan that fits comfortably inside your 15 × 20 cm limit, on an A4 base.</p><dl class="build-specs"><div><dt>Building footprint</dt><dd>187.69 × 118.46 mm</dd></div><div><dt>Wall height</dt><dd>40 mm</dd></div><div><dt>Model scale</dt><dd>1:65</dd></div><div><dt>Cardboard throughout</dt><dd>3 mm · no roof</dd></div><div><dt>Material needed</dt><dd>2 A4 sheets total</dd></div><div><dt>A4 cardboard base</dt><dd>210 × 297 mm</dd></div></dl><a class="button primary full-width" href="/build-pack/index.html" target="_blank" rel="noopener">${icon('plan')}Open the complete build guide ${icon('external')}</a><div class="build-downloads"><a href="/build-pack/all-walls-stock.svg" download>${icon('download')}All 13 walls · one A4 sheet</a><a href="/build-pack/floor-plan.svg" download>${icon('download')}Floor plan SVG</a><a href="/build-pack/cut-list.csv" download>${icon('download')}Wall cut list CSV</a><a href="/build-pack/dimensions.json" download>${icon('download')}All dimensions JSON</a></div><p class="section-note">Build the walls first. Place servos and the SSTuino beside the building on the spare base area. Check the actual parts before cutting mounting holes.</p><p class="section-note">Representative 4-room layout, not an official HDB construction drawing.</p></div></div></dialog>
   <dialog id="readings-dialog" class="readings-dialog" aria-labelledby="readings-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">Every room, at a glance</span><h2 id="readings-dialog-title">Room readings</h2></div><button class="icon-button" data-close aria-label="Close room readings">${icon('close')}</button></div><p class="dialog-note">Illustrative values at <span id="readings-time"></span>. These are not sensor measurements.</p><div class="readings-table-wrap"><table><thead><tr><th>Room</th><th>Temperature</th><th>Feels like</th><th>Air speed</th><th>PM2.5</th></tr></thead><tbody id="readings-table"></tbody></table></div><button class="button secondary" data-action="export">${icon('download')}Export this snapshot</button></dialog>
   <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-dialog-title"><div class="dialog-heading"><h2 id="about-dialog-title">A model for asking “what if?”</h2><button class="icon-button" data-close aria-label="Close explanation">${icon('close')}</button></div><p>${escape(SIMULATION_NOTE)}</p><p>Change a scenario or a control, then let simulated time pass. Temperature and particles respond gradually. Fans move air and change perceived comfort; air conditioning cools rooms and uses electricity.</p><p>The pressure view shows the 2D solver’s relative pressure potential, normalised from −1 to +1 within the current layout. It is a dimensionless simulated index, not pressure in pascals (Pa). Colours show relative differences within one arrangement; airflow arrows show the solved direction of travel.</p><p>The 3D view and cardboard plans use the same floor-plan geometry. Cutaway walls, overlays and camera changes only change the view.</p><p>Use this to compare ideas for your presentation. It is not a building assessment or a source of measured indoor air quality.</p></dialog>
-  <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">Presentation controls</span><h2 id="help-dialog-title">Keep the demo in your hands</h2></div><button class="icon-button" data-close aria-label="Close keyboard help">${icon('close')}</button></div><div class="keyboard-help"><p><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>Bedroom 3 north / living south / living east window</span></p><p><kbd>Shift</kbd> + <kbd>1</kbd><kbd>2</kbd><span>Main door / Bedroom 3 door</span></p><p><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>T</kbd><kbd>Y</kbd><span>The six scenarios, in order</span></p><p><kbd>F</kbd><kbd>A</kbd><kbd>P</kbd><span>Fan / AC / purifier power</span></p><p><kbd>[</kbd><kbd>]</kbd><span>Fan direction ±15°</span></p><p><kbd>,</kbd><kbd>.</kbd><span>Previous / next fan position</span></p><p><kbd>−</kbd><kbd>=</kbd><span>Decrease / increase fan speed</span></p><p><kbd>Shift</kbd> + <kbd>P</kbd><span>Next purifier position</span></p><p><kbd>O</kbd><kbd>Enter</kbd><span>Compare layouts / apply suggestion</span></p><p><kbd>Space</kbd><kbd>Backspace</kbd><span>Pause / reset simulation</span></p><p><kbd>C</kbd><kbd>H</kbd><span>Connect SSTuino / show this help</span></p></div><p class="section-note">Tab moves between accessible controls. Shortcuts pause while you use a form field or dialog. Unmapped window and door keys do nothing.</p></dialog>
+  <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">Presentation controls</span><h2 id="help-dialog-title">Keep the demo in your hands</h2></div><button class="icon-button" data-close aria-label="Close keyboard help">${icon('close')}</button></div><div class="keyboard-help"><p><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><span>Bedroom 3 north / living south / living east / Bedroom 3 east window</span></p><p><kbd>Shift</kbd> + <kbd>1</kbd><kbd>2</kbd><span>Main door / Bedroom 3 door</span></p><p><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>T</kbd><kbd>Y</kbd><span>The six scenarios, in order</span></p><p><kbd>F</kbd><kbd>A</kbd><kbd>P</kbd><span>Fan / AC / purifier power</span></p><p><kbd>[</kbd><kbd>]</kbd><span>Fan direction ±15°</span></p><p><kbd>,</kbd><kbd>.</kbd><span>Previous / next fan position</span></p><p><kbd>−</kbd><kbd>=</kbd><span>Decrease / increase fan speed</span></p><p><kbd>Shift</kbd> + <kbd>P</kbd><span>Next purifier position</span></p><p><kbd>O</kbd><kbd>Enter</kbd><span>Compare layouts / apply suggestion</span></p><p><kbd>Space</kbd><kbd>Backspace</kbd><span>Pause / reset simulation</span></p><p><kbd>C</kbd><kbd>H</kbd><span>Connect SSTuino / show this help</span></p></div><p class="section-note">Tab moves between accessible controls. Shortcuts pause while you use a form field or dialog. D4 on the physical model toggles both Bedroom 3 windows; D5 controls its purifier. Unmapped keys do nothing.</p></dialog>
+  <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><h2 id="guide-title">Try one change at a time</h2><button class="icon-button" data-close aria-label="Close getting started">${icon('close')}</button></div><ol class="getting-started"><li><strong>Choose the day.</strong><p>Pick heat, haze or a cooler evening. Weather is a scenario you set, not a live feed.</p></li><li><strong>Explore your rooms.</strong><p>Select a room on the map or in the room list. Openings and devices are below the map.</p></li><li><strong>Compare an idea.</strong><p>Suggest changes tests arrangements from the same starting conditions. Review the trade-offs, then Apply. Undo is available until another setting changes.</p></li></ol><p class="section-note">Qualitative toy CFD. Use the simulation to compare ideas, not as a measurement or building assessment.</p><button class="button primary" data-close>Explore my flat</button></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>`;
 
 const adviceRail = document.createElement('aside');
 adviceRail.className = 'advice-rail';
 adviceRail.setAttribute('aria-label', 'Suggestions and room readings');
 adviceRail.append($('#optimiser-panel'), $('.results-panel'));
+const manualLink = document.createElement('a');
+manualLink.className = 'manual-controls-link';
+manualLink.href = '#controls';
+manualLink.textContent = 'Adjust windows, devices & weather';
+manualLink.addEventListener('click', () => { $('#controls').focus({ preventScroll: true }); });
+adviceRail.append(manualLink);
 $('#flat-workspace .workspace').append(adviceRail);
 $('#flat-workspace').append($('#controls'));
 $('#playback-slot').append($('.simulation-controls'));
@@ -310,6 +318,7 @@ function updateScene(): void {
   if (workspace === 'study') return;
   const preview = workspace === 'lab' && coolingLab ? coolingLab.readPreviewConditions() : conditions;
   scene?.update(preview, result, view);
+  if (fallbackPlan) updateFallbackPlan();
 }
 function selectWorkspace(next: Workspace): void {
   if (next === workspace) return;
@@ -472,6 +481,7 @@ function editDevice(key: string, value: number | boolean | string): void {
 function invalidateOptimiser(): void {
   undoAdvice = null;
   if (optimising) { optimiser.cancel(); optimising = false; }
+  $('#optimiser-panel').setAttribute('aria-busy', 'false');
   if (!optimiserInput) return;
   optimiserReport = null; optimiserInput = null; appliedLayout = null;
   $('#run-optimiser').innerHTML = 'Suggest changes';
@@ -486,20 +496,20 @@ function scoreComparison(current: number, suggested: number): string {
   return `${percent}% ${suggested < current ? 'lower' : 'higher'} combined score`;
 }
 function hardwareConnected(): boolean { return $('#hardware-controls').dataset.connection === 'connected'; }
-function hardwareAllows(next: Conditions): boolean { return !hardwareConnected() || purifierMatches(conditions, next); }
+function hardwareAllows(next: Conditions): boolean { return !hardwareConnected() || hardwareOwnedControlsMatch(conditions, next); }
 function renderOptimiserReport(): void {
   if (!optimiserReport) return;
   const report = optimiserReport;
   const layout = report.layouts[selectedLayout];
   if (!layout) return;
   const applied = appliedLayout === selectedLayout;
-  const actions = describeAdviceChanges(report.you.conditions, layout.conditions);
+  const actions = describeAdviceChanges(applied ? report.you.conditions : conditions, layout.conditions);
   const comparison = scoreComparison(report.you.J, layout.J);
   const noBetter = layout.J >= report.you.J - 1e-8;
   const permitted = hardwareAllows(layout.conditions);
   const canUndo = undoAdvice !== null && undoAdvice.applied === JSON.stringify(conditions) && hardwareAllows(undoAdvice.before);
   $('#run-optimiser').classList.remove('primary');
-  $('#optimiser-result').innerHTML = `<p class="advice-verdict">${applied ? 'These changes are applied.' : noBetter && selectedLayout === 0 ? 'Your current setup already did best among the options we tried.' : noBetter ? 'This alternative has a higher or equal combined score.' : 'Try these changes:'}</p>${actions.length ? `<ul class="advice-actions">${actions.slice(0, 4).map(action => `<li>${escape(action)}</li>`).join('')}</ul>${actions.length > 4 ? `<details class="advice-extra"><summary>+${actions.length - 4} more changes</summary><ul>${actions.slice(4).map(action => `<li>${escape(action)}</li>`).join('')}</ul></details>` : ''}` : '<p class="section-note">Keep your current opening and device settings.</p>'}<p class="advice-outcome"><strong>In the simulation:</strong> ${escape(describeAdviceOutcome(report.you.result, layout.result))}</p><p class="section-note">Both setups start fresh and run for ${report.simulatedSeconds} simulated seconds. These are whole-flat comparisons.</p><div class="optimiser-result-actions"><button id="apply-optimiser" class="button primary" data-action="apply-optimiser" ${applied || !permitted || !actions.length ? 'disabled' : ''}>${applied ? 'Applied' : 'Apply these changes <kbd>Enter</kbd>'}</button>${undoAdvice ? `<button id="undo-optimiser" class="button secondary" data-action="undo-optimiser" ${canUndo ? '' : 'disabled'}>Undo</button>` : ''}</div>${!permitted || (undoAdvice && !canUndo) ? '<p class="section-note">The connected model controls the Bedroom 3 purifier. Its switch state is kept; this conflicting arrangement cannot be applied or restored.</p>' : ''}<details id="advice-score-details" class="advice-score-details"><summary>Other options & how this was scored</summary><div class="optimiser-score"><div>Starting setup<strong>${report.you.J.toFixed(2)}</strong></div><div>Selected option<strong>${layout.J.toFixed(2)}</strong></div></div><p class="optimiser-improvement ${comparison.startsWith('Same') ? 'is-equal' : layout.J > report.you.J ? 'is-worse' : ''}">${comparison}</p><p class="section-note">Score = heat discomfort ${layout.breakdown.heat.toFixed(2)} + haze ${layout.breakdown.haze.toFixed(2)} + power ${layout.breakdown.energy.toFixed(2)}. Heat discomfort includes fan comfort; it is not an air-temperature reading. Scores shown rounded.</p>${report.layouts.length > 1 ? `<label class="field-label" for="optimiser-alternative">Compared alternatives</label><select id="optimiser-alternative" class="device-select">${report.layouts.map((choice, index) => `<option value="${index}" ${index === selectedLayout ? 'selected' : ''}>${index === 0 ? 'Best tested' : `Alternative ${index + 1}`} · score ${choice.J.toFixed(2)}</option>`).join('')}</select>` : ''}<p class="section-note">2D plan-view engine · ${report.evaluations} layouts · ${(report.durationMs / 1000).toFixed(1)} s${report.partial ? ' · time-limited search' : ''}. This illustrative trade-off is not a health or engineering standard.</p></details>`;
+  $('#optimiser-result').innerHTML = `<p class="advice-verdict">${applied ? 'These changes are applied.' : noBetter && selectedLayout === 0 ? 'Your starting setup did best among the options we tried.' : noBetter ? 'This alternative has a higher or equal combined score.' : 'Try these changes:'}</p>${actions.length ? `<ul class="advice-actions">${actions.slice(0, 4).map(action => `<li>${escape(action)}</li>`).join('')}</ul>${actions.length > 4 ? `<details class="advice-extra"><summary>+${actions.length - 4} more changes</summary><ul>${actions.slice(4).map(action => `<li>${escape(action)}</li>`).join('')}</ul></details>` : ''}` : '<p class="section-note">Keep your current opening and device settings.</p>'}<p class="advice-outcome"><strong>In the simulation:</strong> Compared with the starting setup, ${escape(describeAdviceOutcome(report.you.result, layout.result))}</p><p class="section-note">Both setups start fresh and run for ${report.simulatedSeconds} simulated seconds. These are whole-flat comparisons.</p><div class="optimiser-result-actions"><button id="apply-optimiser" class="button primary" data-action="apply-optimiser" ${applied || !permitted || !actions.length ? 'disabled' : ''}>${applied ? 'Applied' : 'Apply these changes <kbd>Enter</kbd>'}</button>${undoAdvice ? `<button id="undo-optimiser" class="button secondary" data-action="undo-optimiser" ${canUndo ? '' : 'disabled'}>Undo</button>` : ''}</div>${!permitted || (undoAdvice && !canUndo) ? '<p class="section-note">The connected model controls both Bedroom 3 windows (D4) and its purifier (D5). These switch states are kept, so this conflicting arrangement cannot be applied or restored.</p>' : ''}<details id="advice-score-details" class="advice-score-details"><summary>Other options & how this was scored</summary><div class="optimiser-score"><div>Starting setup<strong>${report.you.J.toFixed(2)}</strong></div><div>Selected option<strong>${layout.J.toFixed(2)}</strong></div></div><p class="optimiser-improvement ${comparison.startsWith('Same') ? 'is-equal' : layout.J > report.you.J ? 'is-worse' : ''}">${comparison}</p><p class="section-note">Score = heat discomfort ${layout.breakdown.heat.toFixed(2)} + haze ${layout.breakdown.haze.toFixed(2)} + power ${layout.breakdown.energy.toFixed(2)}. Heat discomfort includes fan comfort; it is not an air-temperature reading. Scores shown rounded.</p>${report.layouts.length > 1 ? `<label class="field-label" for="optimiser-alternative">Compared alternatives</label><select id="optimiser-alternative" class="device-select">${report.layouts.map((choice, index) => `<option value="${index}" ${index === selectedLayout ? 'selected' : ''}>${index === 0 ? 'Best tested' : `Alternative ${index + 1}`} · score ${choice.J.toFixed(2)}</option>`).join('')}</select>` : ''}<p class="section-note">2D plan-view engine · ${report.evaluations} layouts · ${(report.durationMs / 1000).toFixed(1)} s${report.partial ? ' · time-limited search' : ''}. This illustrative trade-off is not a health or engineering standard.</p></details>`;
 }
 
 const optimiser = createOptimiser({
@@ -508,6 +518,7 @@ const optimiser = createOptimiser({
   },
   onResult(report) {
     optimising = false;
+    $('#optimiser-panel').setAttribute('aria-busy', 'false');
     $('#run-optimiser').innerHTML = 'Suggest again';
     if (JSON.stringify(conditions) !== optimiserInput) { invalidateOptimiser(); return; }
     optimiserReport = report; selectedLayout = 0; renderOptimiserReport();
@@ -515,14 +526,16 @@ const optimiser = createOptimiser({
   },
   onError(message) {
     optimising = false; optimiserInput = null;
+    $('#optimiser-panel').setAttribute('aria-busy', 'false');
     $('#run-optimiser').innerHTML = 'Try comparison again';
-    $('#optimiser-result').innerHTML = `<p class="section-note" role="alert">${escape(message)}</p>`;
+    $('#optimiser-result').innerHTML = `<p class="section-note" role="alert">${escape(message)}</p><p class="section-note">Your controls are unchanged. Try again, or choose fewer devices under Devices to test.</p>`;
   },
 });
 function runOptimiser(): void {
   if (workspace !== 'flat') selectWorkspace('flat');
-  if (optimising) { invalidateOptimiser(); notify('Comparison stopped.'); return; }
+  if (optimising) { invalidateOptimiser(); $('#optimiser-result').innerHTML = '<p class="section-note">Comparison stopped. Your controls are unchanged. Suggest changes when you’re ready.</p>'; notify('Comparison stopped.'); return; }
   optimiserReport = null; optimiserInput = JSON.stringify(conditions); optimising = true; appliedLayout = null; undoAdvice = null;
+  $('#optimiser-panel').setAttribute('aria-busy', 'true');
   $('#run-optimiser').textContent = 'Cancel comparison';
   $('#run-optimiser').classList.add('primary');
   $('#optimiser-result').innerHTML = '<p class="section-note">Starting the comparison worker…</p>';
@@ -542,11 +555,17 @@ function renderReadings(): void {
     $('#bedroom3-purifier-status').textContent = purifierHere
       ? `Corner purifier ${conditions.purifier?.on ? 'ON' : 'OFF'}`
       : `Portable purifier is in ${roomLabel(PURIFIER_SLOTS[conditions.purifier?.slot ?? 0]?.room ?? 'living')}`;
+    const northOpen = Boolean(conditions.windows.window_bedroom3_1), eastOpen = Boolean(conditions.windows.window_bedroom3_2);
+    $('#bedroom3-window-status').textContent = `North ${northOpen ? 'open' : 'closed'} · East ${eastOpen ? 'open' : 'closed'}`;
+    $('#bedroom3-window-toggle').textContent = northOpen && eastOpen ? 'Close both windows' : 'Open both windows';
     $('#bedroom3-pm25').textContent = `${bedroom3.pm25.toFixed(1)} µg/m³`;
     const equivalent = pm25ToUsAqiEquivalent(bedroom3.pm25);
     $('#bedroom3-aqi-equivalent').textContent = equivalent === null ? 'Beyond supported scale' : String(equivalent);
   }
-  const ranked = result.rooms.filter(room => primaryRooms.includes(room.room)).sort((a, b) => view.mode === 'pm25' ? b.pm25 - a.pm25 : b.temperature - a.temperature);
+  const ranked = result.rooms.filter(room => primaryRooms.includes(room.room)).sort((a, b) => {
+    const delta = view.mode === 'pm25' ? b.pm25 - a.pm25 : b.temperature - a.temperature;
+    return Math.abs(delta) >= 0.05 ? delta : primaryRooms.indexOf(a.room) - primaryRooms.indexOf(b.room);
+  });
   $('#room-sort-label').textContent = view.mode === 'pm25' ? 'Haziest first' : 'Warmest first';
   const top = ranked[0];
   const distinct = top && ranked.some(room => top.temperature - room.temperature >= 0.1);
@@ -571,6 +590,7 @@ function renderReadings(): void {
       if (comfort) comfort.textContent = `Feels like ${room.feelsLike.toFixed(1)}°C · ${room.pm25.toFixed(1)} µg/m³ PM2.5`;
     }
   }
+  updateFallbackPlan();
   if ($<HTMLDialogElement>('#readings-dialog').open) renderTable();
   const sample = Math.floor(result.elapsedSeconds / 10);
   if (sample !== lastSample) {
@@ -595,7 +615,7 @@ function updateOverlay(): void {
     pm25: ['The air you let in', 'Estimated indoor PM2.5 in µg/m³.'],
   }[view.mode];
   $('#view-label').textContent = copy[0];
-  $('#view-description').textContent = copy[1];
+  $('#view-description').textContent = `${copy[1]} Arrows show airflow; none appear in still air.`;
   const legend = $('#model-legend');
   legend.hidden = view.mode === 'model';
   legend.className = `model-legend legend-${view.mode}`;
@@ -680,9 +700,10 @@ document.addEventListener('click', event => {
     markCustom(true);
   }
   switch (target.dataset.action) {
-    case 'build': $<HTMLDialogElement>('#build-dialog').showModal(); break;
-    case 'about': $<HTMLDialogElement>('#about-dialog').showModal(); break;
-    case 'help': $<HTMLDialogElement>('#help-dialog').showModal(); break;
+    case 'guide': openDialog('#guide-dialog', target); break;
+    case 'build': openDialog('#build-dialog', target); break;
+    case 'about': openDialog('#about-dialog', target); break;
+    case 'help': openDialog('#help-dialog', target); break;
     case 'optimise': runOptimiser(); break;
     case 'apply-optimiser': {
       if (!optimiserReport || JSON.stringify(conditions) !== optimiserInput) { invalidateOptimiser(); break; }
@@ -720,7 +741,7 @@ document.addEventListener('click', event => {
       $('.room-readings').classList.toggle('show-all', expanded);
       break;
     }
-    case 'readings': renderTable(); $<HTMLDialogElement>('#readings-dialog').showModal(); break;
+    case 'readings': renderTable(); openDialog('#readings-dialog', target); break;
     case 'export': exportCsv(); break;
     case 'play':
       invalidateGpuStep();
@@ -733,6 +754,14 @@ document.addEventListener('click', event => {
       invalidateGpuStep();
       result = createSimulation(conditions); history = []; lastSample = -1; renderReadings(); updateScene();
       notify('Readings and time reset. Your controls are unchanged.'); break;
+    case 'bedroom3-windows': {
+      const open = !(conditions.windows.window_bedroom3_1 && conditions.windows.window_bedroom3_2);
+      conditions.windows.window_bedroom3_1 = open;
+      conditions.windows.window_bedroom3_2 = open;
+      markCustom(true); renderReadings();
+      notify(`Both Bedroom 3 windows ${open ? 'opened' : 'closed'}.`);
+      break;
+    }
     case 'reset-weather': {
       const preset = PRESETS.find(item => item.id === conditions.scenarioId) ?? PRESETS[0];
       for (const field of ['outdoorTemperature', 'outdoorPm25', 'windSpeed', 'humidity', 'timeOfDay'] as const) conditions[field] = preset.conditions[field];
@@ -766,7 +795,10 @@ document.addEventListener('change', event => {
   if (input.id === 'day-select') { loadScenario(input.value); return; }
   if (input.id === 'science-views') {
     document.querySelectorAll<HTMLElement>('[data-mode="pressure"], [data-preset="validation"], #day-select option[value="validation"]').forEach(element => { element.hidden = !input.checked; });
-    if (!input.checked && view.mode === 'pressure') { view.mode = 'model'; updateOverlay(); }
+    if (!input.checked) {
+      if (flatViewMode === 'pressure') flatViewMode = 'model';
+      if (view.mode === 'pressure') { view.mode = 'model'; updateOverlay(); }
+    }
     return;
   }
   if (input.id === 'outdoor-aqi') {
@@ -805,6 +837,17 @@ document.addEventListener('change', event => {
   if (input.dataset.deviceKey && input.type !== 'range') editDevice(input.dataset.deviceKey, input.type === 'checkbox' ? input.checked : input.value);
   if (input.dataset.view) { view[input.dataset.view as 'cutaway' | 'labels' | 'dimensions'] = input.checked; updateScene(); }
 });
+const dialogLaunchers = new WeakMap<HTMLDialogElement, HTMLElement>();
+function openDialog(selector: string, launcher: HTMLElement): void {
+  const dialog = $<HTMLDialogElement>(selector);
+  dialogLaunchers.set(dialog, launcher.closest('#more-menu') ? $('#more-menu > summary') : launcher);
+  $<HTMLDetailsElement>('#more-menu').open = false;
+  dialog.showModal();
+}
+document.querySelectorAll<HTMLDialogElement>('dialog').forEach(dialog => dialog.addEventListener('close', () => {
+  const launcher = dialogLaunchers.get(dialog);
+  requestAnimationFrame(() => { if (launcher?.isConnected && launcher.getClientRects().length) launcher.focus(); });
+}));
 document.querySelectorAll<HTMLDialogElement>('dialog').forEach(dialog => dialog.addEventListener('click', event => {
   if (event.target === dialog) {
     const rect = dialog.getBoundingClientRect();
@@ -853,7 +896,7 @@ document.addEventListener('keydown', event => {
     case ' ': $('[data-action="play"]').click(); break;
     case 'backspace': $('[data-action="reset"]').click(); break;
     case 'c': $<HTMLDetailsElement>('#more-menu').open = true; $<HTMLDetailsElement>('.hardware-section').open = true; $('#connect-hardware').click(); break;
-    case 'h': $<HTMLDialogElement>('#help-dialog').showModal(); break;
+    case 'h': openDialog('#help-dialog', target); break;
     case 'o': $('#run-optimiser').click(); $('#run-optimiser').focus(); break;
     case 'enter': document.getElementById('apply-optimiser')?.click(); break;
     default: return;
@@ -884,8 +927,71 @@ createScene($('#scene'), selectRoom, (kind, slotId) => {
   updateScene();
 }).catch(error => {
   console.error('Unable to initialize 3D scene', error);
-  $('#scene-loading').innerHTML = `${icon('plan')}<strong>The 3D view could not start</strong><span>Try desktop Chrome with graphics acceleration enabled. Controls and the printable floor plan still work.</span><a class="button secondary" href="/build-pack/index.html" target="_blank" rel="noopener">Open printable floor plan</a>`;
+  mountFallbackPlan();
 });
+function mountFallbackPlan(): void {
+  fallbackPlan = true;
+  $('.model-panel').classList.add('has-plan-fallback');
+  const bounds = model.bounds;
+  const width = bounds.max[0] - bounds.min[0], depth = bounds.max[2] - bounds.min[2];
+  const rect = (box: { min: number[]; max: number[] }) => `x="${box.min[0]}" y="${box.min[2]}" width="${box.max[0] - box.min[0]}" height="${box.max[2] - box.min[2]}"`;
+  $('#scene').insertAdjacentHTML('beforeend', `<svg id="flat-plan-fallback" viewBox="${bounds.min[0] - .25} ${bounds.min[2] - .25} ${width + .5} ${depth + .5}" role="group" aria-label="Interactive 2D apartment plan"><defs><marker id="fallback-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#184c43"/></marker></defs>${model.rooms.map(room => `<g class="fallback-room" data-fallback-room="${room.name}" role="button" tabindex="0" aria-label="Select ${escape(roomLabel(room.name))}"><title>${escape(roomLabel(room.name))}</title><rect ${rect(room)}/></g>`).join('')}<g class="fallback-walls" aria-hidden="true">${model.boxes.filter(box => box.type === 'wall').map(box => `<rect ${rect(box)}/>`).join('')}</g><g class="fallback-openings" aria-hidden="true">${model.boxes.filter(box => box.type === 'window' || box.type === 'door').map(box => `<rect ${rect(box)} data-fallback-opening="${box.name}"/>`).join('')}</g><g id="fallback-flow" aria-hidden="true"></g><g class="fallback-labels" aria-hidden="true">${model.rooms.filter(room => primaryRooms.includes(room.name)).map(room => `<text x="${(room.min[0] + room.max[0]) / 2}" y="${(room.min[2] + room.max[2]) / 2 - .08}"><tspan>${escape(roomLabel(room.name))}</tspan><tspan x="${(room.min[0] + room.max[0]) / 2}" dy=".48" data-fallback-reading="${room.name}"></tspan></text>`).join('')}</g></svg>`);
+  $('#scene-loading').className = 'fallback-notice';
+  $('#scene-loading').innerHTML = '<strong>2D plan</strong><span>3D graphics are unavailable. Room selection and the simulation still work.</span><a href="/build-pack/floor-plan.svg" target="_blank" rel="noopener">Printable plan</a>';
+  document.querySelectorAll<HTMLButtonElement>('[data-camera], [data-action="reset-camera"]').forEach(button => { button.disabled = true; });
+  $('.view-disclosure').hidden = true;
+  $('#scene').addEventListener('click', event => {
+    const room = (event.target as Element).closest<SVGGElement>('[data-fallback-room]');
+    if (room && workspace === 'flat') selectRoom(room.dataset.fallbackRoom ?? null);
+  });
+  $('#scene').addEventListener('keydown', event => {
+    const key = event as KeyboardEvent;
+    const room = (key.target as Element).closest<SVGGElement>('[data-fallback-room]');
+    if (room && workspace === 'flat' && (key.key === 'Enter' || key.key === ' ')) { key.preventDefault(); key.stopPropagation(); selectRoom(room.dataset.fallbackRoom ?? null); }
+  });
+  updateFallbackPlan();
+}
+function updateFallbackPlan(): void {
+  if (!fallbackPlan || workspace === 'study') return;
+  const preview = workspace === 'lab' && coolingLab ? coolingLab.readPreviewConditions() : conditions;
+  const isPreview = workspace === 'lab';
+  $('#view-label').textContent = isPreview ? '2D position preview' : 'Your flat, room by room';
+  $('#view-description').textContent = isPreview ? 'Window fan test values appear in its results.' : view.mode === 'pressure' ? 'Pressure colours need the 3D view. Room temperatures shown. Arrows show airflow; none appear in still air.' : 'Room averages. Arrows show airflow; none appear in still air.';
+  for (const room of result.rooms) {
+    const group = document.querySelector<SVGGElement>(`[data-fallback-room="${room.room}"]`);
+    if (group) {
+      group.classList.toggle('selected', !isPreview && room.room === view.selectedRoom);
+      group.setAttribute('aria-pressed', String(!isPreview && room.room === view.selectedRoom));
+      group.setAttribute('tabindex', isPreview ? '-1' : '0');
+      group.setAttribute('aria-disabled', String(isPreview));
+    }
+    const text = document.querySelector<SVGElement>(`[data-fallback-reading="${room.room}"]`);
+    if (text) text.textContent = isPreview ? '' : view.mode === 'pm25' ? `${room.pm25.toFixed(1)} µg/m³` : view.mode === 'airflow' ? `${room.airflow.toFixed(2)} m/s` : `${room.temperature.toFixed(1)}°C`;
+  }
+  document.querySelectorAll<SVGElement>('[data-fallback-opening]').forEach(opening => {
+    const id = opening.dataset.fallbackOpening!;
+    opening.classList.toggle('is-open', Boolean(preview.windows[id] ?? preview.doors[id]));
+  });
+  const field = result.field;
+  const arrows: string[] = [];
+  if (field && !isPreview) {
+    const valid = (x: number, z: number) => {
+      const ix = Math.floor((x - field.origin[0]) / field.dx), iz = Math.floor((z - field.origin[1]) / field.dx);
+      return ix >= 0 && iz >= 0 && ix < field.nx && iz < field.nz && field.cellType[ix + iz * field.nx] === 0;
+    };
+    for (let iz = 2; iz < field.nz; iz += 4) for (let ix = 2; ix < field.nx; ix += 4) {
+      const index = ix + iz * field.nx, u = field.ux[index], v = field.uz[index], speed = Math.hypot(u, v);
+      if (field.cellType[index] !== 0 || !Number.isFinite(speed) || speed < .015) continue;
+      const x = field.origin[0] + (ix + .5) * field.dx, z = field.origin[1] + (iz + .5) * field.dx;
+      const dx = u / speed * .32, dz = v / speed * .32;
+      if (![.25, .5, .75, 1].every(t => valid(x + dx * t, z + dz * t))) continue;
+      arrows.push(`<line x1="${x}" y1="${z}" x2="${x + dx}" y2="${z + dz}"/>`);
+    }
+  }
+  $('#fallback-flow').innerHTML = arrows.join('');
+  // The fallback presents actual room means, not a substitute scalar-field colour map.
+  $('#model-legend').hidden = true;
+}
 function invalidateGpuStep(): void {
   simulationRevision++;
   gpuPendingSeconds = 0;
@@ -930,7 +1036,7 @@ function animate(time: number): void {
   if (playing && !document.hidden && workspace === 'flat') {
     try {
       if (gpu) advanceGpu(delta * speed);
-      else result = stepSimulation(result, conditions, delta * speed);
+      else result = stepSimulation(result, conditions, Math.min(delta * speed, 1));
       if (![result.averageTemperature, result.averagePm25, result.powerWatts].every(Number.isFinite)) {
         result = createSimulation(conditions);
         invalidateGpuStep();

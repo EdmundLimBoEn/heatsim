@@ -68,6 +68,10 @@ describe('matched thermal comparison', () => {
     const baseline = config(1_200), candidate = config(25.5);
     Object.assign(baseline.base, { scenarioId: 'hot_afternoon', outdoorTemperature: 40, outdoorPm25: 300, humidity: 95, windSpeed: 4, windFrom: 'W', timeOfDay: 14 });
     Object.assign(candidate.base, { scenarioId: 'night_cool', outdoorTemperature: 27, outdoorPm25: 15, humidity: 60, windSpeed: 2, windFrom: 'E', timeOfDay: 20 });
+    baseline.base.houseOrientationDeg = 180;
+    candidate.base.houseOrientationDeg = 90;
+    candidate.base.weatherProvenance = { source: 'Open-Meteo', area: 'Bishan', latitude: 1.351, longitude: 103.849,
+      forecastTime: '2026-10-15T07:00:00.000Z', loadedAt: '2026-10-15T07:05:00.000Z', windDegrees: 100 };
     baseline.corridor = { enabled: false, temperature: 20, pm25: 20 };
     candidate.corridor = { enabled: true, temperature: 29, pm25: 100 };
     baseline.vent = { opening: 'window_bedroom3_1', on: true, mode: 'exhaust', ratedM3h: 200 };
@@ -89,6 +93,8 @@ describe('matched thermal comparison', () => {
     const report = compareThermalCases(candidate, { baselineConfig: baseline });
     expect(report.comparisonMode).toBe('configuration');
     expect(report.candidateConfig).toEqual(candidate);
+    expect(report.baselineConfig.base.houseOrientationDeg).toBe(candidate.base.houseOrientationDeg);
+    expect(report.baselineConfig.base.weatherProvenance).toEqual(candidate.base.weatherProvenance);
     expect(report.baselineConfig).toEqual({
       ...candidate,
       base: { ...candidate.base, doors: baseline.base.doors, windows: baseline.base.windows, devices: baseline.base.devices,

@@ -24,14 +24,18 @@ A fresh `two-layer-surface-v2` engine probe of this exact pair gave whole-flat f
 
 Optional purifier test: capture the current closed-window setup with purifier **off**, then turn it **on** and compare. Only purifier power should differ.
 
-## 3. Test a high-level exhaust with cooler outdoor air
+## 3. Show when a window fan helps — and when it does not
 
-1. In **Window fan test**, open **Weather, openings & advanced comparisons**. Choose **Quick fan off / on**, **Evening cool-down**, **Bedroom 3 → north window**, **High-level exhaust**, **300 m³/h**, and **20 minutes**. Turn purifiers off. Set **27°C**, **20 µg/m³**, and **1.2 m/s from North**; keep the corridor option off and the same envelope settings.
-2. Choose **Open windows + internal doors** and click **Compare fan off / on**. Show the matching initial conditions, occupied-layer chart, final upper-layer temperature, actual fan flow and fan electricity.
-3. Choose **Close all other openings** and rerun. Sustained flow can be blocked while motor heat remains. Each pair isolates fan power; the two pairs have different opening arrangements.
-4. Explain: “Cooler replacement air can carry sensible heat away. The rating is not the actual flow. Positive heat removed means heat exported; negative means heat imported. The fan also uses electricity and adds heat.” The model assumes **14 W** for a 300 m³/h fan, so an on trial lasting 20 minutes uses **4.67 Wh** for that fan. This is an illustrative input, not a product specification.
+1. Open **Window fan test → Demo setup → 1. Cooler evening · connected route**. Select **Compare fan off / on**. The explicit setup uses 31°C initial air/surfaces, 27°C outside, no wind, a 300 m³/h Bedroom 3 north-window exhaust, 30 simulated minutes, and no other powered devices. Living-room window 2 plus internal doors provide replacement air. This replaces only the lab controls, not My flat.
+2. Read the **Bedroom 3 occupied air** difference and chart alongside the whole-flat mean. The result explanation shows actual fan-off/on exchange. These are different spatial averages, not contradictory readings. The paired comparison changes only fan power; the adapter passage exists in both arms.
+3. Choose **2. Same evening · blocked route**, then compare again. All other openings close. Sustained flow is blocked while motor heat remains. This is an intentional counterexample, not a failed demonstration.
+4. Choose **3. Hotter outside · connected route**, then compare again. The same calm, non-sunny setup now has 35°C replacement air. Explain: “A fan moves air. Cooler replacement air can take heat away; hotter replacement air can bring heat in.” This is an illustrative manual condition, not a forecast.
 
-The chart is **bedroom 3's occupied layer**; the headline temperature is the **whole-flat all-air mean**. Heat moved and electricity used are separate energies, not an AC efficiency rating.
+A solver check of these presets gives approximately **−0.58°C occupied-layer / −0.45°C whole-flat** change for the cooler connected route, **286 m³/h** actual fan-on flow, and **7 Wh** additional electricity over 30 minutes. The blocked case gives approximately zero sustained flow and slight warming; the hotter case gives about **+0.35°C whole-flat** change. Read the displayed results in rehearsal rather than promising these as measured effects. Coefficients are unchanged. The selected room effect can differ from the flat-wide effect because of the route and stored wall heat.
+
+**Why a custom comparison may show little change:** the route may be blocked, outdoor air may be as warm as indoor air, natural ventilation may already be doing much of the work, or a local change may be diluted in a whole-flat mean. This model does not calculate a fan’s evaporative comfort effect on a person. Do not invent cooling to make the chart dramatic.
+
+**Weather, openings & advanced comparisons** retains the individual controls. Editing a demo turns it into a custom setup. **Refresh from the flat** restores the flat’s current weather/openings/devices; it never changes the flat. **Compared inputs** and **Air exchange and heat balance** remain available as disclosures beneath the result.
 
 ## 4. Optional corridor, envelope and pressure questions
 

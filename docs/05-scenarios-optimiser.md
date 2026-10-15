@@ -1,5 +1,15 @@
 # 05 · Scenarios and placement optimiser
 
+## Demo update · optional regional weather and house orientation
+
+My flat can explicitly load a Singapore area's current regional forecast from [Open-Meteo](https://open-meteo.com/en/docs). The browser requests temperature at 2 m, relative humidity at 2 m, and wind speed/direction at 10 m once when **Load weather** is pressed. This free noncommercial demo uses no key, backend or polling. The displayed source, selected coordinates, forecast timestamp and retrieval timestamp accompany imported conditions. Haze/PM2.5 remains manually entered. Network errors, unexpected units, invalid values, forecasts more than three hours from retrieval time, or wind above this toy model's 10 m/s limit leave the existing setup untouched. Manual controls remain available offline.
+
+Wind is the geographic direction it comes **from**, rounded to the nearest N/E/S/W direction. Regional 10 m forecast wind is not a measurement at a window: surrounding buildings, height and shelter are unresolved. Forecast data does not validate the qualitative toy CFD or make its results accurate.
+
+The house orientation control gives the clockwise geographic bearing of the fixed plan's top/local north: 0°, 90°, 180° or 270°. The solver subtracts that bearing from geographic wind direction before applying exterior pressure. For example, a north wind enters the local west side at 90°. Rotating the view camera alone does not change weather. Canonical thermal sunlight facades rotate with the house; the planar model retains its existing west-sun approximation, applied to the corresponding rotated facade. Original geometry, hardware mapping and cardboard dimensions do not change. Imported floor plans continue to use their own `northDegrees`, never the canonical house orientation.
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
 **Main apartment implementation:** the apartment view and layout optimiser use the spatial **2D plan-view toy CFD** in `src/plan-simulation.ts`. The original 3D WebGPU LBM design is deferred. This document describes the implemented fallback, including its limits.
 
 ## 1. Scenario presets (`SCENARIOS` and `PRESETS` in `src/simulation.ts`) [V code; all numbers illustrative]

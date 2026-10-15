@@ -27,10 +27,23 @@ export function coolingLabScenarioBase(captured: Conditions, scenario: string): 
   const base = structuredClone(captured), preset = PRESETS.find(preset => preset.id === scenario);
   if (preset) {
     Object.assign(base, structuredClone(preset.conditions), { doors: base.doors, windows: base.windows, devices: base.devices,
-      portableFan: base.portableFan, standingFans: base.standingFans, purifier: base.purifier, acSetpoint: base.acSetpoint });
+      portableFan: base.portableFan, standingFans: base.standingFans, purifier: base.purifier, acSetpoint: base.acSetpoint, houseOrientationDeg: base.houseOrientationDeg });
     if (!preset.conditions.windFrom) delete base.windFrom;
+    delete base.weatherProvenance;
   }
   return base;
+}
+
+export function coolingLabDemoConfig(demo: 'cooler' | 'blocked' | 'hotter'): ThermalConfig {
+  const base = structuredClone(PRESETS.find(preset => preset.id === 'night_cool')!.conditions);
+  base.outdoorTemperature = demo === 'hotter' ? 35 : 27;
+  base.windSpeed = 0;
+  base.windows.window_living_2 = demo !== 'blocked';
+  for (const box of model.boxes) if (box.type === 'door') base.doors[box.name] = demo !== 'blocked' && !box.exterior;
+  const config = createThermalConfig(base);
+  config.vent = { opening: 'window_bedroom3_1', on: true, mode: 'exhaust', ratedM3h: 300 };
+  config.durationSeconds = 1800;
+  return config;
 }
 
 export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptions): { dispose(): void; refreshCaptureStatus(): void; readPreviewConditions(): Conditions } {
@@ -38,6 +51,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   const events = new AbortController();
   let capturedBase = structuredClone(options.readConditions());
   let config = createThermalConfig(capturedBase);
+  let demoBase: Conditions | null = null;
   let weatherOverrides: Partial<Conditions> = {};
   let openingOverrides: Pick<Conditions, 'windows' | 'doors'> | null = null;
   let purifierOverride: Conditions['purifier'];
@@ -71,7 +85,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     <div class="cl-workspace">
       <form class="cl-controls" id="cl-form" aria-label="Window fan test settings">
         <section><h3>Choose a comparison</h3><label class="cl-label" for="cl-comparison-mode">Experiment</label><select id="cl-comparison-mode" data-cl="comparison-mode"><option value="fan-toggle">Quick fan off / on</option><option value="configuration">Captured baseline / candidate</option></select><div id="cl-baseline-controls" hidden><p class="cl-help">Capture the current openings, devices, vent and envelope. Then adjust the candidate below. Current weather, corridor conditions and duration apply to both.</p><button id="cl-capture-baseline" type="button" class="cl-button cl-secondary">Capture baseline</button><p id="cl-baseline-status" class="cl-help">Capture a baseline before comparing.</p></div></section>
-        <section><h3>Choose where to try it</h3><label class="cl-label" for="cl-room">Room</label><select id="cl-room" data-cl="room">${roomNames.map(room => `<option value="${room}" ${room === selectedRoom ? 'selected' : ''}>${roomLabel(room)}</option>`).join('')}</select>
+        <section><h3>Start with a clear experiment</h3><label class="cl-label" for="cl-demo">Demo setup</label><select id="cl-demo" data-cl="demo"><option value="">My captured / custom setup</option><option value="cooler">1. Cooler evening · connected route</option><option value="blocked">2. Same evening · blocked route</option><option value="hotter">3. Hotter outside · connected route</option></select><p id="cl-demo-note" class="cl-help">Try the cooler-evening demo first. Each setup replaces this lab’s controls only; your flat stays unchanged.</p><h3>Choose where to try it</h3><label class="cl-label" for="cl-room">Room</label><select id="cl-room" data-cl="room">${roomNames.map(room => `<option value="${room}" ${room === selectedRoom ? 'selected' : ''}>${roomLabel(room)}</option>`).join('')}</select>
         <label class="cl-label" for="cl-opening">Fan window</label><select id="cl-opening" data-cl="opening"></select>
         <label class="cl-label" for="cl-mode">Fan direction</label><select id="cl-mode" data-cl="mode"><option value="exhaust">Blow air out</option><option value="supply">Bring air in</option></select>
         <label class="cl-check" id="cl-fan-on-control" hidden><input id="cl-fan-on" type="checkbox" data-cl="fan-on" checked><span>Candidate vent fan powered</span></label>
@@ -100,7 +114,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
         <div data-lab-model-slot class="cooling-lab-model-slot"></div>
         <div class="cl-fairness"><strong id="cl-fairness-title">One controlled change</strong><span id="cl-fairness-copy">Identical initial air and surface temperatures, weather, openings and devices. Only the installed vent fan changes.</span></div>
         <section id="cl-results" class="cl-results" aria-label="Fan comparison results" tabindex="-1" aria-busy="false">
-          <div class="cl-results-heading"><div><h3>What changes after <span id="cl-duration-label">20 minutes</span>?</h3><p id="cl-comparison-description">Captured lab setup · fan on minus fan off. Negative temperature differences mean cooler air.</p></div><button class="cl-button cl-secondary" type="button" id="cl-export" disabled>Export comparison CSV</button></div><div id="cl-compared-inputs" class="cl-compared-inputs"></div>
+          <div class="cl-results-heading"><div><h3>What changes after <span id="cl-duration-label">20 minutes</span>?</h3><p id="cl-comparison-description">Captured lab setup · fan on minus fan off. Negative temperature differences mean cooler air.</p></div><button class="cl-button cl-secondary" type="button" id="cl-export" disabled>Export comparison CSV</button></div><p id="cl-takeaway" class="cl-caveat" hidden></p><div id="cl-compared-inputs" class="cl-compared-inputs"></div>
           <p id="cl-export-status" class="cl-export-status" role="status"></p><div id="cl-summary" class="cl-summary"><p class="cl-empty">Choose a room and fan direction, then select <strong>Compare fan off / on</strong>. You’ll see temperature, PM2.5 and electricity differences for the same starting conditions.</p></div>
           <div class="cl-visuals"><section class="cl-chart-panel"><h4>Occupied-layer temperature</h4><div class="cl-chart-key"><span class="cl-line-off">Fan off</span><span class="cl-line-on">Fan on</span></div><div id="cl-chart"><p class="cl-empty">Both traces will start at the same temperature and use the same time axis.</p></div></section><section class="cl-section-panel"><h4 id="cl-section-title">Two air layers and one surface</h4><div id="cl-cross-section"><p class="cl-empty">The section will show the second trial’s final state in your selected room.</p></div><p class="cl-help">Nodal illustration, not a resolved plume or 3D temperature field. Layer boundaries and arrows are schematic.</p></section></div>
           <div class="cl-result-bottom"><section><h4>Actual exchange & make-up air</h4><div id="cl-flow-result"><p class="cl-empty">A blocked route can limit exchange. The fan rating alone does not establish the flow.</p></div></section><section><h4>Heat budget of the whole flat</h4><div id="cl-budget"><p class="cl-empty">Conduction, radiation, ventilation and internal heat sources will be shown separately.</p></div></section></div>
@@ -163,13 +177,13 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     }).join('');
   }
   function refreshCaptureStatus(): void {
-    const changed = JSON.stringify(options.readConditions()) !== JSON.stringify(capturedBase);
+    const changed = !demoBase && JSON.stringify(options.readConditions()) !== JSON.stringify(capturedBase);
     $('#cl-capture-status').hidden = !changed;
     $('#cl-capture-status').textContent = changed ? 'The flat has changed since this setup was captured. This preview and any retained results use the lab’s captured setup. Choose “Refresh from the flat” to use the new settings.' : '';
   }
   function buildBase(): Conditions {
     const scenario = $<HTMLSelectElement>('#cl-scenario').value;
-    const base = coolingLabScenarioBase(capturedBase, scenario);
+    const base = coolingLabScenarioBase(demoBase ?? capturedBase, scenario);
     const route = $<HTMLSelectElement>('#cl-route').value;
     if (route === 'custom' && openingOverrides) {
       base.windows = { ...openingOverrides.windows }; base.doors = { ...openingOverrides.doors };
@@ -180,6 +194,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     if (purifierOverride) base.purifier = { ...purifierOverride };
     Object.assign(base.devices, deviceOverrides);
     Object.assign(base, weatherOverrides);
+    if (Object.keys(weatherOverrides).length) delete base.weatherProvenance;
     return base;
   }
   function sync(): void {
@@ -228,7 +243,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     $<HTMLButtonElement>('#cl-run').disabled = comparisonMode === 'configuration' && !baseline;
     $('#cl-cancel').hidden = true; $('#cl-progress').hidden = true;
     $('#cl-view-results').hidden = true; $('.cl-visuals').hidden = true; $('#cl-result-details').hidden = true;
-    $('#cl-results').setAttribute('aria-busy', 'false'); $('#cl-export-status').textContent = '';
+    $('#cl-results').setAttribute('aria-busy', 'false'); $('#cl-export-status').textContent = ''; $('#cl-takeaway').hidden = true;
     $<HTMLButtonElement>('#cl-export').disabled = true;
     setStatus(message);
     $('#cl-run').textContent = comparisonMode === 'configuration' ? 'Compare baseline / candidate' : 'Compare fan off / on';
@@ -268,11 +283,12 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   function renderResult(result: ThermalComparisonResult): void {
     const [before, after] = caseLabels(result);
     const room = THERMAL_OPENINGS.find(opening => opening.name === result.candidateConfig.vent.opening)!.room;
-    const on = roomReading(result.on.final, room);
+    const on = roomReading(result.on.final, room), off = roomReading(result.off.final, room);
+    const roomChange = on.lowerTemperature - off.lowerTemperature;
     const metrics = [
       ['Whole-flat air temperature', signed(result.difference.averageTemperature, 2), '°C'],
+      [`${roomLabel(room)} occupied air`, signed(roomChange, 2), '°C'],
       ['Whole-flat PM2.5 change', signed(result.difference.averagePm25, 2), 'µg/m³'],
-      ['PM exposure change', signed(result.difference.pmExposureUgHoursM3, 2), 'µg·h/m³'],
       ['Total electricity change', signed(result.difference.energyWh, 2), 'Wh'],
     ];
     $('#cl-summary').innerHTML = metrics.map(([label, value, unit]) => `<div class="cl-metric"><span>${label}</span><strong>${value}<small>${unit}</small></strong><em>SIMULATED</em></div>`).join('');
@@ -282,8 +298,14 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     $('#cl-cross-section').innerHTML = crossSection(on, result);
     const shared = result.candidateConfig;
     const corridor = shared.corridor?.enabled ? `Main-door corridor: ${number(shared.corridor.temperature)}°C, ${number(shared.corridor.pm25)} µg/m³ PM2.5; fixed sheltered boundary.` : 'Main door uses outdoor conditions.';
-    $('#cl-compared-inputs').innerHTML = `<details open><summary>Compared inputs · ${result.variedSettings.length} controlled changes</summary><p class="cl-help">Shared: ${shared.base.outdoorTemperature}°C outdoors, ${shared.base.outdoorPm25} µg/m³ PM2.5, wind ${shared.base.windSpeed} m/s from ${shared.base.windFrom ?? 'the scenario direction'}, ${result.durationSeconds / 60} minutes. Identical scenario initial temperatures and particles. ${corridor}</p><div class="cl-table-scroll"><table><thead><tr><th scope="col">Changed setting</th><th scope="col">${before}</th><th scope="col">${after}</th></tr></thead><tbody>${result.variedSettings.map(setting => `<tr><th scope="row">${escape(setting.label)}</th><td>${escape(setting.baseline)}</td><td>${escape(setting.candidate)}</td></tr>`).join('') || '<tr><td colspan="3">Identical intervention settings. Equal results are expected.</td></tr>'}</tbody></table></div></details>`;
+    $('#cl-compared-inputs').innerHTML = `<details><summary>Compared inputs · ${result.variedSettings.length} controlled changes</summary><p class="cl-help">Shared: ${shared.base.outdoorTemperature}°C outdoors, ${shared.base.outdoorPm25} µg/m³ PM2.5, wind ${shared.base.windSpeed} m/s from ${shared.base.windFrom ?? 'the scenario direction'}, ${result.durationSeconds / 60} minutes. Identical scenario initial temperatures and particles. ${corridor}</p><div class="cl-table-scroll"><table><thead><tr><th scope="col">Changed setting</th><th scope="col">${before}</th><th scope="col">${after}</th></tr></thead><tbody>${result.variedSettings.map(setting => `<tr><th scope="row">${escape(setting.label)}</th><td>${escape(setting.baseline)}</td><td>${escape(setting.candidate)}</td></tr>`).join('') || '<tr><td colspan="3">Identical intervention settings. Equal results are expected.</td></tr>'}</tbody></table></div></details>`;
     const actual = result.on.final.actualVentM3h;
+    const temperatureStory = Math.abs(roomChange) < 0.05 ? 'Little occupied-air temperature change in this room.' : `${roomLabel(room)} occupied air ends ${number(Math.abs(roomChange), 2)}°C ${roomChange < 0 ? 'cooler' : 'warmer'} with ${after.toLowerCase()}.`;
+    const explanation = Math.abs(actual) < 0.1 ? 'No sustained flow through this fan passage. A blocked replacement-air route can prevent exchange; a powered motor still adds heat.'
+      : shared.base.outdoorTemperature >= roomReading(result.off.initial, room).lowerTemperature ? 'Outside starts as warm as or warmer than the room. Moving that air indoors is not refrigeration; it can add heat.'
+      : 'Cooler replacement air can remove heat. Existing natural ventilation, stored wall heat and the route limit the extra benefit from the fan.';
+    $('#cl-takeaway').textContent = `${temperatureStory} ${explanation} Actual vent flow: ${number(result.off.final.actualVentM3h)} → ${number(actual)} m³/h (${before.toLowerCase()} → ${after.toLowerCase()}).`;
+    $('#cl-takeaway').hidden = false;
     const flowNote = actual < -0.1 ? 'Backflow: the solved flow opposes the commanded fan direction.' : Math.abs(actual) < 0.1 ? 'Exchange is effectively blocked. Try opening a connected make-up route.' : 'The current opening network allows exchange. Actual flow includes wind and opening restrictions.';
     const rows: [string, number, number, string, number][] = [
       ['Rated vent flow', result.baselineConfig.vent.ratedM3h, shared.vent.ratedM3h, 'm³/h', 0],
@@ -351,6 +373,33 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
       $(`#${input.id}-value`).textContent = `${Number(input.value)}${input.dataset.unit}`; renderExpansion(); return;
     }
     if (!input.dataset.cl) return;
+    if (input.id === 'cl-demo' && input.value) {
+      config = coolingLabDemoConfig(input.value as 'cooler' | 'blocked' | 'hotter');
+      weatherOverrides = { outdoorTemperature: config.base.outdoorTemperature, windSpeed: 0 };
+      openingOverrides = { windows: { ...config.base.windows }, doors: { ...config.base.doors } };
+      purifierOverride = { on: false, slot: 0 };
+      deviceOverrides = Object.fromEntries(Object.keys(config.base.devices).map(id => [id, false]));
+      demoBase = structuredClone(config.base);
+      comparisonMode = 'fan-toggle'; baseline = null; selectedRoom = 'bedroom3';
+      $<HTMLSelectElement>('#cl-comparison-mode').value = 'fan-toggle';
+      $<HTMLSelectElement>('#cl-scenario').value = 'night_cool';
+      $<HTMLSelectElement>('#cl-route').value = 'custom';
+      $<HTMLSelectElement>('#cl-room').value = selectedRoom;
+      $<HTMLSelectElement>('#cl-mode').value = config.vent.mode;
+      $<HTMLInputElement>('#cl-flow').value = String(config.vent.ratedM3h);
+      $<HTMLSelectElement>('#cl-duration').value = String(config.durationSeconds);
+      $<HTMLInputElement>('#cl-uvalue').value = String(config.envelope.uValue);
+      $<HTMLInputElement>('#cl-absorptance').value = String(config.envelope.solarAbsorptance);
+      $<HTMLInputElement>('#cl-shade').value = String(config.envelope.shadeFraction * 100);
+      $<HTMLInputElement>('#cl-corridor-enabled').checked = false;
+      updateOpenings();
+      $('#cl-demo-note').textContent = `Illustrative calm evening: 31°C initial air and surfaces, ${config.base.outdoorTemperature}°C outside, 300 m³/h exhaust, 30 minutes, other devices off. ${input.value === 'blocked' ? 'All other openings closed.' : 'Living-room window 2 and internal doors open for replacement air.'} Illustrative conditions, not measured weather.`;
+      clearReport('Demo setup ready. Compare fan off / on to see the effect.'); sync(); return;
+    }
+    if (input.id !== 'cl-demo' || !input.value) {
+      $<HTMLSelectElement>('#cl-demo').value = '';
+      $('#cl-demo-note').textContent = 'Custom setup. Review the weather and opening route below; both trials still share the same initial state.';
+    }
     const checked = input instanceof HTMLInputElement && input.checked;
     if (input.dataset.openingId) {
       openingOverrides = { windows: { ...config.base.windows }, doors: { ...config.base.doors } };
@@ -393,8 +442,10 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   $('#cl-cancel').addEventListener('click', () => { clearReport('Comparison cancelled. Your flat setup is unchanged.'); $('#cl-run').focus(); }, { signal: events.signal });
   $('#cl-view-results').addEventListener('click', () => { $('#cl-results').focus({ preventScroll: true }); $('#cl-results').scrollIntoView({ block: 'start' }); }, { signal: events.signal });
   $('#cl-recapture').addEventListener('click', () => {
-    capturedBase = structuredClone(options.readConditions());
+    capturedBase = structuredClone(options.readConditions()); demoBase = null;
     weatherOverrides = {}; openingOverrides = null; purifierOverride = undefined; deviceOverrides = {};
+    $<HTMLSelectElement>('#cl-demo').value = '';
+    $('#cl-demo-note').textContent = 'Using your flat setup. Try a demo above for a controlled cooler / blocked / hotter experiment.';
     $<HTMLSelectElement>('#cl-scenario').value = 'captured'; $<HTMLSelectElement>('#cl-route').value = 'captured';
     clearReport('Fresh flat settings captured. Run to compare from the scenario’s initial temperatures.'); sync();
   }, { signal: events.signal });

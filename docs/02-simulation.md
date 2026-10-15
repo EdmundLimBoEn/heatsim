@@ -1,5 +1,15 @@
 # 02 · Simulation spec (the core)
 
+## Demo update · optional regional weather and house orientation
+
+My flat can explicitly load a Singapore area's current regional forecast from [Open-Meteo](https://open-meteo.com/en/docs). The browser requests temperature at 2 m, relative humidity at 2 m, and wind speed/direction at 10 m once when **Load weather** is pressed. This free noncommercial demo uses no key, backend or polling. The displayed source, selected coordinates, forecast timestamp and retrieval timestamp accompany imported conditions. Haze/PM2.5 remains manually entered. Network errors, unexpected units, invalid values, forecasts more than three hours from retrieval time, or wind above this toy model's 10 m/s limit leave the existing setup untouched. Manual controls remain available offline.
+
+Wind is the geographic direction it comes **from**, rounded to the nearest N/E/S/W direction. Regional 10 m forecast wind is not a measurement at a window: surrounding buildings, height and shelter are unresolved. Forecast data does not validate the qualitative toy CFD or make its results accurate.
+
+The house orientation control gives the clockwise geographic bearing of the fixed plan's top/local north: 0°, 90°, 180° or 270°. The solver subtracts that bearing from geographic wind direction before applying exterior pressure. For example, a north wind enters the local west side at 90°. Rotating the view camera alone does not change weather. Canonical thermal sunlight facades rotate with the house; the planar model retains its existing west-sun approximation, applied to the corresponding rotated facade. Original geometry, hardware mapping and cardboard dimensions do not change. Imported floor plans continue to use their own `northDegrees`, never the canonical house orientation.
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
 ## MVP amendment · main apartment solver
 
 **The main apartment solver is `src/plan-simulation.ts`, the deliberate 2D fallback from original §7. It is not the 3D LBM/WebGPU engine described below. Cooling Lab uses the separate reduced-order model documented later in this amendment.** The browser renders a 3D scene around a horizontal simulation slice. [CHECKLIST](../CHECKLIST.md) records actual checks; [doc 05](05-scenarios-optimiser.md) defines the six scenarios and comparison workflow.
@@ -107,7 +117,7 @@ The calculator applies the ideal-gas isentropic relation using **303 K** and **1
 
 ### Honesty text for this build
 
-> The main HeatSim apartment is a qualitative toy CFD demonstration in 2D plan-view mode. It uses a coarse 20 cm floor-plan grid and scenario conditions to illustrate how airflow, heat and haze may change. It has no vertical buoyancy or turbulence. Temperatures, comfort, pressure colors and energy are illustrative, not calibrated predictions. Cooling Lab separately uses two air layers and a surface balance per room, with illustrative coefficients. No sensors or live data are used, and no professional-CFD or experimental validation has been completed.
+> The main HeatSim apartment is a qualitative toy CFD demonstration in 2D plan-view mode. It uses a coarse 20 cm floor-plan grid and scenario conditions to illustrate how airflow, heat and haze may change. It has no vertical buoyancy or turbulence. Temperatures, comfort, pressure colors and energy are illustrative, not calibrated predictions. Cooling Lab separately uses two air layers and a surface balance per room, with illustrative coefficients. No sensors are used. Regional weather can be explicitly loaded from Open-Meteo; no professional-CFD or experimental validation has been completed.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
 

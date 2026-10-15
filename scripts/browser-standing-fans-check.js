@@ -43,7 +43,9 @@ window.heatSimStandingFansCheck = { status: 'running' };
     assert(app.readConditions().standingFans.length === 7 && node('#standing-fan-add').disabled, 'Eight-fan limit disables Add');
     click('#standing-fan-remove');
     assert(app.readConditions().standingFans.length === 6 && !node('#standing-fan-add').disabled, 'Removing an extra fan re-enables Add');
-    assert(node('#standing-fan-select').value === 'primary' && node('#standing-fan-remove').disabled, 'Main fan stays available and cannot be removed');
+    assert(node('#standing-fan-select').value === 'primary' && !node('#standing-fan-remove').disabled, 'Main fan can also be removed');
+    click('#standing-fan-remove');
+    assert(app.readConditions().portableFan.removed === true, 'Deleting Main fan removes its source');
     assert(!node('#scene-loading') && Boolean(node('#scene canvas')), '3D scene remains mounted after editing and workspace changes');
     window.heatSimStandingFansCheck = { status: 'passed', checks };
   } catch (error) {

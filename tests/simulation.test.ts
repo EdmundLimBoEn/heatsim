@@ -11,6 +11,15 @@ const closed = (): Conditions => {
 };
 
 describe('illustrative room simulation', () => {
+  test('house orientation moves the emergency model sunny facade', () => {
+    const base = structuredClone(PRESETS.find(preset => preset.id === 'hot_afternoon')!.conditions);
+    const initial = createSimulation(base);
+    const west = stepSimulation(initial, base, 60);
+    const east = stepSimulation(initial, { ...base, houseOrientationDeg: 180 }, 60);
+    expect(room(west, 'master_bedroom').temperature).toBeGreaterThan(room(east, 'master_bedroom').temperature);
+    expect(room(east, 'bedroom3').temperature).toBeGreaterThan(room(west, 'bedroom3').temperature);
+  });
+
   test('starts with every geometry room, finite readings and zero accumulated energy', () => {
     const state = createSimulation(defaultConditions());
     expect(state.rooms.map(reading => reading.room)).toEqual(model.rooms.map(room => room.name));

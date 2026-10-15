@@ -2,6 +2,7 @@ import { defaultConditions, deviceRoom, model, type Conditions, type ModelBox, t
 import { PURIFIER_SLOTS } from './config/slots';
 import { resolveStandingFans } from './standing-fans';
 import { SCENARIOS } from './simulation';
+import { windToPlanDirection } from './weather-orientation';
 import { parseContractorPlan, contractorPlanGeometryId, type ContractorPlan } from './contractor-plan';
 import type { ThermalConfig, ThermalHeatBudget, ThermalSnapshot, ThermalState, ThermalModelInstance, ThermalOpeningFlow } from './thermal-types';
 
@@ -115,7 +116,7 @@ export function createThermalModel(inputPlan?: ContractorPlan): ThermalModelInst
       conditions.doors = Object.fromEntries(plan.openings.filter(opening => opening.kind !== 'window').map(opening => [opening.id, opening.kind === 'passage' || opening.open]));
       conditions.windows = Object.fromEntries(plan.openings.filter(opening => opening.kind === 'window').map(opening => [opening.id, opening.open]));
       conditions.devices = Object.fromEntries(plan.devices.map(device => [device.id, device.on]));
-      delete conditions.portableFan; delete conditions.standingFans; delete conditions.purifier;
+      delete conditions.portableFan; delete conditions.standingFans; delete conditions.purifier; delete conditions.houseOrientationDeg;
       return { base: conditions, vent: { opening: '', on: false, mode: 'exhaust', ratedM3h: 0 },
         envelope: { uValue: 1.5, solarAbsorptance: 0.6, shadeFraction: 0 }, occupancyPeople: 4, durationSeconds: 1200 };
     }
@@ -128,17 +129,18 @@ export function createThermalModel(inputPlan?: ContractorPlan): ThermalModelInst
     if ((!aperture || aperture.rooms.length !== 1) && !(plan && config.vent.opening === '' && !config.vent.on && config.vent.ratedM3h === 0)) throw new RangeError('Select an exterior window for the fan adapter.');
     if (config.vent.mode !== 'exhaust' && config.vent.mode !== 'supply') throw new RangeError('Ventilation mode must be exhaust or supply.');
     const scenario = SCENARIOS.find(scenario => scenario.id === config.base.scenarioId) ?? SCENARIOS[0];
+    const windFrom = config.base.windFrom && ['N', 'E', 'S', 'W'].includes(config.base.windFrom) ? config.base.windFrom : scenario.windward;
     const outdoorT = bounded(config.base.outdoorTemperature, 30, 10, 60), outdoorC = bounded(config.base.outdoorPm25, 20, 0, 1000);
     return {
       aperture, outdoorT, outdoorC,
       corridorEnabled: config.corridor?.enabled === true,
       corridorT: bounded(config.corridor?.temperature ?? outdoorT, outdoorT, 10, 60), corridorC: bounded(config.corridor?.pm25 ?? outdoorC, outdoorC, 0, 1000),
-      windFrom: config.base.windFrom && ['N', 'E', 'S', 'W'].includes(config.base.windFrom) ? config.base.windFrom : scenario.windward,
+      windFrom: plan ? windFrom : windToPlanDirection(windFrom, config.base.houseOrientationDeg),
       wind: bounded(config.base.windSpeed, 1.2, 0, 10), setpoint: bounded(config.base.acSetpoint, 25, 16, 32),
       hour: ((Number.isFinite(config.base.timeOfDay) ? config.base.timeOfDay : 14) % 24 + 24) % 24,
       rate: bounded(config.vent.ratedM3h, 120, 0, 600),
       u: bounded(config.envelope.uValue, 1.5, 0, 5), absorptance: bounded(config.envelope.solarAbsorptance, 0.6, 0, 1), shade: bounded(config.envelope.shadeFraction, 0, 0, 1),
-      scenario,
+      scenario: plan ? scenario : { ...scenario, sunFacades: scenario.sunFacades.map(side => windToPlanDirection(side, config.base.houseOrientationDeg)) },
     };
   }
   const bearing = { N: 0, E: 90, S: 180, W: 270 } as const;

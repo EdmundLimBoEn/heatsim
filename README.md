@@ -21,7 +21,7 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-Open **http://localhost:5173** in desktop Chrome or Edge. Keep the terminal running. **How to use HeatSim** opens a short guide when needed; it does not interrupt startup. If Vite reports another port because 5173 is occupied, use the address it prints. Internet is needed to install dependencies. Simulation calculations and plan imports use local code/assets; weather remains manual. The optional Windy reference display/link needs internet and does not supply values to the simulation.
+Open **http://localhost:5173** in desktop Chrome or Edge. Keep the terminal running. **How to use HeatSim** opens a short guide when needed; it does not interrupt startup. If Vite reports another port because 5173 is occupied, use the address it prints. Internet is needed to install dependencies. Simulation calculations and plan imports use local code/assets; weather is manual or explicitly loaded from Open-Meteo. The optional Windy reference display/link needs internet and does not supply values to the simulation.
 
 npm also works:
 
@@ -62,7 +62,7 @@ Print at **100% / Actual size**, turn off “Fit to page”, and measure the **5
 
 In **My flat → Devices → Standing fans**, choose **Add fan** for up to **eight total**, including the Main fan. Use **Fan to adjust** or click a fan to select it, then set its power, speed and **Direction (degrees)**: **0° north, 90° east, 180° south, 270° west**.
 
-Drag a fan onto valid room floor, or use **Move to a room** and **Exact floor position** (X east / Z south, in metres) without dragging. Invalid or overlapping manual placements are rejected; Escape cancels a drag. **Remove fan** removes an added fan; turn off the Main fan instead. The purifier still uses its existing preset positions.
+Drag a fan onto valid room floor, or use **Move to a room** and **Exact floor position** (X east / Z south, in metres) without dragging. Invalid or overlapping manual placements are rejected; Escape cancels a drag. **Remove fan** removes an added fan; the Main fan can also be deleted; Add fan restores it, and legacy Main fan controls can restore it. The purifier still uses its existing preset positions.
 
 **Suggest changes** holds added fans fixed while trying Main fan preset positions. Apply/Undo and exports retain the added-fan setup; this is not a search over every fan’s placement. Main-fan shortcuts remain under **Main fan presets & shortcuts**. Legacy `FANPOS` clears the Main fan’s free position, and `FANANG` restores its slot-relative angle; neither removes added fans. D4/D5 controls are unchanged.
 
@@ -122,7 +122,7 @@ USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, hum
 
 HeatSim is a **qualitative teaching demonstration**, not a validated building assessment. The main apartment view is toy CFD: a **64 × 48 grid with 20 cm cells at y = 1.2 m** transports heat and PM2.5 using a steady pressure-flow approximation. It has no vertical buoyancy or turbulence. The 3D view is a presentation of the apartment, not a 3D airflow solver.
 
-In the main apartment, six scenarios supply initial fields and default outdoor conditions; manual weather controls override the outdoor values. Its power display assumes **50 W per powered fan with nonzero speed, 40 W per purifier and 1000 W per active AC**, and energy integrates those assumed watts over simulated time. Comfort is an illustrative indicator, not a medical heat index. No sensors or live environmental API are used. The master-bath window is above the slice and has no effect on this 2D field. Pressure, when displayed, is a **normalized qualitative index from −1 to +1**, not pascals or measured building pressure; arrows indicate simulated planar flow direction. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
+In the main apartment, six scenarios supply initial fields and default outdoor conditions; manual weather controls override the outdoor values. Its power display assumes **50 W per powered fan with nonzero speed, 40 W per purifier and 1000 W per active AC**, and energy integrates those assumed watts over simulated time. Comfort is an illustrative indicator, not a medical heat index. No sensors are used. Optional Open-Meteo regional forecasts can supply outdoor temperature, humidity and cardinal wind; they are not measured window airflow. The master-bath window is above the slice and has no effect on this 2D field. Pressure, when displayed, is a **normalized qualitative index from −1 to +1**, not pascals or measured building pressure; arrows indicate simulated planar flow direction. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
 
 Cooling Lab is a different reduced-order calculation. Its layer and surface temperatures, exchange rates and envelope coefficients are assumptions, not measurements. It does not transport humidity, model condensation/dehumidification, or establish a health-safe ventilation strategy. Neither model validates the other.
 
@@ -137,5 +137,15 @@ When WebGPU is available, the apartment can run **heat and haze transport on the
 - [Six scenarios and layout comparison](docs/05-scenarios-optimiser.md)
 - [Acceptance checklist](CHECKLIST.md), [build plan](docs/07-build-plan.md), [assets and provenance](docs/08-assets.md)
 - [Original reference-CFD plan, not completed](docs/06-validation-simscale-openfoam.md)
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
+## Fast presentation controls
+
+Use **Try a change** beside the apartment for internal doors, all exterior openings, ceiling fans and standing fans. Right-click a standing fan or purifier to turn it on/off or rotate it; fans can be deleted, including the Main fan. The same menus are reachable from Devices without a mouse. Purifier rotation is visual only because its cleaning source is omnidirectional.
+
+**Choose area & weather** loads one timestamped Open-Meteo regional forecast for a Singapore area, with no key or account. Manual controls work offline; haze stays manual. Set which direction the top of the plan faces to rotate the home relative to geographic wind and sun. Wind is rounded to four directions and is not measured at the flat's window. API free use is for this noncommercial demo; see [Open-Meteo](https://open-meteo.com/) for terms and attribution.
+
+**Window fan test** has cooler-air, blocked-route and hotter-air examples using the unchanged thermal model. **Compare floor plans → Open plan** focuses one plan and replays its recorded comparison, with room readings and flow arrows.
 
 Written by gpt-6-astra in Codex on behalf of Edmund

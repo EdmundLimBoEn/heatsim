@@ -4,6 +4,7 @@ import { createPlanFieldView, fieldColor, roomPressure } from './scene-field';
 import { createStandingFanVisuals } from './scene-fans';
 import { resolveStandingFans, validateStandingFanPosition } from './standing-fans';
 import type { ResolvedStandingFan } from './standing-fans';
+import type { DeviceTarget } from './device-actions';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { defaultConditions, defaultView, deviceRoom, model, MODEL_SCALE, roomLabel } from './domain';
@@ -31,6 +32,7 @@ export type PortableDeviceKind = 'fan' | 'purifier';
 export interface StandingFanEvents {
   onMove(id: string, x: number, z: number): void;
   onSelect?(id: string): void;
+  onContext?(target: DeviceTarget, x: number, y: number): void;
 }
 
 interface DragBase { pointerId: number; startX: number; startY: number; moved: boolean; controlsEnabled: boolean }
@@ -507,6 +509,10 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   const portablePurifier = new THREE.Group();
   cylinder(0.17, 0.6, 0, 0.3, 0, palette.white, portablePurifier);
   const purifierLed = material('#b3b9ae');
+  const purifierFront = new THREE.Mesh(directionGeometry, palette.teal);
+  purifierFront.rotation.x = Math.PI / 2;
+  purifierFront.position.set(0, 0.07, 0.4);
+  portablePurifier.add(purifierFront);
   cylinder(0.173, 0.02, 0, 0.55, 0, purifierLed, portablePurifier);
   cylinder(0.125, 0.02, 0, 0.605, 0, palette.slate, portablePurifier);
   scene.add(portablePurifier);
@@ -657,7 +663,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   function sceneVisible(): boolean {
     return !document.hidden && container.getClientRects().length > 0 && container.clientWidth > 0 && container.clientHeight > 0;
   }
-  function pointRay(event: PointerEvent): boolean {
+  function pointRay(event: Pick<MouseEvent, 'clientX' | 'clientY'>): boolean {
     const rect = renderer.domElement.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0 || event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return false;
     pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
@@ -700,6 +706,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   }
   function onPointerDown(event: PointerEvent): void {
     if (drag) { event.stopImmediatePropagation(); return; }
+    if (event.button === 2 && contextTarget(event)) { event.stopImmediatePropagation(); return; }
     pointerDown = { x: event.clientX, y: event.clientY };
     if (!portableDraggingEnabled || thermalVentConfig || !event.isPrimary || event.button !== 0 || currentView.roofOpacity >= 0.65 || !sceneVisible() || !pointRay(event)) return;
     const candidates = fanEvents ? standingFanVisuals.groups() : [];
@@ -768,6 +775,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     dragHint.textContent = `Purifier → ${next + 1}. ${roomLabel(slot.room)} · Release to place`;
   }
   function onPointerUp(event: PointerEvent): void {
+    if (event.button !== 0) { pointerDown = null; return; }
     if (drag) {
       if (event.pointerId !== drag.pointerId) return;
       event.preventDefault(); event.stopImmediatePropagation();
@@ -786,12 +794,28 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     onSelectRoom(room?.name ?? null);
   }
   function cancelDrag(): void { endDrag(false); }
+  function contextTarget(event: MouseEvent): DeviceTarget | null {
+    if (!portableDraggingEnabled || thermalVentConfig || currentView.roofOpacity >= 0.65 || !pointRay(event)) return null;
+    const candidates = standingFanVisuals.groups();
+    if (portablePurifier.visible) candidates.push(portablePurifier);
+    let hit: THREE.Object3D | undefined = raycaster.intersectObjects(candidates, true)[0]?.object;
+    while (hit && hit !== portablePurifier && typeof hit.userData.standingFanId !== 'string') hit = hit.parent ?? undefined;
+    return hit === portablePurifier ? { kind: 'purifier' } : hit ? { kind: 'fan', id: hit.userData.standingFanId as string } : null;
+  }
+  function onContextMenu(event: MouseEvent): void {
+    const target = contextTarget(event);
+    if (!target) return;
+    event.preventDefault(); event.stopImmediatePropagation(); endDrag(false);
+    renderer.domElement.focus({ preventScroll: true });
+    fanEvents?.onContext?.(target, event.clientX, event.clientY);
+  }
   function onDragKey(event: KeyboardEvent): void { if (drag && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endDrag(false); } }
   function onVisibilityChange(): void {
     if (document.hidden) cancelDrag();
     else resize();
   }
   renderer.domElement.addEventListener('pointerdown', onPointerDown, true);
+  renderer.domElement.addEventListener('contextmenu', onContextMenu, true);
   renderer.domElement.addEventListener('pointermove', onPointerMove, true);
   renderer.domElement.addEventListener('pointerup', onPointerUp, true);
   renderer.domElement.addEventListener('pointercancel', cancelDrag);
@@ -899,6 +923,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     if (purifierState) {
       const slot = PURIFIER_SLOTS[purifierState.slot] ?? PURIFIER_SLOTS[0];
       if (drag?.kind !== 'purifier') portablePurifier.position.set(slot.x, 0, slot.z);
+      portablePurifier.rotation.y = THREE.MathUtils.degToRad(180 - (Number.isFinite(purifierState.headingDeg) ? purifierState.headingDeg! : 0));
       purifierLed.color.set(purifierState.on ? '#45ae80' : '#b3b9ae');
       purifierLed.emissive.set(purifierState.on ? '#24754c' : '#000000');
       purifierLed.emissiveIntensity = 0.2;
@@ -1115,6 +1140,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       controls.dispose();
       motionPreference.removeEventListener('change', onMotionPreferenceChange);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown, true);
+      renderer.domElement.removeEventListener('contextmenu', onContextMenu, true);
       renderer.domElement.removeEventListener('pointermove', onPointerMove, true);
       renderer.domElement.removeEventListener('pointerup', onPointerUp, true);
       renderer.domElement.removeEventListener('pointercancel', cancelDrag);

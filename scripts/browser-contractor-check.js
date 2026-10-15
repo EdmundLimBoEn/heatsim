@@ -131,6 +131,12 @@ window.heatSimContractorCheck = { status: 'running' };
       assert(svg.querySelector('.cs-north-label')?.textContent === 'N' && [...svg.querySelectorAll('g')].some(group => group.getAttribute('transform')?.includes(`rotate(${-plan.northDegrees})`)) && element(`#cs-plan-meta-${index}`).textContent.includes(`${plan.northDegrees}°`), `Plan ${index + 1} preview declares and rotates geographic north`);
       assert(element(`#cs-plan-name-${index}`).textContent === plan.name && svg.querySelectorAll('line').length === plan.openings.length, `Plan ${index + 1} name and opening count follow its JSON`);
     }
+    click('[data-study-plan="0"] [data-study-focus]');
+    assert(!element('[data-study-plan="0"]').hidden && element('[data-study-plan="1"]').hidden && element('[data-study-plan="2"]').hidden && !element('#cs-plan-reading-0').hidden, 'Open plan focuses one enlarged editable plan before a comparison');
+    click('.cs-plan-navigation [data-study-focus="1"]');
+    assert(element('[data-study-plan="0"]').hidden && !element('[data-study-plan="1"]').hidden && document.activeElement.id === 'cs-plan-name-1', 'Plan navigation switches the focused plan and moves keyboard focus to its heading');
+    click('#cs-all-plans');
+    assert([...document.querySelectorAll('[data-study-plan]')].every(card => !card.hidden), 'All three plans restores the overview without replacing plan inputs');
     const originalPreview = element('#cs-preview-0').innerHTML;
     await importPlan(0, '{bad JSON');
     assert(element('#cs-plan-status-0').textContent.toLowerCase().includes('invalid json') && element('#cs-preview-0').innerHTML === originalPreview, 'Bad JSON reports an error and preserves the last valid plan');
@@ -199,6 +205,14 @@ window.heatSimContractorCheck = { status: 'running' };
       }), `${option.plan.id} chart matches the actual worker temperature trace`);
     }
 
+    click('[data-study-plan="0"] [data-study-focus]');
+    assert(element('#cs-plan-reading-0').textContent.includes(result.cases[0].final.averageTemperature.toFixed(2)) && element('#cs-plan-reading-0 tbody').children.length === result.cases[0].plan.rooms.length, 'Individual plan view shows the matching actual result and every room');
+    change('#cs-plan-time-0', 0);
+    assert(element('#cs-plan-reading-0').textContent.includes('0.0 min') && element('#cs-plan-reading-0').textContent.includes(result.cases[0].initial.averageTemperature.toFixed(2)), 'Individual plan time slider uses the actual starting snapshot');
+    change('#cs-plan-time-0', result.cases[0].samples.length - 1);
+    assert(element('#cs-plan-reading-0').textContent.includes('20.0 min'), 'Individual plan time slider reaches the matched final sample');
+    click('#cs-all-plans');
+
     click('#cs-export-json'); const jsonDownload = download, json = JSON.parse(await (await fetch(jsonDownload.url)).text());
     assert(jsonDownload.name.endsWith('.json') && json.format === 'heatsim-contractor-study' && json.version === 1, 'Study JSON uses a versioned reproducible report format');
     assert(JSON.stringify(json.study.config) === JSON.stringify(result.config) && json.study.cases.every((item, index) => JSON.stringify(item.final) === JSON.stringify(result.cases[index].final) && JSON.stringify(item.samples) === JSON.stringify(result.cases[index].samples)), 'Study JSON preserves exact captured inputs, final readings and traces');
@@ -216,8 +230,11 @@ window.heatSimContractorCheck = { status: 'running' };
 
     const device = result.cases[0].plan.devices[0];
     const targetRoom = result.cases[0].plan.rooms.find(room => room.id !== device.roomId).id;
+    click('[data-study-plan="0"] [data-study-focus]');
     dragDevice(0, device.id, targetRoom);
     assert(element(`[data-study-device-room="${device.id}"][data-study-index="0"]`).value === targetRoom && element('#cs-export-json').disabled && !element('#cs-preview-0').querySelector('.cs-device-ghost'), 'Dragging an appliance snaps its room assignment and invalidates the old result');
+    assert(!document.querySelector('#cs-plan-time-0') && element('#cs-plan-reading-0').textContent.includes('Compare all three plans'), 'Editing a focused plan removes stale sample playback and readings');
+    click('#cs-all-plans');
     click('[data-study-download-plan="0"]');
     const movedPlan = JSON.parse(await (await fetch(download.url)).text());
     assert(movedPlan.devices.find(item => item.id === device.id).roomId === targetRoom, 'Downloaded plan JSON contains the actual dragged room assignment');

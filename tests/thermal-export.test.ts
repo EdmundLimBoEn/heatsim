@@ -50,6 +50,23 @@ function readCsv(csv: string): Record<string, string>[] {
 }
 
 describe('Cooling Lab CSV', () => {
+  test('exports shared orientation and forecast provenance and rejects mismatched orientation', () => {
+    const report = fixture();
+    const provenance = { source: 'Open-Meteo' as const, area: 'Bishan', latitude: 1.351, longitude: 103.849,
+      forecastTime: '2026-10-15T07:00:00.000Z', loadedAt: '2026-10-15T07:05:00.000Z', windDegrees: 100 };
+    for (const config of [report.baselineConfig, report.candidateConfig]) {
+      config.base.houseOrientationDeg = 90; config.base.weatherProvenance = structuredClone(provenance);
+    }
+    const rows = readCsv(thermalComparisonCsv(report));
+    const metadata = Object.fromEntries(rows.filter(row => row.record === 'metadata' && row.run_id === 'shared').map(row => [row.parameter, row.value]));
+    expect(metadata.house_orientation).toBe('90');
+    expect(metadata.weather_source).toContain('imported once');
+    expect(JSON.parse(metadata.weather_provenance_json)).toEqual(provenance);
+    expect(JSON.parse(metadata.shared_environment_json).houseOrientationDeg).toBe(90);
+    report.baselineConfig.base.houseOrientationDeg = 0;
+    expect(() => thermalComparisonCsv(report)).toThrow('environments or durations differ');
+  });
+
   test('exports reproducible inputs, one exact shared initial state, paired traces and final room readings with units', () => {
     const report = fixture();
     report.initialState.lowerT[0] = 30.1234567890123;

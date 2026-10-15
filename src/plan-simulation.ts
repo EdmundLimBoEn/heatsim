@@ -2,8 +2,9 @@ import { deviceRoom, model, type Conditions, type ModelBox, type PlanField, type
 import { FAN_SLOTS, PURIFIER_SLOTS, type DeviceSlot } from './config/slots';
 import { SCENARIOS } from './simulation';
 import { resolveStandingFans } from './standing-fans';
+import { windToPlanDirection } from './weather-orientation';
 
-export const PLAN_SIMULATION_NOTE = 'Qualitative toy CFD · 2D plan-view mode. A 20 cm floorplan grid transports heat and haze through openings using a steady pressure-flow approximation. No vertical buoyancy, turbulence, sensors or live data. Humidity adjusts an illustrative comfort indicator, not a medical heat index. Temperatures, comfort and energy are not calibrated predictions. The master-bath window is above this 1.2 m slice.';
+export const PLAN_SIMULATION_NOTE = 'Qualitative toy CFD · 2D plan-view mode. A 20 cm floorplan grid transports heat and haze through openings using a steady pressure-flow approximation. No vertical buoyancy, turbulence or sensors. Outdoor conditions are scenarios/manual or explicitly loaded regional forecasts. Humidity adjusts an illustrative comfort indicator, not a medical heat index. Temperatures, comfort and energy are not calibrated predictions. The master-bath window is above this 1.2 m slice.';
 export const PLAN_GRID = { nx: 64, nz: 48, dx: 0.2, origin: [-0.3, -0.3] as [number, number], height: 1.2 };
 const { nx, nz, dx, origin } = PLAN_GRID;
 const size = nx * nz;
@@ -79,7 +80,7 @@ function environment(conditions: Conditions) {
   const scenario = SCENARIOS.find(scenario => scenario.id === conditions.scenarioId) ?? SCENARIOS[0];
   return {
     scenario,
-    windFrom: conditions.windFrom && ['N', 'E', 'S', 'W'].includes(conditions.windFrom) ? conditions.windFrom : scenario.windward,
+    windFrom: windToPlanDirection(conditions.windFrom && ['N', 'E', 'S', 'W'].includes(conditions.windFrom) ? conditions.windFrom : scenario.windward, conditions.houseOrientationDeg),
     temperature: clamp(finite(conditions.outdoorTemperature, 30), 10, 60),
     pm25: clamp(finite(conditions.outdoorPm25, 20), 0, 1000),
     humidity: clamp(finite(conditions.humidity, 70), 0, 100),
@@ -96,7 +97,7 @@ interface Flow {
 }
 const flowForResult = new WeakMap<SimulationResult, Flow>();
 function configurationKey(conditions: Conditions): string {
-  return JSON.stringify([conditions.scenarioId, conditions.windSpeed, conditions.windFrom, conditions.timeOfDay, conditions.doors, conditions.windows, conditions.devices, conditions.portableFan, conditions.standingFans, conditions.purifier]);
+  return JSON.stringify([conditions.scenarioId, conditions.windSpeed, conditions.windFrom, conditions.houseOrientationDeg, conditions.timeOfDay, conditions.doors, conditions.windows, conditions.devices, conditions.portableFan, conditions.standingFans, conditions.purifier]);
 }
 
 function buildFlow(conditions: Conditions, key: string): Flow {
@@ -149,8 +150,11 @@ function buildFlow(conditions: Conditions, key: string): Flow {
     }
   }
   const sunshine = Math.max(0, Math.sin((hour - 6) / 12 * Math.PI));
+  const sunSide = windToPlanDirection('W', conditions.houseOrientationDeg);
   if (scenario.sunFacades.includes('W')) for (let cell = 0; cell < size; cell++) {
-    if (mask[cell] === FLUID && position(cell)[0] < 0.4 && neighbours(cell).some(next => mask[next] === SOLID)) heat[cell] += 0.04 * sunshine;
+    const [x, z] = position(cell);
+    const sunlit = sunSide === 'W' ? x < 0.4 : sunSide === 'E' ? x > 11.6 : sunSide === 'N' ? z < 0.4 : z > 7.1;
+    if (mask[cell] === FLUID && sunlit && neighbours(cell).some(next => mask[next] === SOLID)) heat[cell] += 0.04 * sunshine;
   }
   if (scenario.people) for (const slot of [FAN_SLOTS[0], FAN_SLOTS[2], FAN_SLOTS[4]]) {
     for (const cell of localCells(slot, 0.3, mask)) heat[cell] += 0.012;

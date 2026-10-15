@@ -4,7 +4,7 @@
 
 **This amendment describes the app that exists and takes precedence over the original roadmap below.** Use the [README](../README.md) for running and presenting it, and [CHECKLIST](../CHECKLIST.md) for verified versus pending work.
 
-HeatSim runs as a standalone browser presentation: a refined 3D apartment view, a 2D plan-view heat/haze simulation, six scenarios, opening and device controls, and a background layout comparison. Cooling Lab adds a separate full-flat, two-air-layer and surface-temperature model for matched fan, opening, purifier and envelope experiments under shared manual outdoor conditions. A US PM2.5 index-equivalent helper is explicitly not Singapore PSI or live AQI; an optional fixed sheltered boundary applies only at the main entrance. A keyboard and on-screen controls cover the demo. **The supplied SSTuino is optional; physical upload, D4 window-button and D5 purifier-switch operation remain unverified.** No sensor or live environmental API is used.
+HeatSim runs as a standalone browser presentation: a refined 3D apartment view, a 2D plan-view heat/haze simulation, six scenarios, opening and device controls, and a background layout comparison. Cooling Lab adds a separate full-flat, two-air-layer and surface-temperature model for matched fan, opening, purifier and envelope experiments under shared manual outdoor conditions. A US PM2.5 index-equivalent helper is explicitly not Singapore PSI or live AQI; an optional fixed sheltered boundary applies only at the main entrance. A keyboard and on-screen controls cover the demo. **The supplied SSTuino is optional; physical upload, D4 window-button and D5 purifier-switch operation remain unverified.** No sensors are used. My flat can explicitly load a timestamped Open-Meteo regional forecast; haze stays manual.
 
 The separate [Compare floor plans workspace](contractor-study.md) (internally Contractor Study) is the user-authorized exception to canonical HDB-only geometry: it accepts three validated metre-based JSON room/opening plans and runs each actual plan under shared assumptions. This noncommercial hackathon workflow lets homeowners compare floor plans and configurations under shared assumptions. Licensing is a future pitch hypothesis, not implemented billing; no PDF/image interpretation, surveyed accuracy or compliance result is claimed. Original workspaces and physical geometry remain unchanged.
 
@@ -16,7 +16,7 @@ Cooling Lab illustrates stratification using two fixed air layers per room, with
 
 The optional WebGPU path transports heat/haze on the planar grid while airflow remains CPU-computed; it is not the original 3D-LBM design. CPU fallback keeps the demo usable without WebGPU.
 
-**Not completed:** 3D LBM, resolved 3D buoyancy, SimScale/OpenFOAM reference runs, physical USB/switch tests or servo actuation. The historical NEA/event statements below come from the inherited brief; this build did not independently verify those external claims. Do not present a live data feed or a completed reference-validation study.
+**Not completed:** 3D LBM, resolved 3D buoyancy, SimScale/OpenFOAM reference runs, physical USB/switch tests or servo actuation. The historical NEA/event statements below come from the inherited brief; this build did not independently verify those external claims. Do not present regional forecast inputs as measured window airflow or claim a completed reference-validation study.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
 

@@ -119,7 +119,7 @@ export function compareThermalCases(
   const offConfig = structuredClone(config), onConfig = structuredClone(config);
   if (options.baselineConfig) {
     const captured = structuredClone(options.baselineConfig);
-    // The capture supplies interventions; current weather and horizon apply to both arms.
+    // The capture supplies interventions; current weather, house orientation and horizon apply to both arms.
     offConfig.base.doors = captured.base.doors;
     offConfig.base.windows = captured.base.windows;
     offConfig.base.devices = captured.base.devices;

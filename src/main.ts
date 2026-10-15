@@ -53,7 +53,7 @@ const connection = new HardwareConnection({
     const fan = next.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
     const purifier = next.purifier ??= { on: false, slot: 0 };
     if (message.type === 'device') {
-      if (message.key === 'FAN') fan.on = message.value;
+      if (message.key === 'FAN') { fan.on = message.value; delete fan.removed; }
       if (message.key === 'AC') {
         const selected = document.querySelector<HTMLSelectElement>('#ac-unit')?.value ?? 'ac_living';
         for (const id of Object.keys(next.devices)) if (id.startsWith('ac_')) next.devices[id] = id === selected && message.value;
@@ -68,7 +68,7 @@ const connection = new HardwareConnection({
           return;
         case 'FANPOS':
           if (message.value >= FAN_SLOTS.length) return;
-          fan.slot = message.value; delete fan.position; delete fan.headingDeg;
+          delete fan.removed; fan.slot = message.value; delete fan.position; delete fan.headingDeg;
           break;
         case 'PURPOS': if (message.value >= PURIFIER_SLOTS.length) return; purifier.slot = message.value; break;
         case 'FANANG': fan.angleDeg = message.value; delete fan.headingDeg; break;

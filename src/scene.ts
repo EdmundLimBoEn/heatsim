@@ -16,10 +16,24 @@ export interface ThermalVentConfig {
 export interface SceneController {
   update(conditions: Conditions, result: SimulationResult, view: ViewOptions): void;
   setThermalVent(config: ThermalVentConfig | null): void;
+  setPortableDraggingEnabled(enabled: boolean): void;
   setCamera(view: 'perspective' | 'top'): void;
   resetCamera(): void;
   dispose(): void;
   screenshot(): string;
+}
+
+export type PortableDeviceKind = 'fan' | 'purifier';
+
+export function nearestPortableSlot(kind: PortableDeviceKind, x: number, z: number): number | null {
+  if (!Number.isFinite(x) || !Number.isFinite(z) || !model.rooms.some(room => x >= room.min[0] && x <= room.max[0] && z >= room.min[2] && z <= room.max[2])) return null;
+  if (model.boxes.some(box => box.type === 'wall' && box.min[1] < 0.2 && box.max[1] > 0.2 && x >= box.min[0] && x <= box.max[0] && z >= box.min[2] && z <= box.max[2])) return null;
+  const slots = kind === 'fan' ? FAN_SLOTS : PURIFIER_SLOTS;
+  let nearest = 0;
+  for (let index = 1; index < slots.length; index++) {
+    if (Math.hypot(slots[index].x - x, slots[index].z - z) < Math.hypot(slots[nearest].x - x, slots[nearest].z - z)) nearest = index;
+  }
+  return nearest;
 }
 
 const DOOR_SWING: Record<string, number> = {
@@ -80,9 +94,16 @@ export function checkSceneModel(): void {
   for (const name of Object.keys(deviceRoom)) {
     if (!model.boxes.some(box => box.name === name && box.type === 'device')) throw new Error(`Missing controlled device: ${name}`);
   }
+  for (const kind of ['fan', 'purifier'] as const) {
+    const slots = kind === 'fan' ? FAN_SLOTS : PURIFIER_SLOTS;
+    slots.forEach((slot, index) => {
+      if (nearestPortableSlot(kind, slot.x, slot.z) !== index) throw new Error(`Invalid portable ${kind} slot ${index}`);
+    });
+    if (nearestPortableSlot(kind, -1, 4) !== null || nearestPortableSlot(kind, Number.NaN, 1) !== null || nearestPortableSlot(kind, 0, -0.05) !== null) throw new Error('Portable drops must reject outside, non-finite and wall positions.');
+  }
 }
 
-export async function createScene(container: HTMLElement, onSelectRoom: (room: string | null) => void): Promise<SceneController> {
+export async function createScene(container: HTMLElement, onSelectRoom: (room: string | null) => void, onMovePortableDevice?: (kind: PortableDeviceKind, slotId: number) => void): Promise<SceneController> {
   checkSceneModel();
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#e9ede9');
@@ -96,7 +117,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.18;
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;outline:none;';
-  renderer.domElement.setAttribute('aria-label', 'Interactive 3D flat. Drag to rotate, scroll to zoom. Select a room to inspect it.');
+  renderer.domElement.setAttribute('aria-label', 'Interactive 3D flat. Drag a portable fan or purifier to a marked position. Drag empty space to rotate, scroll to zoom. Device position selectors provide keyboard access.');
   renderer.domElement.setAttribute('role', 'img');
   renderer.domElement.tabIndex = 0;
   container.appendChild(renderer.domElement);
@@ -464,6 +485,26 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   cylinder(0.173, 0.02, 0, 0.55, 0, purifierLed, portablePurifier);
   cylinder(0.125, 0.02, 0, 0.605, 0, palette.slate, portablePurifier);
   scene.add(portablePurifier);
+  const slotMarkers = new THREE.Group();
+  slotMarkers.visible = false;
+  scene.add(slotMarkers);
+  const slotRingGeometry = new THREE.RingGeometry(0.27, 0.35, 32);
+  geometries.add(slotRingGeometry);
+  const slotIdleMaterial = new THREE.MeshBasicMaterial({ color: '#377d79', transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthTest: false, depthWrite: false });
+  const slotSelectedMaterial = new THREE.MeshBasicMaterial({ color: '#83cf4e', transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthTest: false, depthWrite: false });
+  materials.add(slotIdleMaterial); materials.add(slotSelectedMaterial);
+  const slotRings = Array.from({ length: Math.max(FAN_SLOTS.length, PURIFIER_SLOTS.length) }, () => {
+    const ring = new THREE.Mesh(slotRingGeometry, slotIdleMaterial);
+    ring.rotation.x = -Math.PI / 2;
+    ring.renderOrder = 20;
+    slotMarkers.add(ring);
+    return ring;
+  });
+  const dragHint = document.createElement('div');
+  dragHint.style.cssText = 'position:absolute;display:none;left:50%;top:58px;transform:translateX(-50%);z-index:3000;max-width:90%;padding:8px 12px;border-radius:6px;background:#214d40;color:#fff;text-align:center;font:600 12px/1.4 system-ui,sans-serif;pointer-events:none;';
+  dragHint.setAttribute('role', 'status');
+  dragHint.setAttribute('aria-live', 'polite');
+  labelLayer.appendChild(dragHint);
 
   const thermalVent = new THREE.Group();
   thermalVent.visible = false;
@@ -561,19 +602,115 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   const pointer = new THREE.Vector2();
   const worldHit = new THREE.Vector3();
   let pointerDown: { x: number; y: number } | null = null;
-  function onPointerDown(event: PointerEvent): void { pointerDown = { x: event.clientX, y: event.clientY }; }
-  function onPointerUp(event: PointerEvent): void {
-    if (!pointerDown || Math.hypot(pointerDown.x - event.clientX, pointerDown.y - event.clientY) > 6) { pointerDown = null; return; }
-    pointerDown = null;
+  let portableDraggingEnabled = Boolean(onMovePortableDevice);
+  let drag: { kind: PortableDeviceKind; pointerId: number; startX: number; startY: number; startSlot: number; slot: number | null; moved: boolean; controlsEnabled: boolean } | null = null;
+  let pendingUpdate: { conditions: Conditions; result: SimulationResult; view: ViewOptions } | null = null;
+  function sceneVisible(): boolean {
+    return !document.hidden && container.getClientRects().length > 0 && container.clientWidth > 0 && container.clientHeight > 0;
+  }
+  function pointRay(event: PointerEvent): boolean {
     const rect = renderer.domElement.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0 || event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return false;
     pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
+    return true;
+  }
+  function placePortable(kind: PortableDeviceKind, slotId: number): void {
+    const slots = kind === 'fan' ? FAN_SLOTS : PURIFIER_SLOTS;
+    const slot = slots[slotId] ?? slots[0];
+    const device = kind === 'fan' ? portableFan : portablePurifier;
+    device.position.set(slot.x, 0, slot.z);
+    if (kind === 'fan') portableFan.rotation.y = THREE.MathUtils.degToRad((FAN_SLOTS[slotId] ?? FAN_SLOTS[0]).baseYaw + (currentConditions.portableFan?.angleDeg ?? 90) - 90);
+    renderer.shadowMap.needsUpdate = true;
+  }
+  function endDrag(commit: boolean): void {
+    if (!drag) return;
+    const finished = drag;
+    drag = null;
+    pointerDown = null;
+    controls.enabled = finished.controlsEnabled;
+    slotMarkers.visible = false;
+    dragHint.style.display = 'none';
+    renderer.domElement.style.cursor = '';
+    if (renderer.domElement.hasPointerCapture(finished.pointerId)) renderer.domElement.releasePointerCapture(finished.pointerId);
+    const currentSlot = finished.kind === 'fan' ? currentConditions.portableFan?.slot : currentConditions.purifier?.slot;
+    placePortable(finished.kind, currentSlot ?? finished.startSlot);
+    if (commit && finished.moved && finished.slot !== null && finished.slot !== currentSlot) onMovePortableDevice?.(finished.kind, finished.slot);
+  }
+  function onPointerDown(event: PointerEvent): void {
+    if (drag) { event.stopImmediatePropagation(); return; }
+    pointerDown = { x: event.clientX, y: event.clientY };
+    if (!portableDraggingEnabled || !onMovePortableDevice || thermalVentConfig || !event.isPrimary || event.button !== 0 || currentView.roofOpacity >= 0.65 || !sceneVisible() || !pointRay(event)) return;
+    const candidates = [portableFan, portablePurifier].filter(device => device.visible);
+    const hit = raycaster.intersectObjects(candidates, true)[0];
+    if (!hit) return;
+    let root = hit.object;
+    while (root.parent && root !== portableFan && root !== portablePurifier) root = root.parent;
+    const kind = root === portableFan ? 'fan' : 'purifier';
+    const startSlot = kind === 'fan' ? currentConditions.portableFan?.slot : currentConditions.purifier?.slot;
+    if (startSlot === undefined) return;
+    drag = { kind, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startSlot, slot: startSlot, moved: false, controlsEnabled: controls.enabled };
+    controls.enabled = false;
+    renderer.domElement.focus({ preventScroll: true });
+    renderer.domElement.setPointerCapture(event.pointerId);
+    renderer.domElement.style.cursor = 'grabbing';
+    const slots = kind === 'fan' ? FAN_SLOTS : PURIFIER_SLOTS;
+    slotRings.forEach((ring, index) => {
+      ring.visible = index < slots.length;
+      if (slots[index]) ring.position.set(slots[index].x, 0.08, slots[index].z);
+      ring.material = index === startSlot ? slotSelectedMaterial : slotIdleMaterial;
+    });
+    slotMarkers.visible = true;
+    dragHint.textContent = `Drag ${kind === 'fan' ? 'portable fan' : 'purifier'} to a marked position · Esc to cancel`;
+    dragHint.style.display = 'block';
+    event.preventDefault(); event.stopImmediatePropagation();
+  }
+  function onPointerMove(event: PointerEvent): void {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    if (!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 6) return;
+    drag.moved = true;
+    const next = pointRay(event) && raycaster.ray.intersectPlane(floorPlane, worldHit) ? nearestPortableSlot(drag.kind, worldHit.x, worldHit.z) : null;
+    if (next === drag.slot) return;
+    drag.slot = next;
+    slotRings.forEach((ring, index) => { ring.material = index === next ? slotSelectedMaterial : slotIdleMaterial; });
+    if (next === null) {
+      dragHint.textContent = 'Drop on a room floor to choose a marked position · Esc to cancel';
+      return;
+    }
+    placePortable(drag.kind, next);
+    const slot = (drag.kind === 'fan' ? FAN_SLOTS : PURIFIER_SLOTS)[next];
+    dragHint.textContent = `${drag.kind === 'fan' ? 'Fan' : 'Purifier'} → ${next + 1}. ${roomLabel(slot.room)} · Release to place`;
+  }
+  function onPointerUp(event: PointerEvent): void {
+    if (drag) {
+      if (event.pointerId !== drag.pointerId) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      const room = (drag.kind === 'fan' ? FAN_SLOTS : PURIFIER_SLOTS)[drag.startSlot].room;
+      const moved = drag.moved;
+      if (moved) onPointerMove(event);
+      endDrag(true);
+      if (!moved) onSelectRoom(room);
+      return;
+    }
+    if (!pointerDown || Math.hypot(pointerDown.x - event.clientX, pointerDown.y - event.clientY) > 6) { pointerDown = null; return; }
+    pointerDown = null;
+    if (!pointRay(event)) return;
     if (!raycaster.ray.intersectPlane(floorPlane, worldHit)) return;
     const room = model.rooms.find(r => worldHit.x >= r.min[0] && worldHit.x <= r.max[0] && worldHit.z >= r.min[2] && worldHit.z <= r.max[2]);
     onSelectRoom(room?.name ?? null);
   }
-  renderer.domElement.addEventListener('pointerdown', onPointerDown);
-  renderer.domElement.addEventListener('pointerup', onPointerUp);
+  function cancelDrag(): void { endDrag(false); }
+  function onDragKey(event: KeyboardEvent): void { if (drag && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endDrag(false); } }
+  function onVisibilityChange(): void { if (document.hidden) cancelDrag(); }
+  renderer.domElement.addEventListener('pointerdown', onPointerDown, true);
+  renderer.domElement.addEventListener('pointermove', onPointerMove, true);
+  renderer.domElement.addEventListener('pointerup', onPointerUp, true);
+  renderer.domElement.addEventListener('pointercancel', cancelDrag);
+  renderer.domElement.addEventListener('lostpointercapture', cancelDrag);
+  renderer.domElement.addEventListener('keydown', onDragKey);
+  window.addEventListener('blur', cancelDrag);
+  document.addEventListener('visibilitychange', onVisibilityChange);
   function cameraPosition(mode: 'perspective' | 'top'): void {
     cameraMode = mode;
     const aspect = width / height;
@@ -585,6 +722,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     controls.update();
   }
   const resizeObserver = new ResizeObserver(() => {
+    if (!sceneVisible()) return;
     const newWidth = Math.max(container.clientWidth, 1);
     const newHeight = Math.max(container.clientHeight, 1);
     const aspectChanged = Math.abs(newWidth / newHeight - width / height) > 0.4;
@@ -643,6 +781,9 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     if (disposed) return;
     currentConditions = conditions;
     currentView = view;
+    if (!sceneVisible()) { pendingUpdate = { conditions, result, view }; return; }
+    pendingUpdate = null;
+    if (drag && (drag.kind === 'fan' ? conditions.portableFan?.slot : conditions.purifier?.slot) !== drag.startSlot) endDrag(false);
     fieldView.update(result.field, view.mode);
     const shadowSignature = JSON.stringify([conditions.doors, conditions.windows, conditions.portableFan?.slot, conditions.portableFan?.angleDeg, conditions.purifier?.slot, view.cutaway]);
     if (shadowSignature !== lastShadowSignature) { renderer.shadowMap.needsUpdate = true; lastShadowSignature = shadowSignature; }
@@ -658,15 +799,17 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     portableFan.visible = Boolean(fanState);
     if (fanState) {
       const slot = FAN_SLOTS[fanState.slot] ?? FAN_SLOTS[0];
-      portableFan.position.set(slot.x, 0, slot.z);
-      portableFan.rotation.y = THREE.MathUtils.degToRad(slot.baseYaw + fanState.angleDeg - 90);
+      if (drag?.kind !== 'fan') {
+        portableFan.position.set(slot.x, 0, slot.z);
+        portableFan.rotation.y = THREE.MathUtils.degToRad(slot.baseYaw + fanState.angleDeg - 90);
+      }
       direction.visible = fanState.on;
     }
     const purifierState = conditions.purifier;
     portablePurifier.visible = Boolean(purifierState);
     if (purifierState) {
       const slot = PURIFIER_SLOTS[purifierState.slot] ?? PURIFIER_SLOTS[0];
-      portablePurifier.position.set(slot.x, 0, slot.z);
+      if (drag?.kind !== 'purifier') portablePurifier.position.set(slot.x, 0, slot.z);
       purifierLed.color.set(purifierState.on ? '#45ae80' : '#b3b9ae');
       purifierLed.emissive.set(purifierState.on ? '#24754c' : '#000000');
       purifierLed.emissiveIntensity = 0.2;
@@ -705,6 +848,9 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   let lastTime = performance.now();
   function render(now: number): void {
     if (disposed) return;
+    frame = requestAnimationFrame(render);
+    if (!sceneVisible()) { lastTime = now; if (drag) endDrag(false); return; }
+    if (pendingUpdate) update(pendingUpdate.conditions, pendingUpdate.result, pendingUpdate.view);
     const dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;
     if (thermalVentConfig?.on) ventRotor.rotation.z += dt * 10;
@@ -716,7 +862,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       if (opening.slider) opening.slider.position.x = THREE.MathUtils.damp(opening.slider.position.x, opening.targetSlide, 9, dt);
     }
     fieldView.animate(dt);
-    controls.update();
+    if (!drag) controls.update();
     camera.updateMatrixWorld();
     for (const label of labels) {
       projected.copy(label.anchor).project(camera);
@@ -738,7 +884,6 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       dimension.element.style.top = `${(1 - projected.y) / 2 * height}px`;
     }
     renderer.render(scene, camera);
-    frame = requestAnimationFrame(render);
   }
   frame = requestAnimationFrame(render);
   function screenshot(): string {
@@ -816,17 +961,31 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   return {
     update,
     setThermalVent,
+    setPortableDraggingEnabled: enabled => {
+      portableDraggingEnabled = enabled && Boolean(onMovePortableDevice);
+      renderer.domElement.setAttribute('aria-label', portableDraggingEnabled
+        ? 'Interactive 3D flat. Drag a portable fan or purifier to a marked position. Drag empty space to rotate, scroll to zoom. Device position selectors provide keyboard access.'
+        : 'Interactive 3D flat preview. Drag to rotate, scroll to zoom. Portable device dragging is unavailable in this workspace.');
+      if (!portableDraggingEnabled) endDrag(false);
+    },
     setCamera: cameraPosition,
     resetCamera: () => cameraPosition('perspective'),
     screenshot,
     dispose: () => {
       if (disposed) return;
+      endDrag(false);
       disposed = true;
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       controls.dispose();
-      renderer.domElement.removeEventListener('pointerdown', onPointerDown);
-      renderer.domElement.removeEventListener('pointerup', onPointerUp);
+      renderer.domElement.removeEventListener('pointerdown', onPointerDown, true);
+      renderer.domElement.removeEventListener('pointermove', onPointerMove, true);
+      renderer.domElement.removeEventListener('pointerup', onPointerUp, true);
+      renderer.domElement.removeEventListener('pointercancel', cancelDrag);
+      renderer.domElement.removeEventListener('lostpointercapture', cancelDrag);
+      renderer.domElement.removeEventListener('keydown', onDragKey);
+      window.removeEventListener('blur', cancelDrag);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       fieldView.dispose();
       geometries.forEach(g => g.dispose());
       materials.forEach(m => m.dispose());

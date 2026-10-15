@@ -4,7 +4,7 @@
 
 **This section supersedes the original 3D/WebGPU architecture below.** The main apartment uses the documented 2D fallback. Cooling Lab is an independent two-layer/surface model and does not replace that field with a 3D solver. See [simulation details](02-simulation.md), [run commands](../README.md) and [verification status](../CHECKLIST.md).
 
-All runtime work stays in the browser. `src/domain.ts` imports the canonical `assets/hdb-3d/hdb_4room_boxes.json`; the renderer and simulation use that geometry. There is no backend, account system, deployment dependency, live weather request or sensor feed. The app works with no board attached.
+All runtime work stays in the browser. `src/domain.ts` imports the canonical `assets/hdb-3d/hdb_4room_boxes.json`; the original Flat renderer/solver, Cooling Lab and physical pack use that geometry. The separately authorized Contractor Study accepts a validated plan under the contract in [the study guide](contractor-study.md); it must keep its geometry and state separate. There is no backend, account system, deployment dependency or sensor feed. Simulation weather is manually entered; an optional external Windy reference display does not feed data to the model. The app works with no board attached.
 
 | Implemented module | Responsibility |
 |---|---|
@@ -12,7 +12,9 @@ All runtime work stays in the browser. `src/domain.ts` imports the canonical `as
 | `src/domain.ts` | Shared geometry, `Conditions`, room readings and `PlanField` contract. |
 | `src/plan-simulation.ts` | 64 × 48 floor-plan mask, CPU steady pressure/face-flow solution, scalar preparation/CPU transport and room summaries. |
 | `src/plan-gpu.ts` | Optional WGSL heat/PM2.5 transport using the same CPU face flow; async readback and failure cleanup. |
-| `src/thermal-types.ts`, `src/thermal-model.ts` | Independent full-flat two-layer/surface thermal and ventilation balance. |
+| `src/thermal-types.ts`, `src/thermal-model.ts` | Canonical HDB instance plus isolated imported-plan instances of the two-layer/surface model. |
+| `src/contractor-plan.ts`, `src/contractor-study.ts` | Validated rectangular-plan input, three-plan UI, shared manual brief and geometry preview. |
+| `src/contractor-comparison.ts`, `src/contractor-worker.ts`, `src/contractor-export.ts` | Three plan-specific worker runs, metric-specific shortlist, HTML/JSON handoff. |
 | `src/thermal-comparison.ts`, `src/thermal-worker.ts` | Quick fan-off/on or captured baseline/candidate experiments from one shared initial thermal state. |
 | `src/air-quality.ts` | Manual scenario PM2.5 / US EPA 24-hour-scale index-equivalent conversion; no data feed. |
 | `src/cooling-lab.ts`, `src/thermal-export.ts`, `src/fan-thermodynamics.ts` | Lab UI, reproducible CSV and separate educational ideal-expansion calculation. |
@@ -26,6 +28,12 @@ All runtime work stays in the browser. `src/domain.ts` imports the canonical `as
 The frame loop advances the CPU planar solver, or submits its prepared heat/haze step to WebGPU when available, and paints the HUD/scene data about four times per second. Rendering has its own animation loop. Playback offers 1×, 30× and 60×; elapsed simulation time and energy use the amount actually advanced. Hidden tabs and the flat while Cooling Lab is selected do not advance. Frame delta is capped at 0.25 real seconds to avoid a large catch-up stall.
 
 The solver retains cached flow/source data while controls are unchanged. The CPU path uses typed arrays. The optional GPU scalar path performs nonblocking staging-buffer readback with at most one request in flight; CPU flow remains authoritative. Epoch checks reject stale results after controls/reset/workspace changes, and GPU loss or error resumes CPU processing from the last completed state. Nonfinite field values are bounded/recovered; unexpected simulation errors pause the loop with a notice. Optimiser work is isolated in a cancellable worker and a failed comparison does not replace the current layout.
+
+### Contractor Study geometry isolation
+
+The separate workspace accepts `ContractorPlan` v1 through `src/contractor-plan.ts`, which validates metre-based rectangular rooms, explicit connections and safe unique IDs. `createThermalModel(plan)` creates a plan-specific model context; its state is bound to that normalized plan, while canonical exports retain the original HDB instance. The displayed **Plan input fingerprint** includes normalized metadata, default states and devices as well as geometry. It is a content identifier, not a geometry-equivalence test, security hash or surveyed-geometry certificate.
+
+The study compares three independently sized plans with shared weather, initial concentrations/temperatures, total occupancy and duration. It does not clone one HDB state into different room counts. Plan inputs, initial settings and results remain reviewable in the handoff; imported geometry does not alter hardware mapping, the main planar field or the cardboard generator. See [the JSON and workflow contract](contractor-study.md).
 
 ### Cooling Lab separation
 

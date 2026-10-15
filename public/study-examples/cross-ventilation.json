@@ -1,0 +1,25 @@
+{
+  "version": 1, "id": "cross_ventilation", "name": "Illustrative cross-ventilation apartment", "heightM": 2.7, "northDegrees": 0,
+  "rooms": [
+    {"id":"living","label":"Living / dining / kitchen","x":0,"z":0,"widthM":10,"depthM":3.2},
+    {"id":"bed_a","label":"Bedroom 1","x":0,"z":3.2,"widthM":3,"depthM":4.8},
+    {"id":"bed_b","label":"Bedroom 2","x":3,"z":3.2,"widthM":3.5,"depthM":4.8},
+    {"id":"bed_c","label":"Bedroom 3","x":6.5,"z":3.2,"widthM":3.5,"depthM":4.8}
+  ],
+  "openings": [
+    {"id":"door_a","kind":"door","roomA":"living","roomB":"bed_a","side":"S","offsetM":1,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"door_b","kind":"door","roomA":"living","roomB":"bed_b","side":"S","offsetM":4.2,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"door_c","kind":"door","roomA":"living","roomB":"bed_c","side":"S","offsetM":7.7,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"north_living_a","kind":"window","roomA":"living","roomB":null,"side":"N","offsetM":1,"widthM":2,"sillM":0.9,"heightM":1.3},
+    {"id":"north_living_b","kind":"window","roomA":"living","roomB":null,"side":"N","offsetM":7,"widthM":2,"sillM":0.9,"heightM":1.3},
+    {"id":"entry","kind":"door","roomA":"living","roomB":null,"side":"N","offsetM":4.5,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"south_a","kind":"window","roomA":"bed_a","roomB":null,"side":"S","offsetM":0.8,"widthM":1.4,"sillM":0.9,"heightM":1.3},
+    {"id":"south_b","kind":"window","roomA":"bed_b","roomB":null,"side":"S","offsetM":1,"widthM":1.5,"sillM":0.9,"heightM":1.3},
+    {"id":"south_c","kind":"window","roomA":"bed_c","roomB":null,"side":"S","offsetM":1,"widthM":1.5,"sillM":0.9,"heightM":1.3}
+  ],
+  "devices": [
+    {"id":"fan_living","kind":"fan","roomId":"living"},
+    {"id":"purifier_living","kind":"purifier","roomId":"living"},
+    {"id":"ac_bedroom","kind":"ac","roomId":"bed_c"}
+  ]
+}

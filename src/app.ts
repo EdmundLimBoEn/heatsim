@@ -5,6 +5,7 @@ import { createSimulation, stepSimulation, PLAN_SIMULATION_NOTE as SIMULATION_NO
 import { createPlanGpu, type PlanGpu } from './plan-gpu';
 import { createScene, type SceneController, type ThermalVentConfig } from './scene';
 import { mountCoolingLab } from './cooling-lab';
+import { mountContractorStudy } from './contractor-study';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { openingForKey } from './config/mapping';
 import { createOptimiser, type OptimiserReport, type OptimiserBudget } from './optimiser';
@@ -38,8 +39,10 @@ let conditions: Conditions = structuredClone(PRESETS[0]?.conditions ?? defaultCo
 let result = createSimulation(conditions);
 let view = { ...defaultView, selectedRoom: 'living' as string | null };
 let scene: SceneController | null = null;
-let workspace: 'flat' | 'lab' = 'flat';
+type Workspace = 'flat' | 'lab' | 'study';
+let workspace: Workspace = 'flat';
 let coolingLab: ReturnType<typeof mountCoolingLab> | null = null;
+let contractorStudy: ReturnType<typeof mountContractorStudy> | null = null;
 let thermalVent: ThermalVentConfig | null = null;
 let flatViewMode: ViewMode = defaultView.mode;
 let playing = true;
@@ -75,7 +78,7 @@ $('#app').innerHTML = `
     <div class="header-actions"><span class="demo-indicator"><i></i>Standalone ready</span><button class="button primary" data-action="build">${icon('plan')}<span>Build the physical model</span></button></div>
   </header>
   <main>
-    <div class="workspace-heading"><nav class="segmented" aria-label="HeatSim workspace"><button data-workspace="flat" aria-controls="flat-workspace" aria-pressed="true">${icon('house')}Flat simulation</button><button data-workspace="lab" aria-controls="cooling-lab-workspace" aria-pressed="false">${icon('wind')}Cooling Lab</button></nav></div>
+    <div class="workspace-heading"><nav class="segmented" aria-label="HeatSim workspace"><button data-workspace="flat" aria-controls="flat-workspace" aria-pressed="true">${icon('house')}Flat simulation</button><button data-workspace="lab" aria-controls="cooling-lab-workspace" aria-pressed="false">${icon('wind')}Cooling Lab</button><button data-workspace="study" aria-controls="contractor-study-workspace" aria-pressed="false">${icon('plan')}Contractor study</button></nav></div>
     <section id="flat-workspace" aria-label="Flat simulation">
     <div class="workspace-heading"><div><h1>A small home. A changing climate.</h1><p>Explore how openings and everyday devices shape the rooms around you.</p></div><span class="home-meta">4-room flat <span>90 m²</span></span></div>
     <div class="workspace">
@@ -147,6 +150,10 @@ $('#app').innerHTML = `
     <section id="cooling-lab-workspace" aria-labelledby="cooling-lab-title" hidden>
       <div class="workspace-heading"><div><h1 id="cooling-lab-title" tabindex="-1">Cooling Lab</h1><p>Compare a window-fan idea with your starting setup.</p></div><button class="button secondary" data-workspace="flat">Back to flat</button></div>
       <div id="cooling-lab-mount" tabindex="-1"></div>
+    </section>
+    <section id="contractor-study-workspace" aria-labelledby="contractor-study-title" hidden>
+      <div class="workspace-heading"><div><h1 id="contractor-study-title" tabindex="-1">Contractor study</h1><p>Compare floor plans and design choices under shared assumptions.</p></div><button class="button secondary" data-workspace="flat">Back to flat</button></div>
+      <div id="contractor-study-mount" tabindex="-1"></div>
     </section>
     <footer class="app-footer"><p>${icon('info')}Qualitative toy CFD. Simulated conditions, no sensors.</p><button class="text-link" data-action="about">How this model works</button><button class="text-link" data-action="help">Keyboard shortcuts</button><span>Made for exploring. Built for the tabletop.</span></footer>
   </main>
@@ -262,14 +269,16 @@ function syncControls(): void {
   if (activeAc) $<HTMLSelectElement>('#ac-unit').value = activeAc;
 }
 function updateScene(): void {
+  if (workspace === 'study') return;
   const preview = workspace === 'lab' && coolingLab ? coolingLab.readPreviewConditions() : conditions;
   scene?.update(preview, result, view);
 }
-function selectWorkspace(next: 'flat' | 'lab'): void {
+function selectWorkspace(next: Workspace): void {
   if (next === workspace) return;
-  invalidateGpuStep();
   const lab = next === 'lab';
+  const study = next === 'study';
   const labSection = $('#cooling-lab-workspace');
+  const studySection = $('#contractor-study-workspace');
   if (lab && !coolingLab) {
     labSection.hidden = false;
     try {
@@ -289,21 +298,37 @@ function selectWorkspace(next: 'flat' | 'lab'): void {
       return;
     }
   }
+  if (study && !contractorStudy) {
+    studySection.hidden = false;
+    try {
+      contractorStudy = mountContractorStudy($('#contractor-study-mount'), { readConditions });
+    } catch (error) {
+      studySection.hidden = true;
+      $('#contractor-study-mount').replaceChildren();
+      console.error('Unable to initialize Contractor study', error);
+      notify('Contractor study could not start. Your current workspace is still available.');
+      return;
+    }
+  }
+  invalidateGpuStep();
   const panel = $('.model-panel');
+  if (workspace === 'lab') {
+    $('#flat-workspace .workspace').prepend(panel);
+    view.mode = flatViewMode;
+  }
   if (lab) {
     flatViewMode = view.mode;
     $('#cooling-lab-mount [data-lab-model-slot]').append(panel);
     view.mode = 'model';
-  } else {
-    $('#flat-workspace .workspace').prepend(panel);
-    view.mode = flatViewMode;
   }
   workspace = next;
-  $('#flat-workspace').hidden = lab;
+  $('#flat-workspace').hidden = next !== 'flat';
   labSection.hidden = !lab;
+  studySection.hidden = !study;
   $('.overlay-modes').hidden = lab;
-  $<HTMLAnchorElement>('.skip-link').href = lab ? '#cooling-lab-mount' : '#controls';
+  $<HTMLAnchorElement>('.skip-link').href = lab ? '#cooling-lab-mount' : study ? '#contractor-study-mount' : '#controls';
   document.querySelectorAll<HTMLButtonElement>('nav [data-workspace]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.workspace === next)));
+  scene?.setPortableDraggingEnabled(next === 'flat');
   scene?.setThermalVent(lab ? thermalVent : null);
   updateOverlay();
   if (lab) {
@@ -311,12 +336,14 @@ function selectWorkspace(next: 'flat' | 'lab'): void {
     $('#view-label').textContent = '3D position preview';
     $('#view-description').textContent = 'Cooling Lab charts use a separate two-layer room model.';
     $('#cooling-lab-title').focus();
+  } else if (study) {
+    $('#contractor-study-title').focus();
   } else {
     $('nav [data-workspace="flat"]').focus();
   }
 }
-function isCoolingLabControl(target: HTMLElement): boolean {
-  return Boolean(target.closest('#cooling-lab-mount') && !target.closest('.model-panel'));
+function isSeparateWorkspaceControl(target: HTMLElement): boolean {
+  return Boolean(target.closest('#contractor-study-mount') || (target.closest('#cooling-lab-mount') && !target.closest('.model-panel')));
 }
 function emitControl(): void {
   window.dispatchEvent(new CustomEvent('heatsim:control', { detail: { conditions: readConditions() } }));
@@ -565,8 +592,8 @@ function exportCsv(): void {
 document.addEventListener('click', event => {
   const target = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
   if (!target) return;
-  if (target.dataset.workspace === 'flat' || target.dataset.workspace === 'lab') { selectWorkspace(target.dataset.workspace); return; }
-  if (isCoolingLabControl(target)) return;
+  if (target.dataset.workspace === 'flat' || target.dataset.workspace === 'lab' || target.dataset.workspace === 'study') { selectWorkspace(target.dataset.workspace); return; }
+  if (isSeparateWorkspaceControl(target)) return;
   if (target.hasAttribute('data-close')) { target.closest<HTMLDialogElement>('dialog')?.close(); return; }
   if (target.dataset.tab) selectTab(target.dataset.tab);
   if (target.dataset.room) selectRoom(target.dataset.room);
@@ -631,7 +658,7 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('input', event => {
   const input = event.target as HTMLInputElement;
-  if (isCoolingLabControl(input)) return;
+  if (isSeparateWorkspaceControl(input)) return;
   if (input.type === 'range' && input.dataset.deviceKey) { editDevice(input.dataset.deviceKey, Number(input.value)); return; }
   if (!input.dataset.field) return;
   const value = Number(input.value);
@@ -642,7 +669,7 @@ document.addEventListener('input', event => {
 });
 document.addEventListener('change', event => {
   const input = event.target as HTMLInputElement;
-  if (isCoolingLabControl(input)) return;
+  if (isSeparateWorkspaceControl(input)) return;
   if (input.id === 'outdoor-aqi') {
     const concentration = usAqiEquivalentToPm25(input.valueAsNumber);
     if (concentration === null) { syncControls(); notify('Enter a whole-number US EPA PM2.5 index equivalent from 0 to 500.'); return; }
@@ -702,7 +729,7 @@ document.addEventListener('keydown', event => {
     if (event.key.toLowerCase() === 'h' && $<HTMLDialogElement>('#help-dialog').open) $<HTMLDialogElement>('#help-dialog').close();
     return;
   }
-  if (workspace === 'lab') return;
+  if (workspace !== 'flat') return;
   if (target.closest('button, a, summary') && ['Enter', ' '].includes(event.key)) return;
   const digit = event.code.match(/^Digit([1-9])$/)?.[1];
   if (digit) {
@@ -736,9 +763,12 @@ document.addEventListener('keydown', event => {
 });
 
 checkControlMappings(); renderRoomControls(); syncControls(); renderReadings();
-createScene($('#scene'), selectRoom).then(controller => {
+createScene($('#scene'), selectRoom, (kind, slotId) => {
+  if (workspace === 'flat') editDevice(kind === 'fan' ? 'fanSlot' : 'purifierSlot', slotId);
+}).then(controller => {
   scene = controller;
   $('#scene-loading').remove();
+  scene.setPortableDraggingEnabled(workspace === 'flat');
   scene.setThermalVent(workspace === 'lab' ? thermalVent : null);
   updateScene();
 }).catch(error => {
@@ -804,7 +834,7 @@ function animate(time: number): void {
       notify('Simulation paused. Reset the readings, then resume. Your controls are unchanged.');
     }
   }
-  if (time - lastPaint > 250) { renderReadings(); updateScene(); lastPaint = time; }
+  if (workspace !== 'study' && time - lastPaint > 250) { renderReadings(); updateScene(); lastPaint = time; }
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
@@ -816,6 +846,7 @@ window.addEventListener('pagehide', event => {
   gpu?.dispose();
   gpu = null;
   coolingLab?.dispose();
+  contractorStudy?.dispose();
   scene?.dispose();
   optimiser.dispose();
 });

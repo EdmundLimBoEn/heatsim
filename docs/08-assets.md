@@ -2,7 +2,7 @@
 
 ## MVP amendment · assets actually used
 
-**This amendment takes precedence over the original asset-use plan below.** The running app and the build pack use the canonical **`assets/hdb-3d/hdb_4room_boxes.json`**, imported through `src/domain.ts`. It is the geometry source for the planar simulation mask, the refined procedural three.js scene, and Cooling Lab room dimensions/openings. The legacy `src/data/model.json` is not the authoritative import.
+**This amendment takes precedence over the original asset-use plan below.** The original Flat simulation, Cooling Lab and build pack use the canonical **`assets/hdb-3d/hdb_4room_boxes.json`**, imported through `src/domain.ts`. It is the geometry source for the planar simulation mask, the refined procedural three.js scene, and Cooling Lab room dimensions/openings. The legacy `src/data/model.json` is not the authoritative import. Contractor Study is a separate, explicitly authorized geometry input: validated `ContractorPlan` JSON and its three bundled illustrative examples. Their rooms/openings drive that study only; they do not replace the HDB assets, hardware mapping or cardboard pack. See [the input guide](contractor-study.md).
 
 The GLB and original viewer are retained as provenance/reference assets; the live scene is built from JSON and does not load that GLB. No large Sketchfab/unknown-license fallback asset was added. The layout remains an approximate educational HDB-inspired plan, not an official building drawing.
 

@@ -1,0 +1,2775 @@
+{
+ "sim_metadata": {
+  "source_of_truth": "This JSON is the ONLY geometry input to the CFD/heat/haze sim.",
+  "decoupling": "Visual opacity, x-ray, cutaway, clipping and visibility in the viewer/GLB have NO effect on the simulation. The ceiling is always a solid no-slip adiabatic wall here.",
+  "sim_solid": "true = solid cell (walls, floor, ceiling, closed doors/windows, furniture, devices); false = fluid (room air volumes)",
+  "boundary": "wall | fluid; doors/windows also carry boundary_closed and boundary_when_open (opening_to_outside for exterior, internal_opening otherwise)"
+ },
+ "units": "metres",
+ "up": "+Y",
+ "plan": "x=east(0..12), z=south(0..7.5), floor at y=0",
+ "ceiling_height": 2.6,
+ "bounds": {
+  "min": [
+   -0.1,
+   -0.05,
+   -0.1
+  ],
+  "max": [
+   12.1,
+   2.65,
+   7.6
+  ]
+ },
+ "total_floor_area_m2": 90.0,
+ "rooms": [
+  {
+   "name": "master_bedroom",
+   "min": [
+    0,
+    0,
+    0
+   ],
+   "max": [
+    3.8,
+    2.6,
+    3.4
+   ],
+   "area_m2": 12.92
+  },
+  {
+   "name": "master_bath",
+   "min": [
+    3.8,
+    0,
+    0
+   ],
+   "max": [
+    5.6,
+    2.6,
+    2.0
+   ],
+   "area_m2": 3.6
+  },
+  {
+   "name": "common_bath",
+   "min": [
+    3.8,
+    0,
+    2.0
+   ],
+   "max": [
+    5.6,
+    2.6,
+    3.4
+   ],
+   "area_m2": 2.52
+  },
+  {
+   "name": "bedroom2",
+   "min": [
+    5.6,
+    0,
+    0
+   ],
+   "max": [
+    8.8,
+    2.6,
+    3.4
+   ],
+   "area_m2": 10.88
+  },
+  {
+   "name": "bedroom3",
+   "min": [
+    8.8,
+    0,
+    0
+   ],
+   "max": [
+    12,
+    2.6,
+    3.4
+   ],
+   "area_m2": 10.88
+  },
+  {
+   "name": "kitchen",
+   "min": [
+    0,
+    0,
+    3.4
+   ],
+   "max": [
+    2.8,
+    2.6,
+    5.6
+   ],
+   "area_m2": 6.16
+  },
+  {
+   "name": "service_yard",
+   "min": [
+    0,
+    0,
+    5.6
+   ],
+   "max": [
+    2.8,
+    2.6,
+    7.5
+   ],
+   "area_m2": 5.32
+  },
+  {
+   "name": "household_shelter",
+   "min": [
+    2.8,
+    0,
+    5.9
+   ],
+   "max": [
+    4.4,
+    2.6,
+    7.5
+   ],
+   "area_m2": 2.56
+  },
+  {
+   "name": "corridor",
+   "min": [
+    2.8,
+    0,
+    3.4
+   ],
+   "max": [
+    12,
+    2.6,
+    4.4
+   ],
+   "area_m2": 9.2
+  },
+  {
+   "name": "corridor_lobby",
+   "min": [
+    2.8,
+    0,
+    4.4
+   ],
+   "max": [
+    4.4,
+    2.6,
+    5.9
+   ],
+   "area_m2": 2.4
+  },
+  {
+   "name": "dining",
+   "min": [
+    4.4,
+    0,
+    4.4
+   ],
+   "max": [
+    7.2,
+    2.6,
+    7.5
+   ],
+   "area_m2": 8.68
+  },
+  {
+   "name": "living",
+   "min": [
+    7.2,
+    0,
+    4.4
+   ],
+   "max": [
+    12,
+    2.6,
+    7.5
+   ],
+   "area_m2": 14.88
+  }
+ ],
+ "boxes": [
+  {
+   "name": "floor_master_bedroom",
+   "type": "floor",
+   "min": [
+    0.0,
+    -0.05,
+    0.0
+   ],
+   "max": [
+    3.8,
+    0.0,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_master_bedroom",
+   "type": "room",
+   "min": [
+    0,
+    0,
+    0
+   ],
+   "max": [
+    3.8,
+    2.6,
+    3.4
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_master_bath",
+   "type": "floor",
+   "min": [
+    3.8,
+    -0.05,
+    0.0
+   ],
+   "max": [
+    5.6,
+    0.0,
+    2.0
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_master_bath",
+   "type": "room",
+   "min": [
+    3.8,
+    0,
+    0
+   ],
+   "max": [
+    5.6,
+    2.6,
+    2.0
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_common_bath",
+   "type": "floor",
+   "min": [
+    3.8,
+    -0.05,
+    2.0
+   ],
+   "max": [
+    5.6,
+    0.0,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_common_bath",
+   "type": "room",
+   "min": [
+    3.8,
+    0,
+    2.0
+   ],
+   "max": [
+    5.6,
+    2.6,
+    3.4
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_bedroom2",
+   "type": "floor",
+   "min": [
+    5.6,
+    -0.05,
+    0.0
+   ],
+   "max": [
+    8.8,
+    0.0,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_bedroom2",
+   "type": "room",
+   "min": [
+    5.6,
+    0,
+    0
+   ],
+   "max": [
+    8.8,
+    2.6,
+    3.4
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_bedroom3",
+   "type": "floor",
+   "min": [
+    8.8,
+    -0.05,
+    0.0
+   ],
+   "max": [
+    12.0,
+    0.0,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_bedroom3",
+   "type": "room",
+   "min": [
+    8.8,
+    0,
+    0
+   ],
+   "max": [
+    12,
+    2.6,
+    3.4
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_kitchen",
+   "type": "floor",
+   "min": [
+    0.0,
+    -0.05,
+    3.4
+   ],
+   "max": [
+    2.8,
+    0.0,
+    5.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_kitchen",
+   "type": "room",
+   "min": [
+    0,
+    0,
+    3.4
+   ],
+   "max": [
+    2.8,
+    2.6,
+    5.6
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_service_yard",
+   "type": "floor",
+   "min": [
+    0.0,
+    -0.05,
+    5.6
+   ],
+   "max": [
+    2.8,
+    0.0,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_service_yard",
+   "type": "room",
+   "min": [
+    0,
+    0,
+    5.6
+   ],
+   "max": [
+    2.8,
+    2.6,
+    7.5
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_household_shelter",
+   "type": "floor",
+   "min": [
+    2.8,
+    -0.05,
+    5.9
+   ],
+   "max": [
+    4.4,
+    0.0,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_household_shelter",
+   "type": "room",
+   "min": [
+    2.8,
+    0,
+    5.9
+   ],
+   "max": [
+    4.4,
+    2.6,
+    7.5
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_corridor",
+   "type": "floor",
+   "min": [
+    2.8,
+    -0.05,
+    3.4
+   ],
+   "max": [
+    12.0,
+    0.0,
+    4.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_corridor",
+   "type": "room",
+   "min": [
+    2.8,
+    0,
+    3.4
+   ],
+   "max": [
+    12,
+    2.6,
+    4.4
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_corridor_lobby",
+   "type": "floor",
+   "min": [
+    2.8,
+    -0.05,
+    4.4
+   ],
+   "max": [
+    4.4,
+    0.0,
+    5.9
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_corridor_lobby",
+   "type": "room",
+   "min": [
+    2.8,
+    0,
+    4.4
+   ],
+   "max": [
+    4.4,
+    2.6,
+    5.9
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_dining",
+   "type": "floor",
+   "min": [
+    4.4,
+    -0.05,
+    4.4
+   ],
+   "max": [
+    7.2,
+    0.0,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_dining",
+   "type": "room",
+   "min": [
+    4.4,
+    0,
+    4.4
+   ],
+   "max": [
+    7.2,
+    2.6,
+    7.5
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "floor_living",
+   "type": "floor",
+   "min": [
+    7.2,
+    -0.05,
+    4.4
+   ],
+   "max": [
+    12.0,
+    0.0,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "room_living",
+   "type": "room",
+   "min": [
+    7.2,
+    0,
+    4.4
+   ],
+   "max": [
+    12,
+    2.6,
+    7.5
+   ],
+   "sim_solid": false,
+   "boundary": "fluid"
+  },
+  {
+   "name": "ceiling",
+   "type": "ceiling",
+   "min": [
+    0.0,
+    2.6,
+    0.0
+   ],
+   "max": [
+    12.0,
+    2.65,
+    7.5
+   ],
+   "boundary": "wall",
+   "thermal": "adiabatic",
+   "note": "ceiling slab: solid no-slip adiabatic; viewer opacity does not affect it",
+   "sim_solid": true
+  },
+  {
+   "name": "wall_ext_north_0",
+   "type": "wall",
+   "min": [
+    0.0,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    1.1,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_1",
+   "type": "wall",
+   "min": [
+    1.1,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    2.7,
+    0.9,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_2",
+   "type": "wall",
+   "min": [
+    1.1,
+    2.1,
+    -0.1
+   ],
+   "max": [
+    2.7,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_master_1",
+   "type": "window",
+   "min": [
+    1.1,
+    0.9,
+    -0.01
+   ],
+   "max": [
+    2.7,
+    2.1,
+    0.01
+   ],
+   "wall": "wall_ext_north",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    1.1,
+    0.9,
+    0
+   ],
+   "opening_min_max_along_wall": [
+    1.0999999999999999,
+    2.7
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_3",
+   "type": "wall",
+   "min": [
+    2.7,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    4.4,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_4",
+   "type": "wall",
+   "min": [
+    4.4,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    5.0,
+    1.5,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_5",
+   "type": "wall",
+   "min": [
+    4.4,
+    2.1,
+    -0.1
+   ],
+   "max": [
+    5.0,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_master_bath",
+   "type": "window",
+   "min": [
+    4.4,
+    1.5,
+    -0.01
+   ],
+   "max": [
+    5.0,
+    2.1,
+    0.01
+   ],
+   "wall": "wall_ext_north",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    4.4,
+    1.5,
+    0
+   ],
+   "opening_min_max_along_wall": [
+    4.4,
+    5.0
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_6",
+   "type": "wall",
+   "min": [
+    5.0,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    6.5,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_7",
+   "type": "wall",
+   "min": [
+    6.5,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    7.9,
+    0.9,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_8",
+   "type": "wall",
+   "min": [
+    6.5,
+    2.1,
+    -0.1
+   ],
+   "max": [
+    7.9,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_bedroom2_1",
+   "type": "window",
+   "min": [
+    6.5,
+    0.9,
+    -0.01
+   ],
+   "max": [
+    7.9,
+    2.1,
+    0.01
+   ],
+   "wall": "wall_ext_north",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    6.5,
+    0.9,
+    0
+   ],
+   "opening_min_max_along_wall": [
+    6.5,
+    7.9
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_9",
+   "type": "wall",
+   "min": [
+    7.9,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    9.7,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_10",
+   "type": "wall",
+   "min": [
+    9.7,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    11.1,
+    0.9,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_11",
+   "type": "wall",
+   "min": [
+    9.7,
+    2.1,
+    -0.1
+   ],
+   "max": [
+    11.1,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_bedroom3_1",
+   "type": "window",
+   "min": [
+    9.7,
+    0.9,
+    -0.01
+   ],
+   "max": [
+    11.1,
+    2.1,
+    0.01
+   ],
+   "wall": "wall_ext_north",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    9.7,
+    0.9,
+    0
+   ],
+   "opening_min_max_along_wall": [
+    9.700000000000001,
+    11.1
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_north_12",
+   "type": "wall",
+   "min": [
+    11.1,
+    0.0,
+    -0.1
+   ],
+   "max": [
+    12.0,
+    2.6,
+    0.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_0",
+   "type": "wall",
+   "min": [
+    0.0,
+    0.0,
+    7.4
+   ],
+   "max": [
+    0.7,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_1",
+   "type": "wall",
+   "min": [
+    0.7,
+    0.0,
+    7.4
+   ],
+   "max": [
+    2.1,
+    0.9,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_2",
+   "type": "wall",
+   "min": [
+    0.7,
+    2.1,
+    7.4
+   ],
+   "max": [
+    2.1,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_service_yard",
+   "type": "window",
+   "min": [
+    0.7,
+    0.9,
+    7.49
+   ],
+   "max": [
+    2.1,
+    2.1,
+    7.51
+   ],
+   "wall": "wall_ext_south",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    0.7,
+    0.9,
+    7.5
+   ],
+   "opening_min_max_along_wall": [
+    0.7,
+    2.0999999999999996
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_3",
+   "type": "wall",
+   "min": [
+    2.1,
+    0.0,
+    7.4
+   ],
+   "max": [
+    4.95,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_4",
+   "type": "wall",
+   "min": [
+    4.95,
+    2.1,
+    7.4
+   ],
+   "max": [
+    5.85,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "main_door",
+   "type": "door",
+   "min": [
+    4.95,
+    0.0,
+    7.48
+   ],
+   "max": [
+    5.85,
+    2.1,
+    7.52
+   ],
+   "wall": "wall_ext_south",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    4.95,
+    0.0,
+    7.5
+   ],
+   "opening_min_max_along_wall": [
+    4.95,
+    5.8500000000000005
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_5",
+   "type": "wall",
+   "min": [
+    5.85,
+    0.0,
+    7.4
+   ],
+   "max": [
+    7.8,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_6",
+   "type": "wall",
+   "min": [
+    7.8,
+    0.0,
+    7.4
+   ],
+   "max": [
+    9.4,
+    0.5,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_7",
+   "type": "wall",
+   "min": [
+    7.8,
+    2.2,
+    7.4
+   ],
+   "max": [
+    9.4,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_living_1",
+   "type": "window",
+   "min": [
+    7.8,
+    0.5,
+    7.49
+   ],
+   "max": [
+    9.4,
+    2.2,
+    7.51
+   ],
+   "wall": "wall_ext_south",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    7.8,
+    0.5,
+    7.5
+   ],
+   "opening_min_max_along_wall": [
+    7.8,
+    9.4
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_8",
+   "type": "wall",
+   "min": [
+    9.4,
+    0.0,
+    7.4
+   ],
+   "max": [
+    10.0,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_9",
+   "type": "wall",
+   "min": [
+    10.0,
+    0.0,
+    7.4
+   ],
+   "max": [
+    11.6,
+    0.5,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_10",
+   "type": "wall",
+   "min": [
+    10.0,
+    2.2,
+    7.4
+   ],
+   "max": [
+    11.6,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_living_2",
+   "type": "window",
+   "min": [
+    10.0,
+    0.5,
+    7.49
+   ],
+   "max": [
+    11.6,
+    2.2,
+    7.51
+   ],
+   "wall": "wall_ext_south",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    10.0,
+    0.5,
+    7.5
+   ],
+   "opening_min_max_along_wall": [
+    10.0,
+    11.600000000000001
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_south_11",
+   "type": "wall",
+   "min": [
+    11.6,
+    0.0,
+    7.4
+   ],
+   "max": [
+    12.0,
+    2.6,
+    7.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_west_0",
+   "type": "wall",
+   "min": [
+    -0.1,
+    0.0,
+    0.0
+   ],
+   "max": [
+    0.1,
+    2.6,
+    1.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_west_1",
+   "type": "wall",
+   "min": [
+    -0.1,
+    0.0,
+    1.1
+   ],
+   "max": [
+    0.1,
+    0.9,
+    2.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_west_2",
+   "type": "wall",
+   "min": [
+    -0.1,
+    2.1,
+    1.1
+   ],
+   "max": [
+    0.1,
+    2.6,
+    2.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_master_2",
+   "type": "window",
+   "min": [
+    -0.01,
+    0.9,
+    1.1
+   ],
+   "max": [
+    0.01,
+    2.1,
+    2.3
+   ],
+   "wall": "wall_ext_west",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    0,
+    0.9,
+    1.1
+   ],
+   "opening_min_max_along_wall": [
+    1.1,
+    2.3
+   ],
+   "wall_axis": "z",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_west_3",
+   "type": "wall",
+   "min": [
+    -0.1,
+    0.0,
+    2.3
+   ],
+   "max": [
+    0.1,
+    2.6,
+    3.9
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_west_4",
+   "type": "wall",
+   "min": [
+    -0.1,
+    0.0,
+    3.9
+   ],
+   "max": [
+    0.1,
+    1.0,
+    5.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_west_5",
+   "type": "wall",
+   "min": [
+    -0.1,
+    2.0,
+    3.9
+   ],
+   "max": [
+    0.1,
+    2.6,
+    5.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_kitchen",
+   "type": "window",
+   "min": [
+    -0.01,
+    1.0,
+    3.9
+   ],
+   "max": [
+    0.01,
+    2.0,
+    5.1
+   ],
+   "wall": "wall_ext_west",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    0,
+    1.0,
+    3.9
+   ],
+   "opening_min_max_along_wall": [
+    3.9,
+    5.1
+   ],
+   "wall_axis": "z",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_west_6",
+   "type": "wall",
+   "min": [
+    -0.1,
+    0.0,
+    5.1
+   ],
+   "max": [
+    0.1,
+    2.6,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_east_0",
+   "type": "wall",
+   "min": [
+    11.9,
+    0.0,
+    0.0
+   ],
+   "max": [
+    12.1,
+    2.6,
+    1.2
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_east_1",
+   "type": "wall",
+   "min": [
+    11.9,
+    0.0,
+    1.2
+   ],
+   "max": [
+    12.1,
+    0.9,
+    2.2
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_east_2",
+   "type": "wall",
+   "min": [
+    11.9,
+    2.1,
+    1.2
+   ],
+   "max": [
+    12.1,
+    2.6,
+    2.2
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_bedroom3_2",
+   "type": "window",
+   "min": [
+    11.99,
+    0.9,
+    1.2
+   ],
+   "max": [
+    12.01,
+    2.1,
+    2.2
+   ],
+   "wall": "wall_ext_east",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    12,
+    0.9,
+    1.2
+   ],
+   "opening_min_max_along_wall": [
+    1.2,
+    2.2
+   ],
+   "wall_axis": "z",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_east_3",
+   "type": "wall",
+   "min": [
+    11.9,
+    0.0,
+    2.2
+   ],
+   "max": [
+    12.1,
+    2.6,
+    5.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_east_4",
+   "type": "wall",
+   "min": [
+    11.9,
+    0.0,
+    5.3
+   ],
+   "max": [
+    12.1,
+    0.5,
+    6.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_east_5",
+   "type": "wall",
+   "min": [
+    11.9,
+    2.2,
+    5.3
+   ],
+   "max": [
+    12.1,
+    2.6,
+    6.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "window_living_3",
+   "type": "window",
+   "min": [
+    11.99,
+    0.5,
+    5.3
+   ],
+   "max": [
+    12.01,
+    2.2,
+    6.5
+   ],
+   "wall": "wall_ext_east",
+   "exterior": true,
+   "boundary_closed": "wall",
+   "boundary_when_open": "opening_to_outside",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    12,
+    0.5,
+    5.3
+   ],
+   "opening_min_max_along_wall": [
+    5.300000000000001,
+    6.5
+   ],
+   "wall_axis": "z",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_ext_east_6",
+   "type": "wall",
+   "min": [
+    11.9,
+    0.0,
+    6.5
+   ],
+   "max": [
+    12.1,
+    2.6,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_0",
+   "type": "wall",
+   "min": [
+    0.0,
+    0.0,
+    3.35
+   ],
+   "max": [
+    2.95,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_1",
+   "type": "wall",
+   "min": [
+    2.95,
+    2.1,
+    3.35
+   ],
+   "max": [
+    3.75,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_master_bedroom",
+   "type": "door",
+   "min": [
+    2.95,
+    0.0,
+    3.38
+   ],
+   "max": [
+    3.75,
+    2.1,
+    3.42
+   ],
+   "wall": "wall_north_corridor",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    2.95,
+    0.0,
+    3.4
+   ],
+   "opening_min_max_along_wall": [
+    2.95,
+    3.75
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_2",
+   "type": "wall",
+   "min": [
+    3.75,
+    0.0,
+    3.35
+   ],
+   "max": [
+    4.35,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_3",
+   "type": "wall",
+   "min": [
+    4.35,
+    2.1,
+    3.35
+   ],
+   "max": [
+    5.05,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_common_bath",
+   "type": "door",
+   "min": [
+    4.35,
+    0.0,
+    3.38
+   ],
+   "max": [
+    5.05,
+    2.1,
+    3.42
+   ],
+   "wall": "wall_north_corridor",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    4.35,
+    0.0,
+    3.4
+   ],
+   "opening_min_max_along_wall": [
+    4.3500000000000005,
+    5.05
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_4",
+   "type": "wall",
+   "min": [
+    5.05,
+    0.0,
+    3.35
+   ],
+   "max": [
+    5.7,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_5",
+   "type": "wall",
+   "min": [
+    5.7,
+    2.1,
+    3.35
+   ],
+   "max": [
+    6.5,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_bedroom2",
+   "type": "door",
+   "min": [
+    5.7,
+    0.0,
+    3.38
+   ],
+   "max": [
+    6.5,
+    2.1,
+    3.42
+   ],
+   "wall": "wall_north_corridor",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    5.7,
+    0.0,
+    3.4
+   ],
+   "opening_min_max_along_wall": [
+    5.699999999999999,
+    6.5
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_6",
+   "type": "wall",
+   "min": [
+    6.5,
+    0.0,
+    3.35
+   ],
+   "max": [
+    8.9,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_7",
+   "type": "wall",
+   "min": [
+    8.9,
+    2.1,
+    3.35
+   ],
+   "max": [
+    9.7,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_bedroom3",
+   "type": "door",
+   "min": [
+    8.9,
+    0.0,
+    3.38
+   ],
+   "max": [
+    9.7,
+    2.1,
+    3.42
+   ],
+   "wall": "wall_north_corridor",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    8.9,
+    0.0,
+    3.4
+   ],
+   "opening_min_max_along_wall": [
+    8.9,
+    9.700000000000001
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_north_corridor_8",
+   "type": "wall",
+   "min": [
+    9.7,
+    0.0,
+    3.35
+   ],
+   "max": [
+    12.0,
+    2.6,
+    3.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_masterbath_commonbath_0",
+   "type": "wall",
+   "min": [
+    3.8,
+    0.0,
+    1.95
+   ],
+   "max": [
+    5.6,
+    2.6,
+    2.05
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_master_masterbath_0",
+   "type": "wall",
+   "min": [
+    3.75,
+    0.0,
+    0.0
+   ],
+   "max": [
+    3.85,
+    2.6,
+    0.65
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_master_masterbath_1",
+   "type": "wall",
+   "min": [
+    3.75,
+    2.1,
+    0.65
+   ],
+   "max": [
+    3.85,
+    2.6,
+    1.35
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_master_bath",
+   "type": "door",
+   "min": [
+    3.78,
+    0.0,
+    0.65
+   ],
+   "max": [
+    3.82,
+    2.1,
+    1.35
+   ],
+   "wall": "wall_master_masterbath",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    3.8,
+    0.0,
+    0.65
+   ],
+   "opening_min_max_along_wall": [
+    0.65,
+    1.35
+   ],
+   "wall_axis": "z",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_master_masterbath_2",
+   "type": "wall",
+   "min": [
+    3.75,
+    0.0,
+    1.35
+   ],
+   "max": [
+    3.85,
+    2.6,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_bath_bedroom2_0",
+   "type": "wall",
+   "min": [
+    5.55,
+    0.0,
+    0.0
+   ],
+   "max": [
+    5.65,
+    2.6,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_bedroom2_bedroom3_0",
+   "type": "wall",
+   "min": [
+    8.75,
+    0.0,
+    0.0
+   ],
+   "max": [
+    8.85,
+    2.6,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_kitchen_corridor_0",
+   "type": "wall",
+   "min": [
+    2.75,
+    0.0,
+    3.4
+   ],
+   "max": [
+    2.85,
+    2.6,
+    3.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_kitchen_corridor_1",
+   "type": "wall",
+   "min": [
+    2.75,
+    2.1,
+    3.5
+   ],
+   "max": [
+    2.85,
+    2.6,
+    4.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_kitchen",
+   "type": "door",
+   "min": [
+    2.78,
+    0.0,
+    3.5
+   ],
+   "max": [
+    2.82,
+    2.1,
+    4.3
+   ],
+   "wall": "wall_kitchen_corridor",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    2.8,
+    0.0,
+    3.5
+   ],
+   "opening_min_max_along_wall": [
+    3.5,
+    4.3
+   ],
+   "wall_axis": "z",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_kitchen_corridor_2",
+   "type": "wall",
+   "min": [
+    2.75,
+    0.0,
+    4.3
+   ],
+   "max": [
+    2.85,
+    2.6,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_kitchen_yard_0",
+   "type": "wall",
+   "min": [
+    0.0,
+    0.0,
+    5.55
+   ],
+   "max": [
+    1.0,
+    2.6,
+    5.65
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_kitchen_yard_1",
+   "type": "wall",
+   "min": [
+    1.0,
+    2.1,
+    5.55
+   ],
+   "max": [
+    1.8,
+    2.6,
+    5.65
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_service_yard",
+   "type": "door",
+   "min": [
+    1.0,
+    0.0,
+    5.58
+   ],
+   "max": [
+    1.8,
+    2.1,
+    5.62
+   ],
+   "wall": "wall_kitchen_yard",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    1.0,
+    0.0,
+    5.6
+   ],
+   "opening_min_max_along_wall": [
+    0.9999999999999999,
+    1.7999999999999998
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_kitchen_yard_2",
+   "type": "wall",
+   "min": [
+    1.8,
+    0.0,
+    5.55
+   ],
+   "max": [
+    2.8,
+    2.6,
+    5.65
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_shelter_north_0",
+   "type": "wall",
+   "min": [
+    2.8,
+    0.0,
+    5.85
+   ],
+   "max": [
+    3.2,
+    2.6,
+    5.95
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_shelter_north_1",
+   "type": "wall",
+   "min": [
+    3.2,
+    2.1,
+    5.85
+   ],
+   "max": [
+    4.0,
+    2.6,
+    5.95
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "door_shelter",
+   "type": "door",
+   "min": [
+    3.2,
+    0.0,
+    5.88
+   ],
+   "max": [
+    4.0,
+    2.1,
+    5.92
+   ],
+   "wall": "wall_shelter_north",
+   "exterior": false,
+   "boundary_closed": "wall",
+   "boundary_when_open": "internal_opening",
+   "openable": true,
+   "hinge_axis": "y",
+   "hinge_point": [
+    4.0,
+    0.0,
+    5.9
+   ],
+   "opening_min_max_along_wall": [
+    3.2,
+    4.0
+   ],
+   "wall_axis": "x",
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_shelter_north_2",
+   "type": "wall",
+   "min": [
+    4.0,
+    0.0,
+    5.85
+   ],
+   "max": [
+    4.4,
+    2.6,
+    5.95
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wall_shelter_east_0",
+   "type": "wall",
+   "min": [
+    4.35,
+    0.0,
+    5.9
+   ],
+   "max": [
+    4.45,
+    2.6,
+    7.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "sofa",
+   "type": "furniture",
+   "min": [
+    8.5,
+    0.0,
+    4.5
+   ],
+   "max": [
+    10.7,
+    0.85,
+    5.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "coffee_table",
+   "type": "furniture",
+   "min": [
+    9.1,
+    0.0,
+    5.625
+   ],
+   "max": [
+    10.1,
+    0.45,
+    6.175
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "tv_console",
+   "type": "furniture",
+   "min": [
+    8.7,
+    0.0,
+    7.0
+   ],
+   "max": [
+    10.5,
+    0.5,
+    7.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "dining_table",
+   "type": "furniture",
+   "min": [
+    5.1,
+    0.0,
+    5.5
+   ],
+   "max": [
+    6.5,
+    0.75,
+    6.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "dining_chair_1",
+   "type": "furniture",
+   "min": [
+    5.175,
+    0.0,
+    5.075
+   ],
+   "max": [
+    5.625,
+    0.9,
+    5.525
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "dining_chair_2",
+   "type": "furniture",
+   "min": [
+    5.975,
+    0.0,
+    5.075
+   ],
+   "max": [
+    6.425,
+    0.9,
+    5.525
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "dining_chair_3",
+   "type": "furniture",
+   "min": [
+    5.175,
+    0.0,
+    6.275
+   ],
+   "max": [
+    5.625,
+    0.9,
+    6.725
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "dining_chair_4",
+   "type": "furniture",
+   "min": [
+    5.975,
+    0.0,
+    6.275
+   ],
+   "max": [
+    6.425,
+    0.9,
+    6.725
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "bed_master_queen",
+   "type": "furniture",
+   "min": [
+    1.125,
+    0.0,
+    0.225
+   ],
+   "max": [
+    2.675,
+    0.5,
+    2.275
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wardrobe_master",
+   "type": "furniture",
+   "min": [
+    0.6,
+    0.0,
+    2.75
+   ],
+   "max": [
+    2.4,
+    2.2,
+    3.35
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "bed_bedroom2_single",
+   "type": "furniture",
+   "min": [
+    5.8,
+    0.0,
+    0.225
+   ],
+   "max": [
+    6.8,
+    0.5,
+    2.175
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wardrobe_bedroom2",
+   "type": "furniture",
+   "min": [
+    7.5,
+    0.0,
+    0.1
+   ],
+   "max": [
+    8.7,
+    2.2,
+    0.7
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "study_desk_bedroom2",
+   "type": "furniture",
+   "min": [
+    7.3,
+    0.0,
+    2.7
+   ],
+   "max": [
+    8.5,
+    0.75,
+    3.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "bed_bedroom3_single",
+   "type": "furniture",
+   "min": [
+    10.8,
+    0.0,
+    0.225
+   ],
+   "max": [
+    11.8,
+    0.5,
+    2.175
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "wardrobe_bedroom3",
+   "type": "furniture",
+   "min": [
+    9.0,
+    0.0,
+    0.1
+   ],
+   "max": [
+    10.2,
+    2.2,
+    0.7
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "study_desk_bedroom3",
+   "type": "furniture",
+   "min": [
+    9.0,
+    0.0,
+    2.7
+   ],
+   "max": [
+    10.2,
+    0.75,
+    3.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "kitchen_counter_1",
+   "type": "furniture",
+   "min": [
+    0.1,
+    0.0,
+    3.4
+   ],
+   "max": [
+    0.7,
+    0.9,
+    5.6
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "kitchen_counter_2",
+   "type": "furniture",
+   "min": [
+    0.7,
+    0.0,
+    3.5
+   ],
+   "max": [
+    2.5,
+    0.9,
+    4.1
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "fridge",
+   "type": "furniture",
+   "min": [
+    2.0,
+    0.0,
+    4.8
+   ],
+   "max": [
+    2.7,
+    1.8,
+    5.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "washing_machine",
+   "type": "furniture",
+   "min": [
+    0.15,
+    0.0,
+    6.7
+   ],
+   "max": [
+    0.75,
+    0.85,
+    7.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "fan_living",
+   "type": "device",
+   "min": [
+    9.0,
+    2.2,
+    5.35
+   ],
+   "max": [
+    10.2,
+    2.6,
+    6.55
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "fan_dining",
+   "type": "device",
+   "min": [
+    5.2,
+    2.2,
+    5.3
+   ],
+   "max": [
+    6.4,
+    2.6,
+    6.5
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "fan_master",
+   "type": "device",
+   "min": [
+    1.3,
+    2.2,
+    1.0
+   ],
+   "max": [
+    2.5,
+    2.6,
+    2.2
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "fan_bedroom2",
+   "type": "device",
+   "min": [
+    6.6,
+    2.2,
+    1.1
+   ],
+   "max": [
+    7.8,
+    2.6,
+    2.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "fan_bedroom3",
+   "type": "device",
+   "min": [
+    9.8,
+    2.2,
+    1.1
+   ],
+   "max": [
+    11.0,
+    2.6,
+    2.3
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "ac_living",
+   "type": "device",
+   "min": [
+    11.74,
+    2.15,
+    5.45
+   ],
+   "max": [
+    11.96,
+    2.45,
+    6.35
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "ac_master",
+   "type": "device",
+   "min": [
+    0.04,
+    2.15,
+    0.55
+   ],
+   "max": [
+    0.26,
+    2.45,
+    1.45
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "ac_bedroom2",
+   "type": "device",
+   "min": [
+    6.75,
+    2.15,
+    3.18
+   ],
+   "max": [
+    7.65,
+    2.45,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "ac_bedroom3",
+   "type": "device",
+   "min": [
+    9.95,
+    2.15,
+    3.18
+   ],
+   "max": [
+    10.85,
+    2.45,
+    3.4
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "ac_condenser_yard",
+   "type": "device",
+   "min": [
+    1.775,
+    0.0,
+    7.025
+   ],
+   "max": [
+    2.625,
+    0.65,
+    7.375
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "purifier_living",
+   "type": "device",
+   "min": [
+    7.45,
+    0.0,
+    4.6
+   ],
+   "max": [
+    7.75,
+    0.6,
+    4.9
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  },
+  {
+   "name": "purifier_master",
+   "type": "device",
+   "min": [
+    3.25,
+    0.0,
+    0.25
+   ],
+   "max": [
+    3.55,
+    0.6,
+    0.55
+   ],
+   "sim_solid": true,
+   "boundary": "wall"
+  }
+ ]
+}

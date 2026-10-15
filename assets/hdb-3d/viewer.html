@@ -1,0 +1,94 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>HDB 4-room viewer</title>
+<style>
+ body{margin:0;overflow:hidden;font:13px system-ui,sans-serif}
+ #ui{position:absolute;top:8px;left:8px;background:#fffd;padding:8px 10px;border-radius:6px;line-height:1.9}
+ #ui label{display:block} #demo{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:#c00;color:#fff;padding:4px 10px;font-weight:bold;border-radius:4px}
+</style>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.169.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.169.0/examples/jsm/"}}</script>
+</head><body>
+<div id="ui">
+ <label>Ceiling opacity <input id="ceil" type="range" min="0" max="1" step="0.01" value="0.25"></label>
+ <label><input id="xray" type="checkbox"> X-ray walls</label>
+ <label><input id="cut" type="checkbox"> Cutaway at <input id="cutH" type="range" min="0" max="2.7" step="0.01" value="1.5"></label>
+ <label><input id="doors" type="checkbox"> Open doors</label>
+ <label><input id="wins" type="checkbox"> Open windows</label>
+ <label><input id="slice" type="checkbox" checked> Field slice at <input id="sliceH" type="range" min="0.05" max="2.55" step="0.01" value="1.2"></label>
+</div>
+<div id="demo">DEMO DATA – placeholder field, not simulation output</div>
+<script type="module">
+// VISUAL ONLY. Nothing here affects the simulation: the sim reads hdb_4room_boxes.json,
+// where the ceiling is always a solid no-slip adiabatic wall regardless of opacity.
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
+for (const k of ['ceil','cutH','sliceH']) if (q.has(k)) $(k).value = q.get(k);   // e.g. ?ceil=0.2
+for (const k of ['xray','cut','doors','wins','slice']) if (q.has(k)) $(k).checked = q.get(k) === '1';
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(devicePixelRatio);
+renderer.localClippingEnabled = true; document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xdde6ee);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.05, 200);
+camera.position.set(6, 13, 15);
+const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(6, 1, 3.75);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888877, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(5, 10, 8); scene.add(sun);
+
+const cutPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1.5);   // keeps y < h
+const ceilMats = [], wallMats = [], leaves = [];
+
+// --- Demo field slice. To use real data from the WebGPU sim:
+//  * Sim stores a scalar (pressure / |velocity| / temperature / haze) on its grid (nx,ny,nz)
+//    covering the JSON "bounds". Read it back (or share via WebGPU→WebGL copy) as a Float32Array
+//    and wrap it: tex = new THREE.Data3DTexture(arr, nx, ny, nz); tex.format = THREE.RedFormat;
+//    tex.type = THREE.FloatType; tex.minFilter = tex.magFilter = THREE.LinearFilter; tex.needsUpdate = true;
+//  * Replace field() below with:  uniform highp sampler3D uField; uniform vec3 uMin, uMax; uniform vec2 uRange;
+//    float v = (texture(uField, (vW - uMin) / (uMax - uMin)).r - uRange.x) / (uRange.y - uRange.x);
+//  * For velocity use an RGBA texture and colour by length(), optionally add arrow glyphs.
+//  * Update tex.image.data + needsUpdate each sim step (or use WebGPURenderer + a StorageTexture to stay on-GPU).
+const sliceMat = new THREE.ShaderMaterial({
+  uniforms: { uTime: { value: 0 } }, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+  fragmentShader: `varying vec3 vW; uniform float uTime;
+    float field(vec3 p){ // DEMO DATA: placeholder blobs, no physics
+      return 0.5 + 0.35*sin(p.x*0.9 + uTime*0.6)*cos(p.z*1.1) + 0.25*exp(-dot(p.xz-vec2(9.6,5.9),p.xz-vec2(9.6,5.9))*0.3) - 0.1*p.y; }
+    vec3 turbo(float t){ t=clamp(t,0.,1.); return clamp(vec3(4.*t-1.5, 1.5-abs(4.*t-2.), 2.5-4.*t),0.,1.); }
+    void main(){ gl_FragColor = vec4(turbo(field(vW)), 0.8); }`
+});
+const slice = new THREE.Mesh(new THREE.PlaneGeometry(12, 7.5), sliceMat);
+slice.rotation.x = -Math.PI / 2; slice.position.set(6, 1.2, 3.75);
+slice.renderOrder = 2;            // drawn after the transparent ceiling (renderOrder 1)
+scene.add(slice);
+
+new GLTFLoader().load('hdb_4room.glb', gltf => {
+  scene.add(gltf.scene);
+  gltf.scene.traverse(o => {
+    if (!o.isMesh) return;
+    o.material = o.material.clone();                 // per-object so toggles don't leak
+    o.material.clippingPlanes = [cutPlane];
+    const role = o.userData.role;                     // glTF extras -> userData
+    if (role === 'ceiling') { o.material.transparent = true; o.material.depthWrite = false; o.renderOrder = 1; ceilMats.push(o.material); }
+    if (role === 'wall') wallMats.push(o.material);
+    if (role === 'door' || role === 'window') leaves.push(o);
+  });
+  update(); window.__ready = true;
+}, undefined, e => { document.title = 'LOAD ERROR'; console.error(e); });
+
+function update() {
+  for (const m of ceilMats) { m.opacity = +$('ceil').value; m.visible = m.opacity > 0.001; }
+  const x = $('xray').checked;
+  for (const m of wallMats) { m.transparent = x; m.opacity = x ? 0.2 : 1; m.depthWrite = !x; m.needsUpdate = true; }
+  cutPlane.constant = $('cut').checked ? +$('cutH').value : 1e6;
+  for (const o of leaves) {
+    const open = $(o.userData.role === 'door' ? 'doors' : 'wins').checked;
+    o.rotation.y = open ? (o.userData.role === 'door' ? -Math.PI / 2 : -0.6) : 0;   // swing about hinge pivot
+  }
+  slice.visible = $('slice').checked; slice.position.y = +$('sliceH').value;
+}
+$('ui').addEventListener('input', update);
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+renderer.setAnimationLoop(t => { sliceMat.uniforms.uTime.value = t / 1000; controls.update(); renderer.render(scene, camera); });
+</script></body></html>

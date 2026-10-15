@@ -1,19 +1,22 @@
 # Connect the cardboard model
 
-The working baseline uses **two switch inputs over USB**: WIN1 is the bedroom 3 north window, DOOR1 is the main entrance. No sensors are used. The whole flat still has on-screen controls; only the five mapped openings in [the protocol](04-hardware-protocol.md) can receive hardware commands.
+The current default uses **one limit switch over USB to control the simulated portable fan**. Press means ON; release means OFF. Choose the fan's location in **Flat simulation → Devices**. The switch changes power at that selected location; it does not measure position or power a real fan. The earlier two-opening demonstration remains available by setting `SINGLE_FAN_SWITCH` to `0`.
 
 ## Wire first, with USB unplugged
 
-| Input | Board input | Switch wiring | App object |
-|---|---|---|---|
-| WIN1 | D5 | Normally-open button/switch between D5 and GND | `window_bedroom3_1` |
-| DOOR1 | D6 | Normally-open button/switch between D6 and GND | `main_door` |
+| Switch terminal | Board connection | Purpose |
+|---|---|---|
+| COM | GND | Common return |
+| NO | D5, the digital pin labelled 5 | Press pulls the input LOW, turning the simulated fan ON |
+| NC | Leave unconnected | Not used |
 
-The sketch enables `INPUT_PULLUP`. Do not connect these switch inputs to an external supply. A four-leg tactile button has two permanently joined pairs: use opposite contact pairs and check continuity. For a three-terminal limit switch, use **COM → GND, NO → input**, following the labels on the actual part.
+The sketch enables `INPUT_PULLUP`, so the open switch reads HIGH and the pressed switch reads LOW. **No wire goes to 5 V or 3.3 V.** Use the actual COM/NO markings; terminal position varies between switches. This assumes a bare passive switch, not a powered sensor module. USB powers the board only. [Arduino input-pullup example](https://docs.arduino.cc/tutorials/generic/digital-input-pullup/).
 
 D5/D6 avoid the original SSTuino's Wi-Fi connections on D2/D4. They are also digital pins in the SSTuino II core. These assignments are a proposed demo wiring plan, not a measurement of your board. [Classic connections](https://github.com/d3lta-v/SSTuino/blob/master/README.md#startup-states-table), [SSTuino II pin definitions](https://github.com/FourierIndustries-LLP/SSTuino_II_Core/blob/master/megaavr/variants/uno-wifi/pins_arduino.h).
 
-In [the sketch](../firmware/heatsim_board/heatsim_board.ino), each `flaps[]` row has `limitSwitch`:
+The [complete sketch](../firmware/heatsim_board/heatsim_board.ino) defaults to `SINGLE_FAN_SWITCH 1`, `FAN_SWITCH_PIN = 5`, and `FAN_SWITCH_ACTIVE = LOW`. Debounce takes 30 ms without blocking serial handling. It sends `FAN:ON` or `FAN:OFF` on stable changes, at startup, and when the browser requests state. Conflicting on-screen power requests return `ERR:BUSY` and the switch's actual state. Disconnect the board to use on-screen fan power independently.
+
+**Alternative two-opening mode:** set `SINGLE_FAN_SWITCH` to `0`. D5 then controls WIN1 (bedroom 3 north window), and D6 controls DOOR1 (main entrance). Each `flaps[]` row has `limitSwitch`:
 
 - **`false`, default:** a momentary button toggles the opening once per press. Releasing the button does not toggle it again.
 - **`true`:** mount a limit switch so a fully closed flap presses it. Pressed means closed; released means open. The physical switch owns this state. A conflicting web command returns `ERR:BUSY` and the actual state, so the app returns to the physical position.
@@ -27,19 +30,21 @@ Both modes debounce for 30 ms. Change the per-row setting to mix one button and 
 3. **Original SSTuino / Arduino Uno fallback:** select Arduino Uno for the Classic. Its NEU USB adapter uses CP2102; use the manufacturer's setup instructions if the port is missing. [Classic board selection](https://sstuino.fourier.industries/tutorials/helloWorld.html), [adapter setup](https://sstuino.fourier.industries/tutorials/gettingStarted.html).
 4. Upload. In Serial Monitor choose **115200 baud** and **Newline**. Enter `PING` and expect `PONG`; enter `GET:ALL` and expect states ending in `END`.
 5. **Close Serial Monitor** before connecting from the web app. Open the app in desktop Chrome or Edge at `http://localhost:5173`, click **Connect model**, and select the board's port. The web connection waits 1.5 seconds for reset, sends `HELLO` and `GET:ALL`, and uses the board's states.
-6. Press the WIN1 button: the bedroom 3 north window should toggle in the app. Press DOOR1: the main entrance should toggle. Unplug USB: the link should become disconnected while the app keeps running.
+6. In **Flat simulation → Devices**, choose the portable fan location and a speed above zero. Press the switch: portable fan power should turn on. Release it: power should turn off. USB messages show `FAN:ON` and `FAN:OFF`. Unplug USB: the link should become disconnected while the app keeps running. Reconnect: the current switch state wins, while the selected location, speed, direction and scenario remain unchanged.
+
+For a quick Serial Monitor check, the default sketch replies to `GET:ALL` with only `FAN:ON` or `FAN:OFF`, then `END`. It intentionally omits unowned opening, position and scenario states. Close Serial Monitor before browser connection. If the fan checkbox changes but airflow stays still, select a fan speed above zero and resume the simulation.
 
 Web Serial requires a secure context and user permission for the port. Desktop Chrome supports it; `localhost` works. Safari and Firefox should use the app's on-screen controls. A reconnect can reuse a single already-permitted port. [Chrome Web Serial guide](https://developer.chrome.com/docs/capabilities/serial), [Web Serial specification](https://wicg.github.io/serial/).
 
 ## Servos: optional until the parts are identified
 
-**The default sketch drives no servos.** It sends logical opening states from buttons, or actual open/closed states from limit switches. A servo is an actuator, not an input. The app's physical-switch connection works without a servo.
+**The default sketch drives no servos.** Optional opening servos belong only to the alternative `SINGLE_FAN_SWITCH 0` mode. A servo is an actuator, not an input. The one-switch fan connection uses only D5 and GND.
 
 The sketch contains an `ENABLE_SERVOS` switch, default `0`, and proposed signal pins D9 (WIN1) and D10 (DOOR1). To enable it, first identify the servo model, confirm its voltage/current requirements, compile the board-compatible `Servo` library, and verify its signal pins on the actual board. Supply servos from a suitable separate supply with its GND tied to board GND; do not power an unknown servo from a GPIO. SSTuino II's manufacturer specifically notes that servo current can reset the board. [Manufacturer FAQ](https://knowledge.fourier.industries/frequently-asked-questions-faq-sstuino-ii.html).
 
 Set `ENABLE_SERVOS` to `1` only after that check. The provisional 90° closed / 120° open values are **not calibrated for your linkage**. Start with the horn detached, set a safe neutral position, then fit and adjust each row's `closedDegrees` / `openDegrees` so the flap never pushes against a hard stop. Servos attach to move and detach after 600 ms. In limit-switch mode the channel remains a manual physical input and does not drive its servo.
 
-For the default button mode, typing `WIN1:1` changes its logical state and echoes `WIN1:1`; with calibrated servos enabled it also commands movement. An echo confirms the requested servo command, not measured position. The other protocol controls (fan, AC, purifier and scenario) are logical states only in this sketch; no motors, relays, fan-yaw servo or sensor wiring is provided.
+In the alternative `SINGLE_FAN_SWITCH 0` button mode, typing `WIN1:1` changes its logical state and echoes `WIN1:1`; with calibrated servos enabled it also commands movement. The default single-switch mode rejects `WIN1` because it owns only fan power. An opening echo confirms a requested command, not measured servo position. AC, purifier, scenario and fan placement remain software settings; no motors, relays, fan-yaw servo or sensor wiring is provided.
 
 ## Integration and checks
 
@@ -62,8 +67,10 @@ Automated checks:
 bun run test tests/hardware.test.ts tests/protocol.test.ts
 c++ -std=c++17 -Wall -Wextra -Werror -Wno-unused-parameter firmware/test_firmware.cpp -o /tmp/heatsim-firmware-check
 /tmp/heatsim-firmware-check
+c++ -std=c++17 -Wall -Wextra -Werror -Wno-unused-parameter -DSINGLE_FAN_SWITCH=0 firmware/test_firmware.cpp -o /tmp/heatsim-legacy-firmware-check
+/tmp/heatsim-legacy-firmware-check
 ```
 
-The C++ check exercises the actual sketch's default protocol, overflow recovery, switch debounce and limit-switch authority through mocked Arduino functions. It is not an AVR board compile or a physical test. Actual USB, switch wiring, servo movement, firmware upload and board-core compatibility still require the team's hardware.
+The C++ checks exercise the actual sketch in both modes: startup and reconnect state, press/release debounce, held switch, conflicting host commands, selected-location preservation, protocol bounds and the legacy opening controls. They are not AVR board compiles or physical tests. No `arduino-cli` is installed here. Upload and the actual USB/switch round trip remain unverified until performed on the supplied board.
 
 Written by gpt-6-astra in Codex on behalf of Edmund

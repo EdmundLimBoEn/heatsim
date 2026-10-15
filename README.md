@@ -10,7 +10,7 @@ The app has three workspaces, using a planar model and a separate room/layer the
 | **Cooling Lab** | A separate whole-flat model with lower/upper air layers and a surface temperature per room; matched opening, purifier, high-level fan and envelope experiments, with an ideal-expansion calculator. | Calibrated building performance, a resolved 3D plume, or cooling produced by ideal expansion in the room solver. |
 | **Contractor Study** | Three validated JSON floor plans, shared manual conditions, plan-specific room-network calculations and a reviewable client handoff. | Automatic image/PDF interpretation, surveyed dimensions, professional CFD or compliance certification. |
 
-The board has not arrived; USB control is optional. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
+The user has a SSTuino and one limit switch; the physical USB round trip is not yet verified. USB control remains optional. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
 
 ## Run it
 
@@ -99,11 +99,11 @@ Use the [presentation walkthrough](docs/presentation-demo.md) for the final rehe
 
 Playback starts at **30×**. **Space** pauses/resumes, **Backspace** resets fields and the simulation clock while keeping controls, and **H** shows the shortcuts. Keyboard shortcuts pause while typing in a form control or using a dialog. Everything needed for this demo is also on screen.
 
-## Optional electronics, when the board arrives
+## Optional electronics: one fan switch
 
-Follow [the wiring and firmware guide](docs/hardware.md) and [protocol v1](docs/04-hardware-protocol.md). The proposed default sketch has **two physical inputs**: WIN1 on D5 and DOOR1 on D6, each using `INPUT_PULLUP` and a switch to GND. It supports either momentary buttons or per-channel limit-switch mode.
+Follow [the wiring and firmware guide](docs/hardware.md) and [protocol v1](docs/04-hardware-protocol.md). The default sketch has **one physical input**: COM→GND and NO→D5, with NC unconnected and `INPUT_PULLUP`. Press turns the simulated portable fan ON; release turns it OFF after 30 ms debounce. Choose its location and a nonzero speed in Flat simulation → Devices. Reconnect updates fan power while preserving that location. Set `SINGLE_FAN_SWITCH` to `0` only for the alternative WIN1/D5 and DOOR1/D6 opening demonstration.
 
-USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, humidity or PM sensors. **Servos are disabled by default.** Board selection, firmware upload, switch wiring, USB round trips and servo power/travel have not been physically verified. Do those checks when the actual SSTuino and parts arrive; the standalone demo needs none of them.
+USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, humidity or PM sensors. **Servos are disabled by default; no physical fan is powered.** Board selection, firmware upload, switch wiring and USB round trips remain unverified on the supplied board. The standalone demo requires none of those physical checks.
 
 ## What the simulation means
 

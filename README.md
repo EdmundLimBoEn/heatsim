@@ -2,12 +2,13 @@
 
 **Run the complete presentation demo with a keyboard and on-screen controls. No SSTuino, electronics, account or server backend is required.** HeatSim explores heat, ventilation and haze in an approximate 4-room HDB flat, with a printable cardboard model for the team to build.
 
-The app has two separate teaching models:
+The app has three workspaces, using a planar model and a separate room/layer thermal model:
 
 | Workspace | What it illustrates | What it does not claim |
 |---|---|---|
 | **3D apartment** | A 3D scene around a qualitative 2D plan-view airflow, heat, haze and relative-pressure field. | Full 3D airflow, turbulence or measured pressure. |
 | **Cooling Lab** | A separate whole-flat model with lower/upper air layers and a surface temperature per room; matched opening, purifier, high-level fan and envelope experiments, with an ideal-expansion calculator. | Calibrated building performance, a resolved 3D plume, or cooling produced by ideal expansion in the room solver. |
+| **Contractor Study** | Three validated JSON floor plans, shared manual conditions, plan-specific room-network calculations and a reviewable client handoff. | Automatic image/PDF interpretation, surveyed dimensions, professional CFD or compliance certification. |
 
 The board has not arrived; USB control is optional. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
 
@@ -20,7 +21,7 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-Open **http://localhost:5173** in desktop Chrome or Edge. Keep the terminal running. If Vite reports another port because 5173 is occupied, use the address it prints. Internet is needed to install dependencies; the running app uses local assets and does not fetch weather or sensor readings.
+Open **http://localhost:5173** in desktop Chrome or Edge. Keep the terminal running. If Vite reports another port because 5173 is occupied, use the address it prints. Internet is needed to install dependencies. Simulation calculations and plan imports use local code/assets; weather remains manual. The optional Windy reference display/link needs internet and does not supply values to the simulation.
 
 npm also works:
 
@@ -45,14 +46,27 @@ The footprint is **187.692 × 118.462 mm**, inside the requested **200 × 150 mm
 
 - [Complete build-pack ZIP](public/build-pack/heatsim-build-pack.zip)
 - [Builder handoff and assembly order](docs/physical-model.md)
+- [Opening measurement guide and nine wall reference pages](public/build-pack/measurement-guide.html)
 - [A4 floor plan](public/build-pack/floor-plan.svg)
 - [All 13 walls nested on one A4 sheet](public/build-pack/all-walls-stock.svg)
 - [Door/window leaves](public/build-pack/door-window-leaves.svg), [wall dimensions](public/build-pack/cut-list.csv), [opening dimensions](public/build-pack/openings.csv)
 - [Printable pack and schedules](public/build-pack/index.html), served at **http://localhost:5173/build-pack/** while the app runs
 
-The wall sheets now label each opening's offset from the panel's left edge and the clear gaps between adjacent cutouts. The final wall-template sheet includes the complete 20-opening offset/gap table; these are added annotations, not changed cut shapes.
+The [measurement guide](public/build-pack/measurement-guide.html) gives each opening's **LEFT and RIGHT cut edges from WALL LEFT = 0**, plus named **clear gaps to adjacent openings or wall ends**. Vertical measurements start at **WALL BOTTOM = 0** and include sill, top edge, opening height and cardboard above it. Follow each wall's stated viewing direction. A right-edge-to-wall-right distance can span other openings; use the named gap for the clear cardboard between neighbors.
+
+The nine new wall reference pages are paper instructions, not additional cardboard stock. Existing cutting sheets, cut dimensions and the two-sheet material count are unchanged. The cutting sheets also retain their opening-offset/gap labels and the complete 20-opening table.
 
 Print at **100% / Actual size**, turn off “Fit to page”, and measure the **50 mm calibration bar** before cutting. The handoff accounts for 3 mm butt joints and one narrowed doorway. Dry-fit actual stock before gluing; no real switch or servo mounting dimensions are assumed.
+
+## Contractor Study
+
+For the **noncommercial hackathon demo**, open **Contractor Study**, load the three example plans or import your own supported JSON, enter one shared weather/starting-condition brief, and compare. Each plan supplies its actual room sizes, openings, orientation and declared devices to the model. This is a separate study; imported plans do not change the original HDB workspaces or cardboard cut geometry.
+
+Drag study appliances into another room, or use their room selectors; movement updates the room assignment used by the model and report. In the original Flat view, only the portable fan/purifier drag to existing marked slots; fixed AC units stay fixed.
+
+Use the [floor-plan JSON and study guide](docs/contractor-study.md) for the three examples, complete input sample, validation rules, weather provenance and report workflow. Images/PDFs are not automatically interpreted. Windy is a reference display; model conditions must be entered manually.
+
+The future B2B pitch is a repeatable pre-design option comparison and client report, between informal placement ideas and site-specific professional assessment. Contractor/team licensing is a **future hypothesis**; this local MVP has no billing, accounts or commercial entitlement system. Its uncalibrated results are not compliance or equipment-sizing evidence.
 
 ## Cooling Lab
 

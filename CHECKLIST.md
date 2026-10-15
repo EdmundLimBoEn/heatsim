@@ -1,6 +1,26 @@
 # MVP verification and handoff
 
-**Outdoor-controls and annotation checkpoint: 15 October 2026, 11:05 SGT. The presentation runs standalone with Cooling Lab and optional WebGPU scalar transport. The SSTuino has not arrived.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
+**Contractor Study software checkpoint: 15 October 2026. All three workspaces run standalone; the current application gate passes 250 tests and 162 browser assertions. The SSTuino has not arrived.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
+
+## Contractor Study and appliance placement
+
+The current application gate below includes Contractor Study and placement. The separate physical measurement-guide review also passed; it changes instructions, not cutting geometry or material quantity.
+
+- [x] `tests/contractor-plan.test.ts`: **26 focused validation tests passed**, including the three distinct 80/72/84 m² example inputs, unsupported/invalid geometry, permanent passages and minimum aperture dimensions.
+- [x] Canonical/imported-model suite: **35 tests passed** across `tests/thermal-model.test.ts` (**18**) and `tests/thermal-factory.test.ts` (**17**). Geometry/state isolation, actual plan volumes/connectivity/orientation, device effects and opening/envelope checks are covered. Six canonical 600-second differential cases retained the earlier numerical behavior.
+- [x] `tests/contractor-comparison.test.ts`: **13 focused tests passed** for exactly three actual model instances, shared weather/initial values/occupancy/horizon, bounded traces, metric ties/shortlist and worker cancellation/error handling.
+- [x] The JSON snippet in [the Contractor Study guide](docs/contractor-study.md) passes the actual parser. Documentation distinguishes browser import's **500,000-byte** cap from the parser's **1 MiB** cap, permanent passages, full-input fingerprints and illustrative example provenance.
+- [x] Contractor UI owner reports strict TypeScript passed with final controls, explicit official Windy reference-map loading, room selectors/dragging and HTML/JSON exports. This is not a browser-rendering result.
+- [x] Final application gate at **11:35:52 SGT**: **250 tests across 18 files passed**; strict TypeScript/Vite build, `bun src/scene-check.ts` and `git diff --check` passed. This includes final comparison, placement and export tests. Canonical source geometry and the original 173-test baseline remain unchanged; the new physical reference-page guard is separate.
+- [x] Actual three-example worker runs at **1200/7200 seconds per plan** completed in about **109/271 ms**, with at most 121 samples per plan. Cancellation/retry and parent heartbeat checks passed. These are local runtime timings, not browser FPS.
+- [x] Current-source browser regression: **162 assertions passed**: **63 Contractor Study + 69 Cooling Lab + 17 outdoor controls + 13 mocked serial**. Contractor coverage includes validated geometry and orientation, invalid imports, provenance, actual worker/shared conditions/horizon, chart/report correspondence, downloads, cancellation/error/stale behavior, workspace isolation and placement pointer-event/room-selector behavior.
+- [x] The browser's 1200-second three-plan run took about **63 ms**, retaining **121 samples per plan**, with a maximum **20 ms** parent-heartbeat gap. At **390 px**, document width stayed 390 without horizontal overflow; native Tab moved Project → Location. Study placement used dispatched pointer events; a trusted native study drag is not separately claimed.
+- [x] Optional Windy integration behavior verified: no default map, explicit load only with valid coordinates, coordinate edits clear the old frame, and loading does not change shared weather. **Actual external map tiles/attribution were not visually verified** in the headless environment; the official full iframe and external-link/manual-input fallback remain separate from simulation data.
+- [x] Native **Zen/WebGL** portable dragging: fan Bedroom 3 → Living (selector 3), purifier Living → Bedroom 2 (selector 4), invalid outside drop retained state and orbit resumed. Lab → Study → Flat retained positions and re-enabled portable dragging. Escape/pointer-cancel handlers were reviewed but not separately UI-triggered by the atomic-drag automation. Fixed AC does not move.
+
+- [x] Final independent [measurement-guide](public/build-pack/measurement-guide.html) guard passed: all **7 existing cutting SVGs and JSON/CSV cut data are byte-identical** to the preceding release. Nine new **1:1 A4 paper reference diagrams** cover **20 openings, 40 absolute edge leaders and 60 table rows**. Measurements, named relative gaps, viewing directions and text bounds were checked, including the corrected right-hand datum labels on W01/W10/W12. These pages add instructions, not cardboard: **2 A4 sheets total, 3 mm thick, no roof** remains the material requirement. Physical printing/cutting is still unverified.
+
+The original HDB geometry, hardware mapping and two-A4-sheet cut geometry remain outside imported-plan scope. The pack ZIP/index now include the new instruction pages. No site calibration, physical hardware result, compliance assessment or paid licensing implementation is claimed.
 
 ## Outdoor conditions and explicit comparisons
 

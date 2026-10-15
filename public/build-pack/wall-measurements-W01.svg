@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297">
+<title>W01 — absolute and relative opening measurements</title>
+<rect width="210" height="297" fill="white"/>
+<style>text{font-family:Arial,sans-serif;fill:#17332e}</style>
+<text x="10.00000" y="12.00000" font-size="3" text-anchor="start" font-weight="bold">HEATSIM / PHYSICAL BUILD</text>
+<text x="10.00000" y="21.00000" font-size="5" text-anchor="start" font-weight="bold">W01 / ext north</text>
+<text x="10.00000" y="27.00000" font-size="2.6" text-anchor="start" font-weight="normal">Measurement instructions only · all mm · extra PAPER, not extra cardboard</text>
+<text x="10.00000" y="33.00000" font-size="2.7" text-anchor="start" font-weight="bold">Viewed from SOUTH, facing north. LEFT is WEST; RIGHT is EAST.</text>
+<text x="10.00000" y="39.00000" font-size="2.6" text-anchor="start" font-weight="normal">Use the wall panel edges as your ruler references. Do not mirror or alter any existing cuts.</text>
+<text x="10.00000" y="48.00000" font-size="2.7" text-anchor="start" font-weight="bold">WALL LEFT = 0</text>
+<text x="197.69231" y="48.00000" font-size="2.7" text-anchor="end" font-weight="bold">WALL RIGHT = 187.692</text>
+<line x1="197.69231" y1="49.00000" x2="197.69231" y2="53.00000" stroke="#146a62" stroke-width="0.35"/>
+<rect x="10.00000" y="53.00000" width="187.69231" height="40.00000" fill="#f8faf8" stroke="#17332e" stroke-width="0.3" stroke-dasharray=""/>
+<line x1="10.00000" y1="51.00000" x2="10.00000" y2="96.00000" stroke="#146a62" stroke-width="0.5"/>
+<rect x="28.46154" y="60.69231" width="24.61538" height="18.46154" fill="white" stroke="#2273a1" stroke-width="0.3" stroke-dasharray=""/>
+<text x="40.76923" y="70.92308" font-size="3.1" text-anchor="middle" font-weight="bold">G01</text>
+<line x1="28.46154" y1="93.00000" x2="28.46154" y2="97.00000" stroke="#146a62" stroke-width="0.2"/>
+<line x1="53.07692" y1="93.00000" x2="53.07692" y2="105.00000" stroke="#a8552b" stroke-width="0.2"/>
+<text x="28.46154" y="101.00000" font-size="2.7" text-anchor="middle" font-weight="normal">18.462</text>
+<text x="53.07692" y="109.00000" font-size="2.7" text-anchor="middle" font-weight="normal">43.077</text>
+<rect x="79.23077" y="60.69231" width="9.23077" height="9.23077" fill="white" stroke="#2273a1" stroke-width="0.3" stroke-dasharray=""/>
+<text x="83.84615" y="66.30769" font-size="3.1" text-anchor="middle" font-weight="bold">G02</text>
+<line x1="79.23077" y1="93.00000" x2="79.23077" y2="97.00000" stroke="#146a62" stroke-width="0.2"/>
+<line x1="88.46154" y1="93.00000" x2="88.46154" y2="105.00000" stroke="#a8552b" stroke-width="0.2"/>
+<text x="79.23077" y="101.00000" font-size="2.7" text-anchor="middle" font-weight="normal">69.231</text>
+<text x="88.46154" y="109.00000" font-size="2.7" text-anchor="middle" font-weight="normal">78.462</text>
+<rect x="111.53846" y="60.69231" width="21.53846" height="18.46154" fill="white" stroke="#2273a1" stroke-width="0.3" stroke-dasharray=""/>
+<text x="122.30769" y="70.92308" font-size="3.1" text-anchor="middle" font-weight="bold">G03</text>
+<line x1="111.53846" y1="93.00000" x2="111.53846" y2="97.00000" stroke="#146a62" stroke-width="0.2"/>
+<line x1="133.07692" y1="93.00000" x2="133.07692" y2="105.00000" stroke="#a8552b" stroke-width="0.2"/>
+<text x="111.53846" y="101.00000" font-size="2.7" text-anchor="middle" font-weight="normal">101.538</text>
+<text x="133.07692" y="109.00000" font-size="2.7" text-anchor="middle" font-weight="normal">123.077</text>
+<rect x="160.76923" y="60.69231" width="21.53846" height="18.46154" fill="white" stroke="#2273a1" stroke-width="0.3" stroke-dasharray=""/>
+<text x="171.53846" y="70.92308" font-size="3.1" text-anchor="middle" font-weight="bold">G04</text>
+<line x1="160.76923" y1="93.00000" x2="160.76923" y2="97.00000" stroke="#146a62" stroke-width="0.2"/>
+<line x1="182.30769" y1="93.00000" x2="182.30769" y2="105.00000" stroke="#a8552b" stroke-width="0.2"/>
+<text x="160.76923" y="101.00000" font-size="2.7" text-anchor="middle" font-weight="normal">150.769</text>
+<text x="182.30769" y="109.00000" font-size="2.7" text-anchor="middle" font-weight="normal">172.308</text>
+<text x="10.00000" y="118.00000" font-size="2.55" text-anchor="start" font-weight="normal">Upper numbers: opening LEFT edges from 0. Lower numbers: opening RIGHT edges from 0.</text>
+<text x="10.00000" y="125.00000" font-size="3.1" text-anchor="start" font-weight="bold">ABSOLUTE / ruler starts at the WALL LEFT edge (0)</text>
+<text x="10.00000" y="132.00000" font-size="2.5" text-anchor="start" font-weight="bold">Opening</text>
+<text x="35.00000" y="132.00000" font-size="2.5" text-anchor="start" font-weight="bold">Left edge from 0</text>
+<text x="88.00000" y="132.00000" font-size="2.5" text-anchor="start" font-weight="bold">Right edge from 0</text>
+<text x="144.00000" y="132.00000" font-size="2.5" text-anchor="start" font-weight="bold">Right edge to WALL RIGHT</text>
+<line x1="10.00000" y1="135.00000" x2="200.00000" y2="135.00000" stroke="#526d66" stroke-width="0.2"/>
+<text x="10.00000" y="141.00000" font-size="3" text-anchor="start" font-weight="normal">G01</text>
+<text x="35.00000" y="141.00000" font-size="3" text-anchor="start" font-weight="normal">18.462</text>
+<text x="88.00000" y="141.00000" font-size="3" text-anchor="start" font-weight="normal">43.077</text>
+<text x="144.00000" y="141.00000" font-size="3" text-anchor="start" font-weight="normal">144.615</text>
+<text x="10.00000" y="148.50000" font-size="3" text-anchor="start" font-weight="normal">G02</text>
+<text x="35.00000" y="148.50000" font-size="3" text-anchor="start" font-weight="normal">69.231</text>
+<text x="88.00000" y="148.50000" font-size="3" text-anchor="start" font-weight="normal">78.462</text>
+<text x="144.00000" y="148.50000" font-size="3" text-anchor="start" font-weight="normal">109.231</text>
+<text x="10.00000" y="156.00000" font-size="3" text-anchor="start" font-weight="normal">G03</text>
+<text x="35.00000" y="156.00000" font-size="3" text-anchor="start" font-weight="normal">101.538</text>
+<text x="88.00000" y="156.00000" font-size="3" text-anchor="start" font-weight="normal">123.077</text>
+<text x="144.00000" y="156.00000" font-size="3" text-anchor="start" font-weight="normal">64.615</text>
+<text x="10.00000" y="163.50000" font-size="3" text-anchor="start" font-weight="normal">G04</text>
+<text x="35.00000" y="163.50000" font-size="3" text-anchor="start" font-weight="normal">150.769</text>
+<text x="88.00000" y="163.50000" font-size="3" text-anchor="start" font-weight="normal">172.308</text>
+<text x="144.00000" y="163.50000" font-size="3" text-anchor="start" font-weight="normal">15.385</text>
+<text x="10.00000" y="174.00000" font-size="2.45" text-anchor="start" font-weight="normal">The right-end distance may pass other openings; it is not the adjacent clear gap.</text>
+<text x="10.00000" y="182.00000" font-size="3.1" text-anchor="start" font-weight="bold">RELATIVE / clear cardboard between the named edges</text>
+<text x="10.00000" y="189.00000" font-size="2.5" text-anchor="start" font-weight="bold">Opening</text>
+<text x="35.00000" y="189.00000" font-size="2.5" text-anchor="start" font-weight="bold">Gap BEFORE this opening</text>
+<text x="118.00000" y="189.00000" font-size="2.5" text-anchor="start" font-weight="bold">Gap AFTER this opening</text>
+<line x1="10.00000" y1="192.00000" x2="200.00000" y2="192.00000" stroke="#526d66" stroke-width="0.2"/>
+<text x="10.00000" y="198.00000" font-size="3" text-anchor="start" font-weight="bold">G01</text>
+<text x="35.00000" y="198.00000" font-size="2.8" text-anchor="start" font-weight="normal">WALL LEFT → G01: 18.462</text>
+<text x="118.00000" y="198.00000" font-size="2.8" text-anchor="start" font-weight="normal">G01 → G02: 26.154</text>
+<text x="10.00000" y="205.50000" font-size="3" text-anchor="start" font-weight="bold">G02</text>
+<text x="35.00000" y="205.50000" font-size="2.8" text-anchor="start" font-weight="normal">G01 → G02: 26.154</text>
+<text x="118.00000" y="205.50000" font-size="2.8" text-anchor="start" font-weight="normal">G02 → G03: 23.077</text>
+<text x="10.00000" y="213.00000" font-size="3" text-anchor="start" font-weight="bold">G03</text>
+<text x="35.00000" y="213.00000" font-size="2.8" text-anchor="start" font-weight="normal">G02 → G03: 23.077</text>
+<text x="118.00000" y="213.00000" font-size="2.8" text-anchor="start" font-weight="normal">G03 → G04: 27.692</text>
+<text x="10.00000" y="220.50000" font-size="3" text-anchor="start" font-weight="bold">G04</text>
+<text x="35.00000" y="220.50000" font-size="2.8" text-anchor="start" font-weight="normal">G03 → G04: 27.692</text>
+<text x="118.00000" y="220.50000" font-size="2.8" text-anchor="start" font-weight="normal">G04 → WALL RIGHT: 15.385</text>
+<text x="10.00000" y="230.00000" font-size="3.1" text-anchor="start" font-weight="bold">VERTICAL / WALL BOTTOM = 0; WALL TOP = 40 mm</text>
+<text x="10.00000" y="237.00000" font-size="2.45" text-anchor="start" font-weight="bold">Opening</text>
+<text x="35.00000" y="237.00000" font-size="2.45" text-anchor="start" font-weight="bold">Width</text>
+<text x="64.00000" y="237.00000" font-size="2.45" text-anchor="start" font-weight="bold">Height</text>
+<text x="95.00000" y="237.00000" font-size="2.45" text-anchor="start" font-weight="bold">Bottom / sill</text>
+<text x="131.00000" y="237.00000" font-size="2.45" text-anchor="start" font-weight="bold">Top from bottom</text>
+<text x="166.00000" y="237.00000" font-size="2.45" text-anchor="start" font-weight="bold">Card above top</text>
+<line x1="10.00000" y1="240.00000" x2="200.00000" y2="240.00000" stroke="#526d66" stroke-width="0.2"/>
+<text x="10.00000" y="246.00000" font-size="2.9" text-anchor="start" font-weight="normal">G01</text>
+<text x="35.00000" y="246.00000" font-size="2.9" text-anchor="start" font-weight="normal">24.615</text>
+<text x="64.00000" y="246.00000" font-size="2.9" text-anchor="start" font-weight="normal">18.462</text>
+<text x="95.00000" y="246.00000" font-size="2.9" text-anchor="start" font-weight="normal">13.846</text>
+<text x="131.00000" y="246.00000" font-size="2.9" text-anchor="start" font-weight="normal">32.308</text>
+<text x="166.00000" y="246.00000" font-size="2.9" text-anchor="start" font-weight="normal">7.692</text>
+<text x="10.00000" y="253.00000" font-size="2.9" text-anchor="start" font-weight="normal">G02</text>
+<text x="35.00000" y="253.00000" font-size="2.9" text-anchor="start" font-weight="normal">9.231</text>
+<text x="64.00000" y="253.00000" font-size="2.9" text-anchor="start" font-weight="normal">9.231</text>
+<text x="95.00000" y="253.00000" font-size="2.9" text-anchor="start" font-weight="normal">23.077</text>
+<text x="131.00000" y="253.00000" font-size="2.9" text-anchor="start" font-weight="normal">32.308</text>
+<text x="166.00000" y="253.00000" font-size="2.9" text-anchor="start" font-weight="normal">7.692</text>
+<text x="10.00000" y="260.00000" font-size="2.9" text-anchor="start" font-weight="normal">G03</text>
+<text x="35.00000" y="260.00000" font-size="2.9" text-anchor="start" font-weight="normal">21.538</text>
+<text x="64.00000" y="260.00000" font-size="2.9" text-anchor="start" font-weight="normal">18.462</text>
+<text x="95.00000" y="260.00000" font-size="2.9" text-anchor="start" font-weight="normal">13.846</text>
+<text x="131.00000" y="260.00000" font-size="2.9" text-anchor="start" font-weight="normal">32.308</text>
+<text x="166.00000" y="260.00000" font-size="2.9" text-anchor="start" font-weight="normal">7.692</text>
+<text x="10.00000" y="267.00000" font-size="2.9" text-anchor="start" font-weight="normal">G04</text>
+<text x="35.00000" y="267.00000" font-size="2.9" text-anchor="start" font-weight="normal">21.538</text>
+<text x="64.00000" y="267.00000" font-size="2.9" text-anchor="start" font-weight="normal">18.462</text>
+<text x="95.00000" y="267.00000" font-size="2.9" text-anchor="start" font-weight="normal">13.846</text>
+<text x="131.00000" y="267.00000" font-size="2.9" text-anchor="start" font-weight="normal">32.308</text>
+<text x="166.00000" y="267.00000" font-size="2.9" text-anchor="start" font-weight="normal">7.692</text>
+<text x="10.00000" y="274.00000" font-size="2.25" text-anchor="start" font-weight="normal">Values shown to 0.001 mm. Existing cutting sheets, geometry and two-sheet cardboard count are unchanged.</text>
+<line x1="10.00000" y1="280.00000" x2="60.00000" y2="280.00000" stroke="#526d66" stroke-width="0.6"/>
+<line x1="10.00000" y1="278.00000" x2="10.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<line x1="60.00000" y1="278.00000" x2="60.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<text x="35.00000" y="286.00000" font-size="2.5" text-anchor="middle" font-weight="normal">50 mm — measure before cutting</text>
+<text x="200.00000" y="280.00000" font-size="2.7" text-anchor="end" font-weight="bold">A4 · Actual size / 100%</text>
+<text x="200.00000" y="286.00000" font-size="2.5" text-anchor="end" font-weight="normal">All dimensions in mm · 1:65 scale</text>
+<text x="10.00000" y="293.00000" font-size="1.8" text-anchor="start" font-weight="normal">Written by gpt-6-astra in Codex on behalf of Edmund</text>
+</svg>

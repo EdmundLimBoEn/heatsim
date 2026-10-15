@@ -1,0 +1,26 @@
+{
+  "version": 1, "id": "open_plan", "name": "Illustrative apartment with open study", "heightM": 2.7, "northDegrees": 0,
+  "rooms": [
+    {"id":"living","label":"Living / dining / kitchen","x":0,"z":3,"widthM":12,"depthM":4},
+    {"id":"bed_a","label":"Bedroom 1","x":0,"z":0,"widthM":4,"depthM":3},
+    {"id":"study","label":"Open study / guest area","x":4,"z":0,"widthM":4,"depthM":3},
+    {"id":"bed_c","label":"Bedroom 2","x":8,"z":0,"widthM":4,"depthM":3}
+  ],
+  "openings": [
+    {"id":"door_a","kind":"door","roomA":"living","roomB":"bed_a","side":"N","offsetM":1.5,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"study_passage","kind":"passage","roomA":"living","roomB":"study","side":"N","offsetM":4.7,"widthM":2.5,"sillM":0,"heightM":2.4},
+    {"id":"door_c","kind":"door","roomA":"living","roomB":"bed_c","side":"N","offsetM":9.5,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"south_a","kind":"window","roomA":"living","roomB":null,"side":"S","offsetM":1.2,"widthM":2.4,"sillM":0.9,"heightM":1.3},
+    {"id":"south_b","kind":"window","roomA":"living","roomB":null,"side":"S","offsetM":8.4,"widthM":2.4,"sillM":0.9,"heightM":1.3},
+    {"id":"east_living","kind":"window","roomA":"living","roomB":null,"side":"E","offsetM":1,"widthM":1.8,"sillM":0.9,"heightM":1.3},
+    {"id":"entry","kind":"door","roomA":"living","roomB":null,"side":"W","offsetM":0.7,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"north_a","kind":"window","roomA":"bed_a","roomB":null,"side":"N","offsetM":1,"widthM":2,"sillM":0.9,"heightM":1.3},
+    {"id":"north_study","kind":"window","roomA":"study","roomB":null,"side":"N","offsetM":1,"widthM":2,"sillM":0.9,"heightM":1.3},
+    {"id":"north_c","kind":"window","roomA":"bed_c","roomB":null,"side":"N","offsetM":1,"widthM":2,"sillM":0.9,"heightM":1.3}
+  ],
+  "devices": [
+    {"id":"fan_living","kind":"fan","roomId":"living"},
+    {"id":"purifier_living","kind":"purifier","roomId":"living"},
+    {"id":"ac_bedroom","kind":"ac","roomId":"bed_c"}
+  ]
+}

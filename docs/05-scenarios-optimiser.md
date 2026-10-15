@@ -193,4 +193,14 @@ CSV records the actual two configurations, shared current environment/corridor, 
 
 The ideal-expansion calculator is independent. It does not change either arm's temperatures or use the main scene's normalized pressure index.
 
+## 6. Contractor Study: three supplied plan options
+
+`src/contractor-comparison.ts` / `src/contractor-worker.ts` compare exactly **three validated plans**, using `createThermalModel(plan)` for each. This is neither the greedy main-apartment optimiser nor Cooling Lab's captured-baseline pair. The input carries a shared brief/weather, initial uniform air/surface temperature and PM2.5, total occupancy and horizon, plus each plan's explicit geometry/openings/devices. Plans need distinct IDs. The same geometry may be copied under separate IDs for configuration comparisons.
+
+Each case has its own state arrays and heat capacities. The worker verifies shared initial numeric conditions and exact elapsed duration, preserves at most **121 trace samples per plan**, and uses the same partial final interval when necessary. The API permits a positive horizon up to **7200 s**; the UI offers 10/20/30 minutes. Cancellation, replacement, error handling and a **30-second timeout** prevent an unfinished run from becoming a completed report.
+
+Recommendations identify the lowest final all-air temperature, lowest final mean PM2.5 and lowest total electricity independently. Ties use **0.1°C**, **1 µg/m³**, and **max(0.1 Wh, 1% of the lowest electricity)**. A shortlist retains options not matched/improved across all three metrics and meaningfully beaten on at least one by another tested option. There is no overall weighted winner or exhaustive optimisation. Different area/equipment counts are disclosed; total Wh and Wh/m² are both retained.
+
+The scope is **one weather case**. Rankings are conditional, and no automated weather-stability analysis is claimed. The handoff preserves actual plan inputs/configurations, model outputs and manually recorded weather provenance. Read [the input, workflow and model guide](contractor-study.md) before presenting the result as a contractor option study. It is a noncommercial hackathon demonstration of a future pre-design workflow, not certified engineering advice or an implemented licensing business.
+
 Written by gpt-6-astra in Codex on behalf of Edmund

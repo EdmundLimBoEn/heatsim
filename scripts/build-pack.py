@@ -407,11 +407,91 @@ def table(headers,rows):
 wall_table=table(['ID','Panel','Cut length × height','Card','Mark length'],[(p['id'],p['name'].removeprefix('wall_').replace('_',' '),f"{p['length_mm']:.3f} × 40",f"{p['thickness_mm']:g}",f"{p['practical_length_mm']:.1f}") for p in walls])
 opening_table=table(['ID','Wall','L offset','Gap before','Width','Height','Sill','R after'],opening_measurement_rows)
 room_table=table(['Room','Source rectangle in model','Real area'],[(r['name'].replace('_',' '),f"{r['width_mm']:.2f} × {r['depth_mm']:.2f} mm",f"{r['source_area_m2']:.2f} m²") for r in rooms])
+
+measurement_pages=[]
+for p in walls:
+    ops=sorted((o for o in openings if o['wall_id']==p['id']),key=lambda o:o['offset_mm'])
+    if not ops:
+        continue
+    s=SVG(f'{p["id"]} — absolute and relative opening measurements')
+    orientation='Viewed from SOUTH, facing north. LEFT is WEST; RIGHT is EAST.' if p['axis']=='x' else 'Viewed from WEST, facing east. LEFT is NORTH; RIGHT is SOUTH.'
+    header(s,f"{p['id']} / {p['name'].removeprefix('wall_').replace('_',' ')}",'Measurement instructions only · all mm · extra PAPER, not extra cardboard')
+    s.text(10,33,orientation,2.7,weight='bold')
+    s.text(10,39,'Use the wall panel edges as your ruler references. Do not mirror or alter any existing cuts.',2.6)
+    x,y=10,53
+    s.text(x,48,'WALL LEFT = 0',2.7,weight='bold')
+    right_edge=x+p['length_mm']
+    right_anchor='end' if p['length_mm']>=80 else 'start'
+    s.text(right_edge,48,f"WALL RIGHT = {p['length_mm']:.3f}",2.7,right_anchor,weight='bold')
+    s.line(right_edge,49,right_edge,y,'#146a62',.35)
+    s.rect(x,y,p['length_mm'],H,fill='#f8faf8',stroke='#17332e',sw=.3)
+    s.line(x,y-2,x,y+H+3,'#146a62',.5)
+    records=[]
+    for i,o in enumerate(ops):
+        left=o['offset_mm'];right=left+o['width_mm']
+        previous=ops[i-1]['offset_mm']+ops[i-1]['width_mm'] if i else 0
+        following=ops[i+1]['offset_mm'] if i+1<len(ops) else p['length_mm']
+        bottom=o['sill_mm'];top=bottom+o['height_mm']
+        before=left-previous;after=following-right;right_end=p['length_mm']-right;above=H-top
+        assert min(before,after,above)>=-1e-8
+        assert math.isclose(left+o['width_mm']+right_end,p['length_mm'])
+        assert math.isclose(bottom+o['height_mm']+above,H)
+        px,py=x+left,y+H-top
+        s.rect(px,py,o['width_mm'],o['height_mm'],fill='white',stroke='#2273a1' if o['kind']=='window' else '#a8552b',sw=.3)
+        s.text(px+o['width_mm']/2,py+o['height_mm']/2+1,o['id'],3.1,'middle',weight='bold')
+        s.line(px,y+H,px,y+H+4,'#146a62',.2)
+        s.line(x+right,y+H,x+right,y+H+12,'#a8552b',.2)
+        s.text(px,y+H+8,f'{left:.3f}',2.7,'middle')
+        s.text(x+right,y+H+16,f'{right:.3f}',2.7,'middle')
+        records.append(dict(id=o['id'],left=left,right=right,right_end=right_end,before=before,after=after,
+                            previous=ops[i-1]['id'] if i else 'WALL LEFT',following=ops[i+1]['id'] if i+1<len(ops) else 'WALL RIGHT',
+                            width=o['width_mm'],height=o['height_mm'],bottom=bottom,top=top,above=above))
+    s.text(10,118,'Upper numbers: opening LEFT edges from 0. Lower numbers: opening RIGHT edges from 0.',2.55)
+    s.text(10,125,'ABSOLUTE / ruler starts at the WALL LEFT edge (0)',3.1,weight='bold')
+    for cx,label in zip([10,35,88,144],['Opening','Left edge from 0','Right edge from 0','Right edge to WALL RIGHT']):
+        s.text(cx,132,label,2.5,weight='bold')
+    s.line(10,135,200,135,sw=.2)
+    for row,r in enumerate(records):
+        for cx,value in zip([10,35,88,144],[r['id'],f"{r['left']:.3f}",f"{r['right']:.3f}",f"{r['right_end']:.3f}"]):
+            s.text(cx,141+row*7.5,value,3)
+    s.text(10,174,'The right-end distance may pass other openings; it is not the adjacent clear gap.',2.45)
+    s.text(10,182,'RELATIVE / clear cardboard between the named edges',3.1,weight='bold')
+    s.text(10,189,'Opening',2.5,weight='bold');s.text(35,189,'Gap BEFORE this opening',2.5,weight='bold');s.text(118,189,'Gap AFTER this opening',2.5,weight='bold')
+    s.line(10,192,200,192,sw=.2)
+    for row,r in enumerate(records):
+        ry=198+row*7.5
+        s.text(10,ry,r['id'],3,weight='bold')
+        s.text(35,ry,f"{r['previous']} → {r['id']}: {r['before']:.3f}",2.8)
+        s.text(118,ry,f"{r['id']} → {r['following']}: {r['after']:.3f}",2.8)
+    s.text(10,230,'VERTICAL / WALL BOTTOM = 0; WALL TOP = 40 mm',3.1,weight='bold')
+    for cx,label in zip([10,35,64,95,131,166],['Opening','Width','Height','Bottom / sill','Top from bottom','Card above top']):
+        s.text(cx,237,label,2.45,weight='bold')
+    s.line(10,240,200,240,sw=.2)
+    for row,r in enumerate(records):
+        for cx,value in zip([10,35,64,95,131,166],[r['id'],*[f"{r[k]:.3f}" for k in ['width','height','bottom','top','above']]]):
+            s.text(cx,246+row*7,value,2.9)
+    s.text(10,274,'Values shown to 0.001 mm. Existing cutting sheets, geometry and two-sheet cardboard count are unchanged.',2.25)
+    footer(s)
+    filename=f"wall-measurements-{p['id']}.svg"
+    svg=s.save(OUT/filename)
+    measurement_pages.append((p,filename,svg,records))
+
+measurement_style='''*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#17332e;background:#f1f3ed}header,nav{max-width:940px;margin:24px auto;padding:0 24px}h1{font-size:32px;line-height:1.15}p{line-height:1.6}nav{display:flex;flex-wrap:wrap;gap:10px}a,button{color:#145b45;font:inherit}nav a,button{background:white;border:1px solid #b4c6bb;padding:10px 14px;border-radius:4px;text-decoration:none;cursor:pointer}.sheet{width:210mm;max-width:100%;margin:24px auto;background:white;box-shadow:0 5px 24px #132a2212}.sheet svg{display:block;width:100%;height:auto}.notice{padding:16px;background:#fff5d9;border-left:4px solid #b47c2b}@page{size:A4;margin:0}@media print{body{background:white}header,nav{display:none}.sheet{width:210mm;height:297mm;max-width:none;margin:0;box-shadow:none;break-after:page}.sheet:last-child{break-after:auto}.sheet svg{width:210mm;height:297mm}}'''
+guide='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HeatSim — clear wall measurements</title><style>'+measurement_style+'</style></head><body>'
+guide+='''<header><p>HEATSIM / BUILD CREW</p><h1>Measure each opening from the wall edges.</h1><p><strong>Absolute:</strong> put the ruler’s zero at the wall panel’s left end. Read both the opening’s left and right edges. <strong>Relative:</strong> measure only the clear cardboard gap from one opening’s right edge to the next opening’s left edge. At the ends, measure from/to the wall edge.</p><p><strong>Vertical:</strong> put zero at the wall panel’s bottom. “Bottom / sill” and “Top from bottom” locate both horizontal cut lines. “Card above top” is the remaining strip below the wall’s top.</p><p class="notice"><strong>The cardboard already cut remains correct.</strong> These nine pages are paper instructions, not additional stock. Every old cutting template and dimension is unchanged: still two A4 sheets of 3 mm cardboard and no roof.</p><p>Read the viewing direction printed on each wall page; do not mirror it. All numbers are millimetres, shown to 0.001 mm. Print only the wall pages you need, or print this whole guide.</p><button onclick="window.print()">Print measurement instructions</button> <a href="index.html">Back to the complete build pack</a></header><nav>'''
+example=measurement_pages[0][3][0]
+example_text=f'<p><strong>Worked example — G01 on W01:</strong> put your ruler at the wall’s left end. The window begins at <strong>{example["left"]:.3f} mm</strong> and ends at <strong>{example["right"]:.3f} mm</strong>. The clear cardboard from G01’s right edge to G02’s left edge is <strong>{example["after"]:.3f} mm</strong>. Measured up from the wall bottom, the window begins at <strong>{example["bottom"]:.3f} mm</strong> and ends at <strong>{example["top"]:.3f} mm</strong>.</p>'
+guide=guide.replace('<button onclick="window.print()">',example_text+'<button onclick="window.print()">',1)
+guide+=''.join(f'<a href="{filename}" download>{p["id"]} · {p["name"].removeprefix("wall_").replace("_"," ")}</a>' for p,filename,_,_ in measurement_pages)
+guide+='</nav>'+''.join('<div class="sheet">'+svg+'</div>' for _,_,svg,_ in measurement_pages)+'</body></html>'
+(OUT/'measurement-guide.html').write_text(guide)
+
 links=[('heatsim-build-pack.zip','Download complete pack ZIP'),('floor-plan.svg','Floor plan · A4 1:1'),('all-walls-stock.svg','Annotated wall stock · A4'),('wall-templates-1.svg','Wall elevations 1 · W01–W04'),('wall-templates-2.svg','Wall elevations 2 · W05–W08'),('wall-templates-3.svg','Wall elevations 3 · W09–W12'),('wall-templates-4.svg','Opening measurements · sheet 4'),('door-window-leaves.svg','Door / window leaves'),('cut-list.csv','Wall dimensions CSV'),('openings.csv','Opening dimensions CSV'),('control-map.csv','Control map CSV'),('dimensions.json','All dimensions JSON'),('optional-furniture.csv','Optional furniture CSV'),('devices.csv','Device envelopes CSV'),('README.md','Builder notes')]
 page='''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HeatSim — physical build pack</title><style>
 *{box-sizing:border-box}html{font-family:Arial,Helvetica,sans-serif;color:#17332e;background:#f1f3ed}body{margin:0}main{max-width:1160px;margin:auto;padding:48px 32px}a{color:#145b45}h1{font-size:clamp(32px,5vw,62px);letter-spacing:-2px;margin:10px 0 18px;line-height:1.02}h2{margin:0 0 16px;font-size:26px;letter-spacing:-.6px}h3{font-size:18px}.eyebrow{letter-spacing:2px;font-size:12px;font-weight:700}.lead{font-size:19px;line-height:1.5;max-width:760px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0}.metric{background:#17332e;color:white;padding:22px}.metric strong{display:block;font-size:28px;margin-bottom:8px}.metric span{font-size:13px;color:#cdded5}.note{padding:20px;background:#fff5d9;border-left:4px solid #b47c2b;line-height:1.6}.downloads{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}.downloads a,button{border:1px solid #b4c6bb;background:white;padding:12px 15px;border-radius:4px;font:inherit;text-decoration:none;cursor:pointer}button{background:#174e3c;color:white;border-color:#174e3c;font-weight:700}section{margin-top:36px;background:#fff;padding:28px;break-inside:avoid}.sheet{width:210mm;max-width:100%;margin:auto;box-shadow:0 5px 24px #132a2212;background:white}.sheet svg{display:block;width:100%;height:auto}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.4}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:#eaf0eb}th,td{padding:10px 9px;border-bottom:1px solid #e1e7e2}td:nth-child(n+3){font-variant-numeric:tabular-nums;white-space:nowrap}li{margin:8px 0;line-height:1.55}.small{font-size:13px;color:#546b60;line-height:1.6}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}.print-only{display:none}.template{margin-top:32px}footer{font-size:12px;color:#546b60;margin-top:28px} @media(max-width:700px){main{padding:24px 16px}.metrics{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}section{padding:18px}.metric strong{font-size:25px}}@page{size:A4;margin:0}@media print{html{background:white}main{padding:0;max-width:none}.screen-only{display:none}.print-only{display:block}.sheet{box-shadow:none;max-width:none;width:210mm;height:297mm;break-before:page;break-after:page;margin:0}.sheet:first-child{break-before:auto}.sheet.template{margin-top:0}.sheet svg{width:210mm;height:297mm}.print-notes{padding:12mm;break-before:page}section{margin:0;padding:12mm;background:white}table{font-size:10px}th,td{padding:6px}h2{font-size:20px}.table-wrap{overflow:visible}}
 </style></head><body><main>'''
 page+='''<div class="screen-only"><div class="eyebrow">HEATSIM / BUILDER HANDOFF / 1:65</div><h1>One flat.<br>Two sheets of cardboard.</h1><p class="lead">The complete physical model fits on your A4 base. Start with the floor plan, then cut all 13 walls from one extra sheet of 3 mm card. The layout follows the digital apartment, with butt joints and one doorway adjusted for the thicker physical card.</p><div class="metrics"><div class="metric"><strong>187.69 × 118.46 mm</strong><span>Outside building footprint · fits 200 × 150 mm</span></div><div class="metric"><strong>40 mm</strong><span>Wall height · 13 panels · 20 moving openings</span></div><div class="metric"><strong>1 extra A4 sheet</strong><span>Existing 3 mm base + 3 mm wall stock · no roof</span></div></div><div class="note"><strong>Print at 100% / Actual size.</strong> Disable “Fit to page” and browser headers/footers, and measure the 50 mm calibration bar. The two-sheet cardboard count is base + all walls, with no roof. Reuse the cutout scraps for moving leaves. Paper templates, tape and hardware are separate.</div><div class="downloads"><button onclick="window.print()">Print templates &amp; schedules</button>'''
+page+='<a href="measurement-guide.html"><strong>Start here: absolute + relative opening measurements</strong></a>'
 page+=''.join(f'<a href="{name}" download>{label}</a>' for name,label in links)+'</div></div>'
 page+='<div class="sheet">'+(OUT/'floor-plan.svg').read_text()+'</div>'
 page+='''<section class="screen-only"><h2>Get the material right</h2><div class="grid2"><div><h3>Exactly 2 A4 sheets total</h3><ul><li><strong>1 existing A4 base</strong> — 210 × 297 mm. Use your existing 3 mm cardboard.</li><li><strong>1 extra A4 of 3 mm card</strong> — all 13 walls in six rows.</li><li><strong>No roof.</strong> Reuse wall cutouts for moving door/window leaves.</li></ul><p class="small">The nesting layout keeps 10 mm outer margins, 2 mm horizontal cut gaps and 5 mm between rows. No other cardboard thickness is required. Use tape hinges; optional furniture can use scraps.</p></div><div><h3>Check the real electronics first</h3><p class="small">SSTuino is planned but the board is not yet available. The user has listed servos, limit switches and buttons for door/window control; physical fitting is pending. A 190 × 65 mm removable electronics area is reserved on the A4 base. This is a space allowance, not a hardware mounting template.</p><p class="small"><strong>Do not cut servo, button or board holes before measuring the actual parts.</strong> Pins, channels, power and mounting dimensions are not defined by this mechanical pack. The app’s 11 fan/AC/purifier controls are software controls; they do not demand 11 extra physical switches.</p></div></div></section>'''

@@ -93,6 +93,14 @@ This boundary is sheltered from the façade wind drive: gauge pressure is **zero
 
 The model's default comparison horizon is **1200 seconds (20 minutes)**. [Doc 05](05-scenarios-optimiser.md) describes the quick fan-off/on and captured baseline/candidate worker modes, shared conditions and result signs. [CHECKLIST](../CHECKLIST.md) records checks for this extension separately from the earlier planar engine. Conservation tests establish numerical consistency only, not calibration or experimental validity.
 
+### Contractor Study: plan-specific instances
+
+`createThermalModel(plan)` reuses the room/layer heat-balance formulation with **validated imported geometry**. Room area/volume, half-height layers, shared-wall conduction, exposed façades, opening topology and room devices derive from that plan. There is no default HDB fan adapter or inherited HDB portable-device placement. Each instance binds its state to its own normalized plan; the original canonical model remains separate.
+
+The three-plan study shares outdoor conditions, uniform initial air/surface temperature and PM2.5, total people count and simulated duration. Different room counts and volumes have different state sizes and heat capacities, so this is a comparison of options under matched conditions, not necessarily a single-intervention causal experiment. Imported-plan fans/purifiers/AC are additive by room, with illustrative coefficients. Cardinal wind directions are geographic FROM directions; `northDegrees` rotates local façades. The inherited scenario still determines assumed sun exposure, with shared hour scaling it.
+
+[Contractor Study](contractor-study.md) specifies JSON fields, sample plans, validation, device assumptions and opening-flow interpretation. This is not an arbitrary-CAD solver, resolved CFD or compliance validation. The original 90 m² / 234 m³ HDB dimensions above apply only to the canonical workspaces, not imported plans.
+
 ### Educational pressure–temperature calculator
 
 The calculator applies the ideal-gas isentropic relation using **303 K** and **101325 Pa absolute** with a hypothetical pressure drop. The UI varies that drop and overall fan efficiency; its separate fan-work example fixes flow at **180 m³/h**. Its ideal static-temperature change is displayed outside both room solvers. It is not predicted room cooling, a fan outlet specification or a use of the main scene's normalized pressure index. [Fan thermodynamics](fan-thermodynamics.md) explains fan work, mixing and the calculation's assumptions; [cooling science](cooling-science.md) separates ventilation, conduction, solar gain and personal comfort.

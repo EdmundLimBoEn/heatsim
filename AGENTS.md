@@ -5,8 +5,8 @@ You are building **HeatSim**: a live 3D toy-CFD of heat and haze in a 4-room HDB
 Hard deadline: **code freeze Thu 15 Oct 2026, 16:00 SGT.** Prefer working and simple over complete and clever.
 
 ## Non-negotiables
-1. **No sensors.** No PSI, PM2.5 or temperature hardware and no live NEA API. Heat and haze come from scenario presets (doc 05).
-2. **The sim reads only `assets/hdb-3d/hdb_4room_boxes.json` for geometry.** The GLB is visual only.
+1. **No sensors.** No PSI, PM2.5 or temperature hardware and no live NEA API. Heat and haze come from scenario presets or explicit manual conditions (doc 05). Contractor Study may show an attributed official Windy reference-map embed for this noncommercial hackathon demo, with an external-link fallback. Simulation weather remains manually entered with provenance; do not scrape the map, auto-import forecasts, or add a weather API.
+2. **The original Flat simulation, Cooling Lab and cardboard pack read only `assets/hdb-3d/hdb_4room_boxes.json` for geometry.** The GLB is visual only. **User-authorized Contractor Study exception:** the separate Contractor Study may use validated metre-based JSON containing axis-aligned rooms and explicit openings, including its three bundled examples. Its model must derive geometry from that validated plan, not substitute the canonical HDB geometry. Imported plans must not modify the original workspaces, hardware mapping or physical pack. No automatic PDF/image interpretation is authorized or implemented; see `docs/contractor-study.md` for the supported contract.
 3. Call it a **qualitative "toy CFD"** in the UI (About box, the "SIMULATED" tags). Never claim accuracy.
 4. Every hardware input is also reachable by keyboard and on-screen controls (doc 03 keyboard map).
 5. The live demo must never freeze: NaN watchdog, serial disconnect handling, worker errors caught.
@@ -105,3 +105,5 @@ Parallel tracks that don't block each other: **(1) sim core** (M2–M3), **(2) r
 - Clamp and guard everything that comes from serial (ranges in doc 04).
 - Small commits with clear messages. Keep `main` runnable after 15:00. Put stretch work on branches.
 - If something in the docs is marked **[U]**, verify it (a tiny test) before depending on it, and update the tag to **[V]** with a note.
+
+Written by gpt-6-astra in Codex on behalf of Edmund

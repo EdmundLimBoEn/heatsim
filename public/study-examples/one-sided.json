@@ -1,0 +1,22 @@
+{
+  "version": 1, "id": "one_sided", "name": "Illustrative one-sided apartment", "heightM": 2.7, "northDegrees": 0,
+  "rooms": [
+    {"id":"living","label":"Living / dining / kitchen","x":3.6,"z":0,"widthM":5.4,"depthM":8},
+    {"id":"bed_a","label":"Bedroom 1","x":0,"z":0,"widthM":3.6,"depthM":3},
+    {"id":"bed_b","label":"Bedroom 2","x":0,"z":3,"widthM":3.6,"depthM":2.5},
+    {"id":"bed_c","label":"Bedroom 3","x":0,"z":5.5,"widthM":3.6,"depthM":2.5}
+  ],
+  "openings": [
+    {"id":"door_a","kind":"door","roomA":"living","roomB":"bed_a","side":"W","offsetM":1,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"door_b","kind":"door","roomA":"living","roomB":"bed_b","side":"W","offsetM":3.7,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"door_c","kind":"door","roomA":"living","roomB":"bed_c","side":"W","offsetM":6.2,"widthM":0.9,"sillM":0,"heightM":2.1},
+    {"id":"east_a","kind":"window","roomA":"living","roomB":null,"side":"E","offsetM":0.8,"widthM":1.8,"sillM":0.9,"heightM":1.3},
+    {"id":"east_b","kind":"window","roomA":"living","roomB":null,"side":"E","offsetM":5.3,"widthM":1.8,"sillM":0.9,"heightM":1.3},
+    {"id":"entry","kind":"door","roomA":"living","roomB":null,"side":"E","offsetM":3.3,"widthM":0.9,"sillM":0,"heightM":2.1}
+  ],
+  "devices": [
+    {"id":"fan_living","kind":"fan","roomId":"living"},
+    {"id":"purifier_living","kind":"purifier","roomId":"living"},
+    {"id":"ac_bedroom","kind":"ac","roomId":"bed_c"}
+  ]
+}

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297">
+<title>Wall elevation templates 3 / 4</title>
+<rect width="210" height="297" fill="white"/>
+<style>text{font-family:Arial,sans-serif;fill:#17332e}</style>
+<text x="10.00000" y="12.00000" font-size="3" text-anchor="start" font-weight="bold">HEATSIM / PHYSICAL BUILD</text>
+<text x="10.00000" y="21.00000" font-size="5" text-anchor="start" font-weight="bold">Wall elevations / 3 of 4</text>
+<text x="10.00000" y="27.00000" font-size="2.6" text-anchor="start" font-weight="normal">Actual-size templates. Left = west/north. Coloured holes are removed; magenta marks hinge edge.</text>
+<text x="10.00000" y="37.00000" font-size="2.7" text-anchor="start" font-weight="normal">masterbath commonbath / 3 mm card</text>
+<rect x="10.00000" y="40.00000" width="24.69231" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="43.20000" font-size="2.1" text-anchor="start" font-weight="bold">W09 · 24.69 × 40</text>
+<line x1="10.00000" y1="81.00000" x2="15.00000" y2="81.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="85.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 24.6923 mm; mark 24.7 mm. Height 40 mm.</text>
+<text x="10.00000" y="92.00000" font-size="2.7" text-anchor="start" font-weight="normal">kitchen corridor / 3 mm card</text>
+<rect x="10.00000" y="95.00000" width="60.11538" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="98.20000" font-size="2.1" text-anchor="start" font-weight="bold">W10 · 60.12 × 40</text>
+<rect x="10.03846" y="102.69231" width="12.30769" height="32.30769" fill="#fff" stroke="#a8552b" stroke-width="0.2" stroke-dasharray=""/>
+<text x="16.19231" y="118.84615" font-size="2.4" text-anchor="middle" font-weight="bold">D07</text>
+<line x1="10.03846" y1="103.69231" x2="10.03846" y2="134.00000" stroke="#b3518d" stroke-width="0.55"/>
+<line x1="10.00000" y1="136.00000" x2="15.00000" y2="136.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="140.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 60.1154 mm; mark 60.1 mm. Height 40 mm.</text>
+<text x="10.00000" y="147.00000" font-size="2.7" text-anchor="start" font-weight="normal">kitchen yard / 3 mm card</text>
+<rect x="10.00000" y="150.00000" width="40.11538" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="153.20000" font-size="2.1" text-anchor="start" font-weight="bold">W11 · 40.12 × 40</text>
+<rect x="23.92308" y="157.69231" width="12.30769" height="32.30769" fill="#fff" stroke="#a8552b" stroke-width="0.2" stroke-dasharray=""/>
+<text x="30.07692" y="173.84615" font-size="2.4" text-anchor="middle" font-weight="bold">D08</text>
+<line x1="23.92308" y1="158.69231" x2="23.92308" y2="189.00000" stroke="#b3518d" stroke-width="0.55"/>
+<line x1="10.00000" y1="191.00000" x2="15.00000" y2="191.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="195.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 40.1154 mm; mark 40.1 mm. Height 40 mm.</text>
+<text x="10.00000" y="202.00000" font-size="2.7" text-anchor="start" font-weight="normal">shelter north / 3 mm card</text>
+<rect x="10.00000" y="205.00000" width="24.61538" height="40.00000" fill="#fbfbf8" stroke="#17332e" stroke-width="0.2" stroke-dasharray=""/>
+<text x="11.00000" y="208.20000" font-size="2.1" text-anchor="start" font-weight="bold">W12 · 24.62 × 40</text>
+<rect x="14.65385" y="212.69231" width="12.30769" height="32.30769" fill="#fff" stroke="#a8552b" stroke-width="0.2" stroke-dasharray=""/>
+<text x="20.80769" y="228.84615" font-size="2.4" text-anchor="middle" font-weight="bold">D09</text>
+<line x1="26.96154" y1="213.69231" x2="26.96154" y2="244.00000" stroke="#b3518d" stroke-width="0.55"/>
+<line x1="10.00000" y1="246.00000" x2="15.00000" y2="246.00000" stroke="#17332e" stroke-width="0.25"/>
+<text x="10.00000" y="250.00000" font-size="2.3" text-anchor="start" font-weight="normal">Length 24.6154 mm; mark 24.6 mm. Height 40 mm.</text>
+<line x1="10.00000" y1="280.00000" x2="60.00000" y2="280.00000" stroke="#526d66" stroke-width="0.6"/>
+<line x1="10.00000" y1="278.00000" x2="10.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<line x1="60.00000" y1="278.00000" x2="60.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<text x="35.00000" y="286.00000" font-size="2.5" text-anchor="middle" font-weight="normal">50 mm — measure before cutting</text>
+<text x="200.00000" y="280.00000" font-size="2.7" text-anchor="end" font-weight="bold">A4 · Actual size / 100%</text>
+<text x="200.00000" y="286.00000" font-size="2.5" text-anchor="end" font-weight="normal">All dimensions in mm · 1:65 scale</text>
+<text x="10.00000" y="293.00000" font-size="1.8" text-anchor="start" font-weight="normal">Written by gpt-6-astra in Codex on behalf of Edmund</text>
+</svg>

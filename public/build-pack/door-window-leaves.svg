@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297">
+<title>Door and window leaf templates — reuse 3 mm wall cutouts</title>
+<rect width="210" height="297" fill="white"/>
+<style>text{font-family:Arial,sans-serif;fill:#17332e}</style>
+<text x="10.00000" y="12.00000" font-size="3" text-anchor="start" font-weight="bold">HEATSIM / PHYSICAL BUILD</text>
+<text x="10.00000" y="21.00000" font-size="5" text-anchor="start" font-weight="bold">Movable leaves / tape hinges</text>
+<text x="10.00000" y="27.00000" font-size="2.6" text-anchor="start" font-weight="normal">Reuse 3 mm cutouts. Doors: trim 0.75 mm per side; windows: 0.25 mm. Top/bottom: 0.25 mm.</text>
+<text x="10.00000" y="37.00000" font-size="2.3" text-anchor="start" font-weight="bold">G01 / W01 / lift-out</text>
+<rect x="10.00000" y="40.00000" width="24.11538" height="17.96154" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="10.00000" y="61.96154" font-size="2.2" text-anchor="start" font-weight="normal">24.12 × 17.96</text>
+<text x="58.00000" y="37.00000" font-size="2.3" text-anchor="start" font-weight="bold">G02 / W01 / lift-out</text>
+<rect x="58.00000" y="40.00000" width="8.73077" height="8.73077" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="58.00000" y="52.73077" font-size="2.2" text-anchor="start" font-weight="normal">8.73 × 8.73</text>
+<text x="106.00000" y="37.00000" font-size="2.3" text-anchor="start" font-weight="bold">G03 / W01 / lift-out</text>
+<rect x="106.00000" y="40.00000" width="21.03846" height="17.96154" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="106.00000" y="61.96154" font-size="2.2" text-anchor="start" font-weight="normal">21.04 × 17.96</text>
+<text x="154.00000" y="37.00000" font-size="2.3" text-anchor="start" font-weight="bold">G04 / W01 / lift-out</text>
+<rect x="154.00000" y="40.00000" width="21.03846" height="17.96154" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="154.00000" y="61.96154" font-size="2.2" text-anchor="start" font-weight="normal">21.04 × 17.96</text>
+<text x="10.00000" y="82.00000" font-size="2.3" text-anchor="start" font-weight="bold">G05 / W02 / lift-out</text>
+<rect x="10.00000" y="85.00000" width="21.03846" height="17.96154" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="10.00000" y="106.96154" font-size="2.2" text-anchor="start" font-weight="normal">21.04 × 17.96</text>
+<text x="58.00000" y="82.00000" font-size="2.3" text-anchor="start" font-weight="bold">D01 / W02 / hinge west</text>
+<rect x="58.00000" y="85.00000" width="12.34615" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="58.00000" y1="85.00000" x2="58.00000" y2="116.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="58.00000" y="120.80769" font-size="2.2" text-anchor="start" font-weight="normal">12.35 × 31.81</text>
+<text x="106.00000" y="82.00000" font-size="2.3" text-anchor="start" font-weight="bold">G06 / W02 / lift-out</text>
+<rect x="106.00000" y="85.00000" width="24.11538" height="25.65385" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="106.00000" y="114.65385" font-size="2.2" text-anchor="start" font-weight="normal">24.12 × 25.65</text>
+<text x="154.00000" y="82.00000" font-size="2.3" text-anchor="start" font-weight="bold">G07 / W02 / lift-out</text>
+<rect x="154.00000" y="85.00000" width="24.11538" height="25.65385" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="154.00000" y="114.65385" font-size="2.2" text-anchor="start" font-weight="normal">24.12 × 25.65</text>
+<text x="10.00000" y="127.00000" font-size="2.3" text-anchor="start" font-weight="bold">G08 / W03 / lift-out</text>
+<rect x="10.00000" y="130.00000" width="17.96154" height="17.96154" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="10.00000" y="151.96154" font-size="2.2" text-anchor="start" font-weight="normal">17.96 × 17.96</text>
+<text x="58.00000" y="127.00000" font-size="2.3" text-anchor="start" font-weight="bold">G09 / W03 / lift-out</text>
+<rect x="58.00000" y="130.00000" width="17.96154" height="14.88462" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="58.00000" y="148.88462" font-size="2.2" text-anchor="start" font-weight="normal">17.96 × 14.88</text>
+<text x="106.00000" y="127.00000" font-size="2.3" text-anchor="start" font-weight="bold">G10 / W04 / lift-out</text>
+<rect x="106.00000" y="130.00000" width="14.88462" height="17.96154" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="106.00000" y="151.96154" font-size="2.2" text-anchor="start" font-weight="normal">14.88 × 17.96</text>
+<text x="154.00000" y="127.00000" font-size="2.3" text-anchor="start" font-weight="bold">G11 / W04 / lift-out</text>
+<rect x="154.00000" y="130.00000" width="17.96154" height="25.65385" fill="none" stroke="#2273a1" stroke-width="0.25" stroke-dasharray=""/>
+<text x="154.00000" y="159.65385" font-size="2.2" text-anchor="start" font-weight="normal">17.96 × 25.65</text>
+<text x="10.00000" y="172.00000" font-size="2.3" text-anchor="start" font-weight="bold">D02 / W05 / hinge west</text>
+<rect x="10.00000" y="175.00000" width="10.07692" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="10.00000" y1="175.00000" x2="10.00000" y2="206.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="10.00000" y="210.80769" font-size="2.2" text-anchor="start" font-weight="normal">10.08 × 31.81</text>
+<text x="58.00000" y="172.00000" font-size="2.3" text-anchor="start" font-weight="bold">D03 / W05 / hinge west</text>
+<rect x="58.00000" y="175.00000" width="9.26923" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="58.00000" y1="175.00000" x2="58.00000" y2="206.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="58.00000" y="210.80769" font-size="2.2" text-anchor="start" font-weight="normal">9.27 × 31.81</text>
+<text x="106.00000" y="172.00000" font-size="2.3" text-anchor="start" font-weight="bold">D04 / W05 / hinge west</text>
+<rect x="106.00000" y="175.00000" width="10.80769" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="106.00000" y1="175.00000" x2="106.00000" y2="206.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="106.00000" y="210.80769" font-size="2.2" text-anchor="start" font-weight="normal">10.81 × 31.81</text>
+<text x="154.00000" y="172.00000" font-size="2.3" text-anchor="start" font-weight="bold">D05 / W05 / hinge west</text>
+<rect x="154.00000" y="175.00000" width="10.80769" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="154.00000" y1="175.00000" x2="154.00000" y2="206.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="154.00000" y="210.80769" font-size="2.2" text-anchor="start" font-weight="normal">10.81 × 31.81</text>
+<text x="10.00000" y="217.00000" font-size="2.3" text-anchor="start" font-weight="bold">D06 / W06 / hinge north</text>
+<rect x="10.00000" y="220.00000" width="9.26923" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="10.00000" y1="220.00000" x2="10.00000" y2="251.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="10.00000" y="255.80769" font-size="2.2" text-anchor="start" font-weight="normal">9.27 × 31.81</text>
+<text x="58.00000" y="217.00000" font-size="2.3" text-anchor="start" font-weight="bold">D07 / W10 / hinge north</text>
+<rect x="58.00000" y="220.00000" width="10.80769" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="58.00000" y1="220.00000" x2="58.00000" y2="251.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="58.00000" y="255.80769" font-size="2.2" text-anchor="start" font-weight="normal">10.81 × 31.81</text>
+<text x="106.00000" y="217.00000" font-size="2.3" text-anchor="start" font-weight="bold">D08 / W11 / hinge west</text>
+<rect x="106.00000" y="220.00000" width="10.80769" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="106.00000" y1="220.00000" x2="106.00000" y2="251.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="106.00000" y="255.80769" font-size="2.2" text-anchor="start" font-weight="normal">10.81 × 31.81</text>
+<text x="154.00000" y="217.00000" font-size="2.3" text-anchor="start" font-weight="bold">D09 / W12 / hinge east</text>
+<rect x="154.00000" y="220.00000" width="10.80769" height="31.80769" fill="none" stroke="#a8552b" stroke-width="0.25" stroke-dasharray=""/>
+<line x1="164.80769" y1="220.00000" x2="164.80769" y2="251.80769" stroke="#b3518d" stroke-width="0.6"/>
+<text x="154.00000" y="255.80769" font-size="2.2" text-anchor="start" font-weight="normal">10.81 × 31.81</text>
+<line x1="10.00000" y1="280.00000" x2="60.00000" y2="280.00000" stroke="#526d66" stroke-width="0.6"/>
+<line x1="10.00000" y1="278.00000" x2="10.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<line x1="60.00000" y1="278.00000" x2="60.00000" y2="282.00000" stroke="#526d66" stroke-width="0.4"/>
+<text x="35.00000" y="286.00000" font-size="2.5" text-anchor="middle" font-weight="normal">50 mm — measure before cutting</text>
+<text x="200.00000" y="280.00000" font-size="2.7" text-anchor="end" font-weight="bold">A4 · Actual size / 100%</text>
+<text x="200.00000" y="286.00000" font-size="2.5" text-anchor="end" font-weight="normal">All dimensions in mm · 1:65 scale</text>
+<text x="10.00000" y="293.00000" font-size="1.8" text-anchor="start" font-weight="normal">Written by gpt-6-astra in Codex on behalf of Edmund</text>
+</svg>

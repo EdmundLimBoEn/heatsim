@@ -1,0 +1,21 @@
+id,name,kind,wall_id,wall_name,offset_mm,width_mm,height_mm,source_width_mm,physical_adjustment,sill_mm,leaf_width_mm,leaf_height_mm,hardware_channel,movement,exterior,hinge_side
+G01,window_master_1,window,W01,wall_ext_north,18.4615,24.6154,18.4615,24.6154,,13.8462,24.1154,17.9615,,lift-out first; optional sliding rail after measuring hardware,True,west
+G02,window_master_bath,window,W01,wall_ext_north,69.2308,9.2308,9.2308,9.2308,,23.0769,8.7308,8.7308,,lift-out first; optional sliding rail after measuring hardware,True,west
+G03,window_bedroom2_1,window,W01,wall_ext_north,101.5385,21.5385,18.4615,21.5385,,13.8462,21.0385,17.9615,,lift-out first; optional sliding rail after measuring hardware,True,west
+G04,window_bedroom3_1,window,W01,wall_ext_north,150.7692,21.5385,18.4615,21.5385,,13.8462,21.0385,17.9615,WIN1,lift-out first; optional sliding rail after measuring hardware,True,west
+G05,window_service_yard,window,W02,wall_ext_south,12.3077,21.5385,18.4615,21.5385,,13.8462,21.0385,17.9615,,lift-out first; optional sliding rail after measuring hardware,True,west
+D01,main_door,door,W02,wall_ext_south,77.6923,13.8462,32.3077,13.8462,,0.0,12.3462,31.8077,DOOR1,face-mounted inward tape hinge,True,west
+G06,window_living_1,window,W02,wall_ext_south,121.5385,24.6154,26.1538,24.6154,,7.6923,24.1154,25.6538,WIN2,lift-out first; optional sliding rail after measuring hardware,True,west
+G07,window_living_2,window,W02,wall_ext_south,155.3846,24.6154,26.1538,24.6154,,7.6923,24.1154,25.6538,,lift-out first; optional sliding rail after measuring hardware,True,west
+G08,window_master_2,window,W03,wall_ext_west,15.4615,18.4615,18.4615,18.4615,,13.8462,17.9615,17.9615,,lift-out first; optional sliding rail after measuring hardware,True,north
+G09,window_kitchen,window,W03,wall_ext_west,58.5385,18.4615,15.3846,18.4615,,15.3846,17.9615,14.8846,,lift-out first; optional sliding rail after measuring hardware,True,north
+G10,window_bedroom3_2,window,W04,wall_ext_east,17.0,15.3846,18.4615,15.3846,,13.8462,14.8846,17.9615,,lift-out first; optional sliding rail after measuring hardware,True,north
+G11,window_living_3,window,W04,wall_ext_east,80.0769,18.4615,26.1538,18.4615,,7.6923,17.9615,25.6538,WIN3,lift-out first; optional sliding rail after measuring hardware,True,north
+D02,door_master_bedroom,door,W05,wall_north_corridor,43.9231,11.5769,32.3077,12.3077,East edge trimmed to 3 mm master/bath partition face,0.0,10.0769,31.8077,,face-mounted inward tape hinge,False,west
+D03,door_common_bath,door,W05,wall_north_corridor,65.4615,10.7692,32.3077,10.7692,,0.0,9.2692,31.8077,,face-mounted inward tape hinge,False,west
+D04,door_bedroom2,door,W05,wall_north_corridor,86.2308,12.3077,32.3077,12.3077,,0.0,10.8077,31.8077,,face-mounted inward tape hinge,False,west
+D05,door_bedroom3,door,W05,wall_north_corridor,135.4615,12.3077,32.3077,12.3077,,0.0,10.8077,31.8077,DOOR2,face-mounted inward tape hinge,False,west
+D06,door_master_bath,door,W06,wall_master_masterbath,8.5385,10.7692,32.3077,10.7692,,0.0,9.2692,31.8077,,face-mounted inward tape hinge,False,north
+D07,door_kitchen,door,W10,wall_kitchen_corridor,0.0385,12.3077,32.3077,12.3077,,0.0,10.8077,31.8077,,face-mounted inward tape hinge,False,north
+D08,door_service_yard,door,W11,wall_kitchen_yard,13.9231,12.3077,32.3077,12.3077,,0.0,10.8077,31.8077,,face-mounted inward tape hinge,False,west
+D09,door_shelter,door,W12,wall_shelter_north,4.6538,12.3077,32.3077,12.3077,,0.0,10.8077,31.8077,,face-mounted inward tape hinge,False,east

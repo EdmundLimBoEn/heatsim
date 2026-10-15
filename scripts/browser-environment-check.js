@@ -20,15 +20,21 @@ window.heatSimEnvironmentCheck = { status: 'running' };
     if (!condition) throw new Error(label);
     checks.push(label);
   };
+  const reveal = node => {
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+    }
+    return node;
+  };
   const change = (selector, value) => {
-    const input = element(selector);
+    const input = reveal(element(selector));
     input.value = String(value);
     input.dispatchEvent(new Event('change', { bubbles: true }));
   };
   try {
-    element('[data-workspace="flat"]').click();
-    element('[data-tab="environment"]').click();
-    element('[data-action="reset-weather"]').click();
+    reveal(element('[data-workspace="flat"]')).click();
+    reveal(element('[data-tab="environment"]')).click();
+    reveal(element('[data-action="reset-weather"]')).click();
     const scenarioWeather = app.readConditions();
     assert(element('label[for="outdoor-aqi"]').textContent.includes('US EPA PM2.5 index equivalent (24-hour scale)') && element('#outdoor-aqi-note').textContent.includes('Not Singapore PSI'), 'AQI input names the pollutant, averaging scale and scenario-only limits');
     change('[data-weather-number="outdoorPm25"]', 9);
@@ -50,21 +56,21 @@ window.heatSimEnvironmentCheck = { status: 'running' };
     change('[data-weather-number="outdoorTemperature"]', 38.2);
     change('[data-weather-number="windSpeed"]', 6.4);
     assert(app.readConditions().outdoorTemperature === 38.2 && app.readConditions().windSpeed === 6.4, 'Exact temperature and wind entries update physical units');
-    element('[data-action="export"]').click();
+    reveal(element('[data-action="export"]')).click();
     const csv = await (await fetch(download.url)).text();
     assert(download.name.endsWith('.csv') && csv.includes('"Outdoor PM2.5 ug/m3","700"') && csv.includes('"Wind from","W"') && csv.includes('"Wind direction source","Manual override"') && csv.includes('"US EPA PM2.5 index equivalent (24-hour scale)","Beyond supported index scale"'), 'Snapshot CSV preserves canonical PM units, index limits and wind provenance');
     const beforeInput = app.readConditions();
-    element('[data-weather-number="outdoorPm25"]').focus();
+    reveal(element('[data-weather-number="outdoorPm25"]')).focus();
     for (const [key, code] of [['f', 'KeyF'], ['1', 'Digit1'], [' ', 'Space']]) element('[data-weather-number="outdoorPm25"]').dispatchEvent(new KeyboardEvent('keydown', { key, code, bubbles: true }));
     assert(JSON.stringify(app.readConditions()) === JSON.stringify(beforeInput), 'Typing in outdoor inputs does not trigger apartment controls');
     app.applyHardwareControl('window', 'window_bedroom3_1', true);
     const beforeReset = app.readConditions();
-    element('[data-action="reset-weather"]').click();
+    reveal(element('[data-action="reset-weather"]')).click();
     const restored = app.readConditions();
     assert(['outdoorTemperature', 'outdoorPm25', 'windSpeed', 'humidity', 'timeOfDay'].every(field => restored[field] === scenarioWeather[field]) && restored.windFrom === undefined, 'Weather reset restores scenario values and clears the wind override');
     assert(JSON.stringify(restored.windows) === JSON.stringify(beforeReset.windows) && JSON.stringify(restored.devices) === JSON.stringify(beforeReset.devices), 'Weather reset preserves hardware openings and devices');
     change('#windFrom', 'W');
-    element('[data-preset="haze_outside"]').click();
+    reveal(element('[data-preset="haze_outside"]')).click();
     assert(app.readConditions().windFrom === undefined && element('#windFrom').value === '', 'Choosing a scenario clears the manual wind direction');
     return { checks, viewport: { width: innerWidth, height: innerHeight } };
   } finally {

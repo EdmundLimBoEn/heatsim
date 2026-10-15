@@ -30,6 +30,12 @@
   const wasPlaying = document.querySelector('#play-status').textContent.includes('running');
   const speed = document.querySelector('#simulation-speed'), savedSpeed = speed.value;
   const setPlaying = value => { if (document.querySelector('#play-status').textContent.includes('running') !== value) document.querySelector('[data-action="play"]').click(); };
+  const reveal = node => {
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+    }
+    return node;
+  };
   const button = document.querySelector('#connect-hardware');
   try {
     Object.defineProperty(navigator, 'serial', { configurable: true, value: { requestPort: async () => port, getPorts: async () => [] } });
@@ -38,7 +44,7 @@
     startup.purifier = { on: true, slot: 0 };
     startup.portableFan = { on: true, slot: 2, angleDeg: 75, speed: 2 };
     app.replaceConditions(startup);
-    button.disabled = false; button.click();
+    button.disabled = false; reveal(button).click();
     await wait(1800);
     assert(writes.includes('HELLO') && writes.includes('GET:ALL'), 'Handshake requests board state');
     assert(app.readConditions().scenarioId === 'validation' && !app.readConditions().doors.door_bedroom3, 'Hardware scenario preserves authoritative closed door');
@@ -85,6 +91,7 @@
     sealed.outdoorTemperature = 32.5; sealed.outdoorPm25 = 200; sealed.windSpeed = 2; sealed.windFrom = 'N';
     app.replaceConditions(sealed, true);
     speed.value = '60'; speed.dispatchEvent(new Event('change', { bubbles: true }));
+    reveal(document.querySelector('#bedroom3-pm25'));
     const pm = () => Number.parseFloat(document.querySelector('#bedroom3-pm25').textContent);
     const aqi = () => Number.parseInt(document.querySelector('#bedroom3-aqi-equivalent').textContent, 10);
     const clockText = () => document.querySelector('#elapsed-time').textContent;

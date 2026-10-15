@@ -1,6 +1,6 @@
 import './contractor-study.css';
 import type { Conditions } from './domain';
-import { SCENARIOS } from './simulation';
+import { PRESETS, SCENARIOS } from './simulation';
 import { parseContractorPlan, previewOpeningSegment, contractorPlanGeometryId, CONTRACTOR_EXAMPLES, CONTRACTOR_PLAN_SCHEMA, type ContractorPlan } from './contractor-plan';
 import { createContractorComparisonRunner, type ContractorComparisonResult, type ContractorStudyConfig } from './contractor-comparison';
 import { contractorStudyHtml, contractorStudyJson } from './contractor-export';
@@ -14,6 +14,7 @@ const MAX_FILE_BYTES = 500_000;
 
 export function mountContractorStudy(container: HTMLElement, options: { readConditions(): Conditions }): { dispose(): void } {
   const initialWeather = structuredClone(options.readConditions());
+  let studyScenarioId = initialWeather.scenarioId;
   const scenario = SCENARIOS.find(item => item.id === initialWeather.scenarioId) ?? SCENARIOS[0];
   const runner = createContractorComparisonRunner();
   const events = new AbortController();
@@ -34,10 +35,10 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   const field = (id: string, label: string, value: string | number, type = 'text', attributes = '') => `<label class="cs-field" for="${id}"><span>${label}</span><input id="${id}" data-study-field type="${type}" value="${escape(String(value))}" ${attributes}></label>`;
 
   container.innerHTML = `<section class="contractor-study" aria-labelledby="cs-title">
-    <header class="cs-hero"><div class="cs-hero-copy"><p class="cs-eyebrow">HeatSim · contractor study</p><h2 id="cs-title">Compare ventilation ideas<br>before the site visit.</h2><p>Turn a set of floor plans into a shortlist of options to check on site. See the heat, air-quality and electricity trade-offs under the assumptions you enter.</p></div><div class="cs-positioning" aria-label="Where HeatSim fits"><span>Initial placement ideas</span><strong>HeatSim scenario screening</strong><span>On-site verification & specialist assessment</span><p>Reduced-order room network. Uncalibrated results; no resolved 3D airflow or installation guarantee.</p></div></header>
-    <div class="cs-grid"><form id="cs-brief" class="cs-brief" aria-label="Shared contractor study conditions">
-      <section><div class="cs-step-title"><span>01</span><h3>Shared study brief</h3></div>
-        ${field('cs-project', 'Project / study name', 'Ventilation option study', 'text', 'maxlength="120" required')}
+    <header class="cs-hero"><h2 id="cs-title" class="cs-accessible-title">Compare floor plans</h2><div class="cs-positioning"><p>A rough room-by-room model for comparing ideas. It does not predict exact temperatures or replace a home assessment.</p></div></header>
+    <div class="cs-grid"><form id="cs-brief" class="cs-brief" aria-label="Shared floor plan comparison settings">
+      <section><div class="cs-step-title"><span>01</span><h3>Name and location</h3></div>
+        ${field('cs-project', 'Comparison name', 'My floor plan comparison', 'text', 'maxlength="120" required')}
         ${field('cs-location', 'Location label', '', 'text', 'maxlength="160" placeholder="Estate, district or hypothetical site"')}
         <div class="cs-field-pair">${field('cs-latitude', 'Latitude', '', 'number', 'min="-90" max="90" step="any" placeholder="1.3521"')}${field('cs-longitude', 'Longitude', '', 'number', 'min="-180" max="180" step="any" placeholder="103.8198"')}</div>
         <a id="cs-windy" class="cs-link" target="_blank" rel="noopener noreferrer" aria-disabled="true">Open this location in Windy ↗</a><p class="cs-help">Coordinates identify the weather reference location. Optional Windy display is separate from the model: copy the chosen forecast values into the shared inputs.</p>
@@ -51,12 +52,38 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
         <p class="cs-help">A 10 m reference forecast is not a measurement at an apartment window. Sheltering, building height and local obstructions require on-site verification.</p></details>
       </section><section><h3>Matched starting conditions</h3><div class="cs-field-pair">${field('cs-initial-temperature', 'Initial indoor air & surface · °C', scenario.initialTemperature, 'number', 'min="10" max="60" step="0.1" required')}${field('cs-initial-pm25', 'Initial indoor PM2.5 · µg/m³', scenario.initialPm25, 'number', 'min="0" max="1000" step="0.1" required')}</div><div class="cs-field-pair">${field('cs-occupancy', 'People per plan', 4, 'number', 'min="0" max="100" step="1" required')}<label class="cs-field" for="cs-duration"><span>Simulated duration</span><select id="cs-duration" data-study-field><option value="600">10 minutes</option><option value="1200" selected>20 minutes</option><option value="1800">30 minutes</option></select></label></div><p class="cs-help">All plans start at the same temperatures and particle concentration. The same total occupancy is distributed by room area. Equipment and opening states remain specific to each plan.</p></section>
     </form><div class="cs-main"><details class="cs-weather-reference"><summary>Optional Windy weather reference</summary><p class="cs-help">This external map is a reference for the educational prototype. Copy wind, temperature and forecast source/time into the shared brief. Loading the map does not change simulation inputs.</p><button id="cs-load-windy" class="cs-button cs-secondary" type="button" disabled>Show Windy at these coordinates</button><div id="cs-windy-map"></div></details><section class="cs-plan-section" aria-labelledby="cs-plans-title"><div class="cs-section-heading"><div class="cs-step-title"><span>02</span><div><h3 id="cs-plans-title">Three actual floor plans</h3><p>Upload the supported JSON room-and-opening format, or start with the examples.</p></div></div><button id="cs-load-examples" class="cs-button cs-primary" type="button">Load 3 example plans</button></div><div class="cs-format-note"><span>Rectangular rooms · metres · explicit openings · north orientation</span><button id="cs-schema" class="cs-text-button" type="button">Download JSON schema</button></div><p class="cs-help cs-format-copy">These inputs describe geometry and connections. Images, PDFs and scanned drawings are not automatically converted. The examples are illustrative layouts, not surveyed properties.</p><p id="cs-preview-key" class="cs-help cs-preview-key">Geometry view · blue windows, amber doors. F = fan, P = purifier, A = air conditioning. Appliance moves snap to a room.</p><div class="cs-plan-cards">${[0, 1, 2].map(index => `<article class="cs-plan-card" data-study-plan="${index}"><header><span class="cs-plan-letter" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span><h4 id="cs-plan-name-${index}">Add a floor plan</h4></header><div id="cs-preview-${index}" class="cs-preview"><p>Actual room geometry will appear here after a valid JSON import.</p></div><div id="cs-plan-meta-${index}" class="cs-plan-meta">No plan loaded</div><label class="cs-file-label" for="cs-file-${index}">Import plan ${String.fromCharCode(65 + index)} · JSON, up to 500 KB</label><input id="cs-file-${index}" class="cs-file" data-study-file="${index}" type="file" accept=".json,application/json"><p id="cs-plan-status-${index}" class="cs-plan-status" role="status"></p><div id="cs-plan-controls-${index}"></div><button class="cs-text-button" data-study-download-plan="${index}" type="button" disabled>Download this plan JSON</button></article>`).join('')}</div></section>
-      <div class="cs-run-row"><div><strong id="cs-readiness">Add three plans to compare</strong><p>Results use one shared weather case. Layout, equipment and area differences remain visible.</p></div><div class="cs-run-actions"><button id="cs-run" class="cs-button cs-primary" type="button" disabled>Compare three plans</button><button id="cs-cancel" class="cs-button cs-secondary" type="button" hidden>Cancel</button></div><progress id="cs-progress" max="100" value="0" hidden aria-label="Three-plan comparison progress"></progress><p id="cs-status" role="status" aria-live="polite">Your study stays in this browser session. No account or board is needed.</p></div>
-      <section id="cs-results" class="cs-results" aria-labelledby="cs-results-title"><div class="cs-section-heading"><div class="cs-step-title"><span>03</span><div><h3 id="cs-results-title">A shortlist with its trade-offs</h3><p id="cs-results-context">Run the three plans to compare model outputs under your shared assumptions.</p></div></div><div class="cs-export-actions"><button id="cs-export-html" class="cs-button cs-secondary" type="button" disabled>Download handoff report</button><button id="cs-export-json" class="cs-text-button" type="button" disabled>Study JSON</button></div></div><div id="cs-result-content"><p class="cs-empty">No result yet. The study will show metric-specific advantages, per-room conditions and the assumptions to verify on site.</p></div></section>
+      <div class="cs-run-row"><div><strong id="cs-readiness">Add three plans to compare</strong><p>Results use one shared weather case. Layout, equipment and area differences remain visible.</p></div><div class="cs-run-actions"><button id="cs-run" class="cs-button cs-primary" type="button" disabled>Compare three plans</button><button id="cs-cancel" class="cs-button cs-secondary" type="button" hidden>Cancel</button></div><progress id="cs-progress" max="100" value="0" hidden aria-label="Three-plan comparison progress"></progress><p id="cs-status" role="status" aria-live="polite">Your comparison stays in this browser session. No account or board is needed.</p></div>
+      <section id="cs-results" class="cs-results" aria-labelledby="cs-results-title"><div class="cs-section-heading"><div class="cs-step-title"><span>03</span><div><h3 id="cs-results-title">A shortlist with its trade-offs</h3><p id="cs-results-context">Run the three plans to compare model outputs under your shared assumptions.</p></div></div><div class="cs-export-actions"><button id="cs-export-html" class="cs-button cs-secondary" type="button" disabled>Download handoff report</button><button id="cs-export-json" class="cs-text-button" type="button" disabled>Study JSON</button></div></div><div id="cs-result-content"><p class="cs-empty">No result yet. Compare the plans to see temperature, air quality and electricity trade-offs.</p></div></section>
     </div></div>
   </section>`;
 
+  const disclosure = (id: string, label: string) => {
+    const details = document.createElement('details'); details.id = id; details.className = 'cs-disclosure';
+    const summary = document.createElement('summary'); summary.textContent = label;
+    details.append(summary); return details;
+  };
+  container.querySelectorAll('.cs-step-title > span').forEach(step => step.remove());
+  $('#cs-plans-title').textContent = 'Your plans';
+  $('#cs-results-title').textContent = 'What looks better for your home?';
+  $('#cs-load-examples').classList.replace('cs-primary', 'cs-secondary');
+  $('#cs-load-examples').textContent = 'Try the 3 example plans';
+  $('#cs-export-html').textContent = 'Download comparison';
+  $('#cs-export-json').textContent = 'Save comparison JSON';
+  const grid = $('.cs-grid'), brief = $('#cs-brief'), planSection = $('.cs-plan-section');
+  grid.prepend(planSection);
+  const weatherDetails = disclosure('cs-weather-details', 'Weather source & details');
+  weatherDetails.append(...brief.children, $('.cs-weather-reference'));
+  const weatherQuick = document.createElement('section'); weatherQuick.className = 'cs-weather-quick';
+  weatherQuick.innerHTML = `<div><h3>Weather for all three plans</h3><p id="cs-weather-summary" class="cs-help"></p></div><label class="cs-field" for="cs-scenario"><span>Choose the day</span><select id="cs-scenario" data-study-field><option value="captured">Use my flat’s weather</option>${PRESETS.filter(preset => preset.id !== 'validation').map(preset => `<option value="${escape(preset.id)}">${escape(preset.name)}</option>`).join('')}</select></label>`;
+  brief.append(weatherQuick, weatherDetails);
+  const format = disclosure('cs-plan-format', 'Plan format and limits');
+  const formatNote = $('.cs-format-note'), formatCopy = $('.cs-format-copy');
+  formatNote.before(format); format.append(formatNote, formatCopy);
+
   const input = (id: string) => $<HTMLInputElement>(`#${id}`).value;
+  function weatherSummary(): void {
+    $('#cs-weather-summary').textContent = `${input('cs-temperature')}°C outside · PM2.5 ${input('cs-pm25')} µg/m³ · wind ${input('cs-wind-speed')} m/s from ${input('cs-wind-from')}. The same weather is used for every plan.`;
+  }
   function windLink(): void {
     const lat = input('cs-latitude'), lon = input('cs-longitude');
     const valid = lat !== '' && lon !== '' && Number.isFinite(Number(lat)) && Number.isFinite(Number(lon)) && Math.abs(Number(lat)) <= 90 && Math.abs(Number(lon)) <= 180;
@@ -112,6 +139,7 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   function capture(): ContractorStudyConfig {
     if (plans.some(plan => !plan)) throw new Error('Load three valid floor plans first.');
     const weather = structuredClone(initialWeather);
+    weather.scenarioId = studyScenarioId;
     Object.assign(weather, { outdoorTemperature: Number(input('cs-temperature')), outdoorPm25: Number(input('cs-pm25')), windSpeed: Number(input('cs-wind-speed')), windFrom: input('cs-wind-from'), humidity: Number(input('cs-humidity')), timeOfDay: Number(input('cs-hour')) });
     return { plans: plans.map(plan => structuredClone(plan!)), weather, durationSeconds: Number(input('cs-duration')), initialTemperature: Number(input('cs-initial-temperature')), initialPm25: Number(input('cs-initial-pm25')), occupancyPeople: Number(input('cs-occupancy')), brief: {
       projectName: input('cs-project').trim(), locationLabel: input('cs-location').trim(), latitude: input('cs-latitude') === '' ? null : Number(input('cs-latitude')), longitude: input('cs-longitude') === '' ? null : Number(input('cs-longitude')),
@@ -142,17 +170,22 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
     $('#cs-results-context').textContent = `${brief?.projectName || 'Study'} · ${shared.durationSeconds / 60} simulated minutes · ${shared.weather.outdoorTemperature}°C outside · ${shared.weather.outdoorPm25} µg/m³ PM2.5 · ${shared.weather.windSpeed} m/s from ${shared.weather.windFrom ?? 'the shared scenario direction'}.`;
     $('#cs-result-content').innerHTML = `<div class="cs-evidence"><div><strong>Input provenance</strong><span>${escape(brief?.sourceType ?? 'assumption')} · ${escape(brief?.sourceName || 'No external source recorded')}${brief?.validTime ? ` · valid ${escape(brief.validTime)} ${escape(brief.timeZone)}` : ' · no valid time recorded'}</span></div><div><strong>Ranking stability</strong><span>One weather case tested. Stability across changing weather is untested; this is not an accuracy confidence score.</span></div></div>
       <div class="cs-recommendations">${result.recommendations.map(recommendation => `<article><span>${escape(recommendation.label)}</span><h4>${escape(names(recommendation.planIds))}</h4><strong>${display(recommendation.value, 2)} <small>${escape(recommendation.unit)}</small></strong><p>${recommendation.planIds.length > 1 ? 'Tied options. ' : ''}${escape(recommendation.reason)}</p></article>`).join('')}</div>
-      <div class="cs-shortlist"><strong>Options to check on site: ${escape(names(result.shortlistPlanIds))}</strong><p>${result.shortlistPlanIds.length === result.cases.length ? 'Every tested plan retains a trade-off; none clearly dominates all three screening metrics.' : 'These options are not clearly worse across all three screening metrics: mean temperature, final mean PM2.5 and total electricity.'} This is a shortlist under the stated assumptions, not a universal best layout or installation instruction.</p></div>
+      <div class="cs-shortlist"><strong>Plans worth a closer look: ${escape(names(result.shortlistPlanIds))}</strong><p>${result.shortlistPlanIds.length === result.cases.length ? 'Every tested plan retains a trade-off; none clearly dominates all three screening metrics.' : 'These options are not clearly worse across all three screening metrics: mean temperature, final mean PM2.5 and total electricity.'} This is a shortlist under the stated assumptions, not a universal best layout or installation instruction.</p></div>
       ${result.warnings.length ? `<ul class="cs-warnings">${result.warnings.map(warning => `<li>${escape(warning)}</li>`).join('')}</ul>` : ''}
       <div class="cs-comparison-scroll"><table class="cs-comparison-table"><caption>Three plans under the same weather, starting concentrations, total occupancy and duration</caption><thead><tr><th scope="col">Model output</th>${result.cases.map((option, index) => `<th scope="col"><span class="cs-table-plan" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span>${escape(option.plan.name)}</th>`).join('')}</tr></thead><tbody>${rows.map(([label, unit, value, decimals]) => `<tr><th scope="row">${label}<small>${unit}</small></th>${result.cases.map(option => `<td>${display(value(option), decimals)}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Active equipment<small>Declared states, not an equal equipment budget</small></th>${result.cases.map(option => `<td>${option.enabledEquipment.fans} fans<br>${option.enabledEquipment.purifiers} purifiers<br>${option.enabledEquipment.ac} AC</td>`).join('')}</tr></tbody></table></div>
       <section class="cs-result-chart"><h4>Mean air temperature over time</h4><div class="cs-chart-legend">${result.cases.map((option, index) => `<span style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)} · ${escape(option.plan.name)}</span>`).join('')}</div>${chart}<p class="cs-help">Means include both room air layers. Floor area, room connectivity and equipment differ between plans; per-area electricity is context, not a substitute for the absolute energy demand.</p></section>
       <div class="cs-room-results">${result.cases.map(option => `<details class="cs-details"><summary>${escape(option.plan.name)} · room readings</summary><div class="cs-comparison-scroll"><table class="cs-room-table"><thead><tr><th scope="col">Room</th><th scope="col">Lower °C</th><th scope="col">Upper °C</th><th scope="col">PM2.5 µg/m³</th><th scope="col">Direct boundary ACH</th></tr></thead><tbody>${option.final.rooms.map(room => `<tr><th scope="row">${escape(option.plan.rooms.find(item => item.id === room.room)?.label ?? room.room)}</th><td>${display(room.lowerTemperature, 2)}</td><td>${display(room.upperTemperature, 2)}</td><td>${display(room.pm25, 2)}</td><td>${display(room.boundaryAirChangesPerHour, 2)}</td></tr>`).join('')}</tbody></table></div></details>`).join('')}</div>
-      <div class="cs-site-checks"><h4>Take the shortlist to the site</h4><p>Verify surveyed dimensions and opening sizes, window orientation and obstructions, actual equipment ratings and positions, and the reference wind at the façade. Check noise, safe mounting and installation constraints with the responsible specialist. The room-network model does not resolve jets, furniture or three-dimensional turbulent flow.</p><p>To test weather sensitivity, change the shared conditions and rerun all three plans. Export each captured report before replacing the result.</p></div>`;
+      <div class="cs-site-checks"><h4>Before making changes at home</h4><p>Check the real dimensions, window sizes and orientation, nearby obstructions, and equipment ratings before acting on a result. Ask a qualified installer about noise, safe mounting and installation constraints. This room-by-room model does not resolve furniture, air jets or three-dimensional turbulence.</p><p>To test weather sensitivity, change the shared conditions and rerun all three plans. Export each captured report before replacing the result.</p></div>`;
     result.cases.forEach((option, index) => { $(`#cs-preview-${index}`).innerHTML = preview(option.plan, index, option.final); });
     $('#cs-preview-key').textContent = 'Solved opening exchange · solid arrows: lower layer; dashed: upper layer. Opposing arrows show counterflow. Room-network illustration, not resolved 3D airflow.';
   }
   async function run(): Promise<void> {
-    if (!$<HTMLFormElement>('#cs-brief').reportValidity() || running) return;
+    const form = $<HTMLFormElement>('#cs-brief');
+    const invalid = form.querySelector<HTMLElement>(':invalid');
+    for (let parent = invalid?.parentElement; parent; parent = parent.parentElement) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+    }
+    if (!form.reportValidity() || running) return;
     if (plans.some(plan => !plan) || pendingFiles.some(Boolean) || examplesAbort !== null) {
       $('#cs-status').textContent = 'Wait until all three valid plans finish loading before comparing.'; return;
     }
@@ -169,10 +202,23 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
       finally { if (token === generation && !disposed) { running = false; $('#cs-cancel').hidden = true; $('#cs-progress').hidden = true; ready(); } }
     } catch (error) { $('#cs-status').textContent = error instanceof Error ? error.message : 'Check the study inputs.'; }
   }
-  container.addEventListener('input', event => { const target = event.target as HTMLElement; if (target.matches('[data-study-field]')) { windLink(); invalidate('Shared study inputs changed. Run a new comparison.'); } }, { signal: events.signal });
+  container.addEventListener('input', event => { const target = event.target as HTMLElement; if (target.matches('[data-study-field]') && target.id !== 'cs-scenario') { windLink(); weatherSummary(); invalidate('Shared study inputs changed. Run a new comparison.'); } }, { signal: events.signal });
   container.addEventListener('change', async event => {
     const target = event.target as HTMLInputElement;
-    if (target.matches('select[data-study-field]')) { invalidate('Shared study inputs changed. Run a new comparison.'); return; }
+    if (target.id === 'cs-scenario') {
+      const selected = PRESETS.find(preset => preset.id === target.value)?.conditions ?? initialWeather;
+      const initial = SCENARIOS.find(item => item.id === selected.scenarioId) ?? SCENARIOS[0];
+      studyScenarioId = selected.scenarioId;
+      for (const [id, key] of [['cs-temperature', 'outdoorTemperature'], ['cs-pm25', 'outdoorPm25'], ['cs-wind-speed', 'windSpeed'], ['cs-humidity', 'humidity'], ['cs-hour', 'timeOfDay']] as const) $<HTMLInputElement>(`#${id}`).value = String(selected[key]);
+      $<HTMLSelectElement>('#cs-wind-from').value = selected.windFrom ?? initial.windward;
+      $<HTMLInputElement>('#cs-initial-temperature').value = String(initial.initialTemperature);
+      $<HTMLInputElement>('#cs-initial-pm25').value = String(initial.initialPm25);
+      $<HTMLSelectElement>('#cs-source-type').value = 'assumption';
+      $<HTMLInputElement>('#cs-source-name').value = target.value === 'captured' ? 'My flat scenario settings' : initial.name;
+      for (const id of ['cs-source-model', 'cs-source-url', 'cs-valid-time']) $<HTMLInputElement>(`#${id}`).value = '';
+      weatherSummary(); invalidate('Day changed for all three plans. Run a new comparison.'); return;
+    }
+    if (target.matches('select[data-study-field]')) { weatherSummary(); invalidate('Shared study inputs changed. Run a new comparison.'); return; }
     if (target.dataset.studyFile !== undefined) {
       const index = Number(target.dataset.studyFile), file = target.files?.[0]; if (!file) return;
       examplesAbort?.abort(); examplesAbort = null;
@@ -237,6 +283,6 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
     },
     onAnnounce(message) { if (!disposed) $('#cs-status').textContent = message; },
   });
-  windLink(); ready();
+  windLink(); weatherSummary(); ready();
   return { dispose() { disposed = true; generation++; importTokens.forEach((_, index) => importTokens[index]++); events.abort(); examplesAbort?.abort(); disposePlacement(); runner.dispose(); for (const url of objectUrls) URL.revokeObjectURL(url); objectUrls.clear(); $('#cs-windy-map').replaceChildren(); } };
 }

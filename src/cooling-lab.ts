@@ -55,14 +55,14 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   const caseLabels = (result: ThermalComparisonResult): [string, string] => result.comparisonMode === 'configuration' ? ['Baseline', 'Candidate'] : ['Fan off', 'Fan on'];
 
   container.innerHTML = `<section class="cooling-lab" aria-labelledby="cl-title">
-    <header class="cl-heading"><div><h2 id="cl-title">Where does the heat go?</h2><p>Test ventilation, clean air and heat under the same outdoor conditions.</p></div><span class="cl-model-tag">Reduced-order thermal / ventilation model <strong>SIMULATED</strong></span></header>
+    <header class="cl-heading"><h2 id="cl-title" class="cl-accessible-title">Window fan test</h2><span class="cl-model-tag">A rough model for comparing ideas <strong>SIMULATED</strong></span></header>
     <p id="cl-capture-status" class="cl-capture-status" role="status" aria-live="polite" hidden></p>
     <div class="cl-workspace">
-      <form class="cl-controls" id="cl-form" aria-label="Cooling experiment settings">
+      <form class="cl-controls" id="cl-form" aria-label="Window fan test settings">
         <section><h3>Choose a comparison</h3><label class="cl-label" for="cl-comparison-mode">Experiment</label><select id="cl-comparison-mode" data-cl="comparison-mode"><option value="fan-toggle">Quick fan off / on</option><option value="configuration">Captured baseline / candidate</option></select><div id="cl-baseline-controls" hidden><p class="cl-help">Capture the current openings, devices, vent and envelope. Then adjust the candidate below. Current weather, corridor conditions and duration apply to both.</p><button id="cl-capture-baseline" type="button" class="cl-button cl-secondary">Capture baseline</button><p id="cl-baseline-status" class="cl-help">Capture a baseline before comparing.</p></div></section>
-        <section><h3>Set up the experiment</h3><label class="cl-label" for="cl-room">Room</label><select id="cl-room" data-cl="room">${roomNames.map(room => `<option value="${room}" ${room === selectedRoom ? 'selected' : ''}>${roomLabel(room)}</option>`).join('')}</select>
-        <label class="cl-label" for="cl-opening">Exterior fan opening</label><select id="cl-opening" data-cl="opening"></select>
-        <label class="cl-label" for="cl-mode">Fan direction</label><select id="cl-mode" data-cl="mode"><option value="exhaust">High-level exhaust · out of the room</option><option value="supply">High-level supply · into the room</option></select>
+        <section><h3>Choose where to try it</h3><label class="cl-label" for="cl-room">Room</label><select id="cl-room" data-cl="room">${roomNames.map(room => `<option value="${room}" ${room === selectedRoom ? 'selected' : ''}>${roomLabel(room)}</option>`).join('')}</select>
+        <label class="cl-label" for="cl-opening">Fan window</label><select id="cl-opening" data-cl="opening"></select>
+        <label class="cl-label" for="cl-mode">Fan direction</label><select id="cl-mode" data-cl="mode"><option value="exhaust">Blow air out</option><option value="supply">Bring air in</option></select>
         <label class="cl-check" id="cl-fan-on-control" hidden><input id="cl-fan-on" type="checkbox" data-cl="fan-on" checked><span>Candidate vent fan powered</span></label>
         ${range('cl-flow', 'Rated fan flow', 20, 600, 10, config.vent.ratedM3h, ' m³/h')}
         <p class="cl-help">Rated flow is a specification. The actual flow depends on the available make-up path and opposing wind.</p>
@@ -100,6 +100,42 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
     <details class="cl-learning"><summary>Assumptions & limits</summary><ul>${THERMAL_ASSUMPTIONS.map(note => `<li>${escape(note)}</li>`).join('')}<li>The properties describe the full-size flat, not 3 mm cardboard.</li><li>Longwave radiation exchanges with ambient-temperature surroundings. There is no assumed cold-sky sink.</li><li>The upper-air share of people heat is an illustrative plume approximation, not resolved rising airflow.</li><li>Humidity is a scenario condition. This experiment does not solve latent heat, condensation or dehumidification.</li></ul></details>
     <details class="cl-learning cl-expansion"><summary>Can pressure expansion make a room colder?</summary><div class="cl-expansion-content"><p>An ideal reversible expansion can lower static temperature while converting enthalpy into motion. A fan adds energy; mixing can return that motion to heat. This separate calculation is <strong>not net room cooling</strong>.</p><div class="cl-expansion-inputs">${range('cl-pressure', 'Hypothetical pressure drop', 0, 200, 5, 30, ' Pa')}${range('cl-efficiency', 'Overall fan efficiency', 10, 100, 5, 50, '%')}</div><div id="cl-expansion-result" class="cl-expansion-result" aria-live="polite"></div><p class="cl-help">Dry air at 303 K, 101325 Pa absolute pressure, 180 m³/h flow. All fan input energy is assumed to end up in the air. These Pa inputs are unrelated to the plan-view relative pressure index.</p><a href="https://www.grc.nasa.gov/www/k-12/airplane/isentrop.html" target="_blank" rel="noopener">NASA ideal isentropic relations</a></div></details></div>
   </section>`;
+
+  const disclosure = (id: string, label: string, className: string) => {
+    const details = document.createElement('details');
+    details.id = id; details.className = className;
+    const summary = document.createElement('summary'); summary.textContent = label;
+    details.append(summary);
+    return details;
+  };
+  const form = $('#cl-form');
+  const [comparison, setup, weather, openings, envelope] = [...form.querySelectorAll<HTMLElement>(':scope > section')];
+  const more = disclosure('cl-more-settings', 'More settings', 'cl-more-settings');
+  const fanSettings = document.createElement('section');
+  const fanHeading = document.createElement('h3'); fanHeading.textContent = 'Fan rating and test length';
+  fanSettings.append(fanHeading);
+  let fanControl: ChildNode | null = $('#cl-flow').closest('label');
+  while (fanControl) {
+    const next = fanControl.nextSibling;
+    fanSettings.append(fanControl);
+    fanControl = next;
+  }
+  setup.append($('#cl-environment'), $('#cl-recapture'));
+  more.append(comparison, fanSettings, weather, openings, envelope);
+  form.prepend(setup, more);
+  const resultDetails = disclosure('cl-result-details', 'Air exchange and heat balance', 'cl-result-details');
+  const resultBottom = $('.cl-result-bottom');
+  resultBottom.before(resultDetails); resultDetails.append(resultBottom);
+  const about = disclosure('cl-about-test', 'About this test', 'cl-learning cl-about-test');
+  const learning = $('.cl-learning-grid');
+  for (const details of [...learning.querySelectorAll<HTMLDetailsElement>(':scope > details')]) {
+    const section = document.createElement('section'); section.className = details.className;
+    const summary = details.querySelector('summary')!;
+    const heading = document.createElement('h3'); heading.textContent = summary.textContent;
+    summary.replaceWith(heading);
+    section.append(...details.childNodes); about.append(section);
+  }
+  learning.replaceWith(about);
 
   function updateOpenings(): void {
     const openings = THERMAL_OPENINGS.filter(opening => opening.room === selectedRoom);

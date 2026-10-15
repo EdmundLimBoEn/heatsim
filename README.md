@@ -40,6 +40,20 @@ bun run preview
 
 The preview defaults to **http://localhost:4173**. Equivalent commands are `npm test`, `npm run build` and `npm run preview`. Regenerate the cardboard pack with `bun run build:pack` or `npm run build:pack`; that command needs Python 3 and uses its standard library.
 
+## Deploy the public demo
+
+The public demo is hosted at **https://heatsim.sillyapps.co** using Cloudflare Workers Static Assets. All simulation still runs in the browser; hosting adds no backend, accounts or analytics. The corner QR code links to this address.
+
+With the `cf` CLI authenticated to the account owning `sillyapps.co`:
+
+```sh
+bun run build:cloudflare
+cf deploy --prebuilt --dry-run
+cf deploy --prebuilt
+```
+
+`bun run deploy` rebuilds and deploys in one command. `scripts/prepare-cloudflare.mjs` packages only `dist/` into the Cloudflare Build Output API layout, with the custom domain declared in its generated config. This leaves local Vite development unchanged and requires no additional runtime dependency. `cf deploy` provisions the domain and HTTPS certificate; first-time certificate propagation may take a few minutes. Rebuild before deploying after any source change.
+
 ## Give these files to the build crew
 
 The footprint is **187.692 × 118.462 mm**, inside the requested **200 × 150 mm** area and an A4 base. All walls are **40 mm tall**. The roofless model uses **two A4 sheets of 3 mm cardboard total**: one base and one extra sheet containing all 13 walls. Reuse opening cutouts as leaves; paper templates and tape are separate.
@@ -58,11 +72,17 @@ The nine new wall reference pages are paper instructions, not additional cardboa
 
 Print at **100% / Actual size**, turn off “Fit to page”, and measure the **50 mm calibration bar** before cutting. The handoff accounts for 3 mm butt joints and one narrowed doorway. Dry-fit actual stock before gluing; no real switch or servo mounting dimensions are assumed.
 
+## Simple studio controls
+
+Use **Home** for whole-flat switches, **Room** for individual openings, **Devices** for fan/purifier settings, **Weather** for conditions and orientation, and **Suggest** for reviewed recommendations. The model stays beside the controls on desktop. Select a room to open its controls. **More** holds USB, exports and help. The header QR opens https://heatsim.sillyapps.co.
+
+In **Window fan test**, choose a demo and Compare; open **Customize test** to adjust its inputs.
+
 ## Add and arrange standing fans
 
-In **My flat → Devices → Standing fans**, choose **Add fan** for up to **eight total**, including the Main fan. Use **Fan to adjust** or click a fan to select it, then set its power, speed and **Direction (degrees)**: **0° north, 90° east, 180° south, 270° west**.
+In **My flat → Devices → Standing fans**, choose **Add fan** for up to **eight total**, including the Main fan. Use **Fan to adjust** or click a fan to select it, then set its power, speed and **Direction (degrees)**: **0° plan top, 90° plan right, 180° plan bottom, 270° plan left**.
 
-Drag a fan onto valid room floor, or use **Move to a room** and **Exact floor position** (X east / Z south, in metres) without dragging. Invalid or overlapping manual placements are rejected; Escape cancels a drag. **Remove fan** removes an added fan; the Main fan can also be deleted; Add fan restores it, and legacy Main fan controls can restore it. The purifier still uses its existing preset positions.
+Drag a fan onto valid room floor, or use **Move to a room** and **Exact floor position** (X right / Z down the plan, in metres) without dragging. Invalid or overlapping manual placements are rejected; Escape cancels a drag. **Remove fan** removes an added fan; the Main fan can also be deleted; Add fan restores it, and legacy Main fan controls can restore it. The purifier still uses its existing preset positions.
 
 **Suggest changes** holds added fans fixed while trying Main fan preset positions. Apply/Undo and exports retain the added-fan setup; this is not a search over every fan’s placement. Main-fan shortcuts remain under **Main fan presets & shortcuts**. Legacy `FANPOS` clears the Main fan’s free position, and `FANANG` restores its slot-relative angle; neither removes added fans. D4/D5 controls are unchanged.
 

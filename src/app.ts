@@ -46,7 +46,7 @@ const bedroom3PurifierSlot = PURIFIER_SLOTS.findIndex(slot => slot.room === 'bed
 let conditions: Conditions = structuredClone(PRESETS[0]?.conditions ?? defaultConditions());
 if (bedroom3PurifierSlot >= 0) conditions.purifier = { on: conditions.purifier?.on ?? false, slot: bedroom3PurifierSlot };
 let result = createSimulation(conditions);
-let view = { ...defaultView, selectedRoom: 'living' as string | null };
+let view = { ...defaultView, labels: false, selectedRoom: 'living' as string | null };
 let scene: SceneController | null = null;
 let fallbackPlan = false;
 let selectedStandingFan = PRIMARY_STANDING_FAN_ID;
@@ -86,56 +86,43 @@ $('#app').innerHTML = `
   <a class="skip-link" href="#controls">Skip to controls</a>
   <header class="app-header">
     <a class="brand" href="/" aria-label="HeatSim home"><span class="brand-mark">${icon('house')}</span><span>heatsim<span class="brand-dot">.</span></span></a>
-    <span class="brand-description">Small changes. Cooler homes.</span>
-    <div class="header-actions"><button class="simulation-status" data-action="about">Simulated, not measured</button><span id="model-connection-chip" hidden>Model connected</span><details id="more-menu" class="more-menu"><summary>More ${icon('chevron')}</summary><div class="more-content"><button class="button text-button" data-action="guide">How to use HeatSim</button><button class="button text-button" data-action="build">Build the cardboard model</button><button class="button text-button" data-action="readings">All room readings</button><button class="button text-button" data-action="export">Export readings (CSV)</button><button class="button text-button" data-action="screenshot">Download map image</button><details id="science-settings"><summary>Science views</summary><label class="option-check"><input id="science-views" type="checkbox">Show pressure and validation</label><div id="science-status"></div></details><div id="hardware-menu-slot"></div><button class="button text-button" data-action="about">How this model works</button><button class="button text-button" data-action="help">Keyboard shortcuts</button></div></details></div>
+    <div class="header-actions"><button class="simulation-status" data-action="about">Simulated, not measured</button><span id="model-connection-chip" hidden>Model connected</span><details id="more-menu" class="more-menu"><summary>More ${icon('chevron')}</summary><div class="more-content"><button class="button text-button" data-action="guide">How to use HeatSim</button><button class="button text-button" data-action="build">Build the cardboard model</button><button class="button text-button" data-action="readings">All room readings</button><button class="button text-button" data-action="export">Export readings (CSV)</button><button class="button text-button" data-action="screenshot">Download map image</button><details id="science-settings"><summary>Science views</summary><label class="option-check"><input id="science-views" type="checkbox">Show pressure and validation</label><div id="science-status"><p id="simulation-engine" role="status">CPU · 2D</p></div></details><details class="hardware-section"><summary>${icon('usb')}Connect physical model (USB)<span class="details-plus">+</span></summary><div id="hardware-controls"><p class="hardware-state"><span class="status-dot"></span><strong>SSTuino not connected</strong></p><p class="section-note">Everything works with the on-screen controls and keyboard. When your model is ready, connect USB to use its switches and buttons.</p><button class="button secondary full-width" id="connect-hardware" type="button">Connect SSTuino</button><p class="hardware-help" id="hardware-status" role="status">USB serial works in desktop Chrome or Edge.</p></div></details><button class="button text-button" data-action="about">How this model works</button><button class="button text-button" data-action="help">Keyboard shortcuts</button></div></details></div>
+    <a class="workspace-qr" href="https://heatsim.sillyapps.co" target="_blank" rel="noopener" aria-label="Open HeatSim on your phone"><img src="/heatsim-qr.svg" alt="" width="112" height="112"><span>Scan to try</span></a>
   </header>
   <main>
-    <div class="workspace-heading workspace-navigation"><nav class="segmented" aria-label="HeatSim workspace"><button data-workspace="flat" aria-controls="flat-workspace" aria-pressed="true">${icon('house')}My flat</button><button data-workspace="lab" aria-controls="cooling-lab-workspace" aria-pressed="false">${icon('wind')}Window fan test</button><button data-workspace="study" aria-controls="contractor-study-workspace" aria-pressed="false">${icon('plan')}Compare floor plans</button></nav><button class="text-link start-guide-link" data-action="guide">How to use HeatSim</button></div>
+    <div class="workspace-row"><nav class="segmented workspace-nav" aria-label="HeatSim workspace"><button data-workspace="flat" aria-controls="flat-workspace" aria-pressed="true">My flat</button><button data-workspace="lab" aria-controls="cooling-lab-workspace" aria-pressed="false">Window fan test</button><button data-workspace="study" aria-controls="contractor-study-workspace" aria-pressed="false">Compare floor plans</button></nav></div>
     <section id="flat-workspace" aria-label="Flat simulation">
-    <div class="question-bar"><h1 class="sr-only">My flat</h1><label for="day-select">It’s a <select id="day-select" aria-label="Choose the day">${PRESETS.map(preset => `<option value="${preset.id}" ${preset.id === 'validation' ? 'hidden' : ''}>${escape(preset.name)}</option>`).join('')}</select><span> in your 4-room flat.</span></label><span id="custom-day-note" hidden>Custom settings</span><div id="playback-slot"></div></div>
+    <div class="question-bar"><h1 class="sr-only">My flat</h1><label for="day-select">It’s a <select id="day-select" aria-label="Choose the day">${PRESETS.map(preset => `<option value="${preset.id}" ${preset.id === 'validation' ? 'hidden' : ''}>${escape(preset.name)}</option>`).join('')}</select><span> in your 4-room flat.</span></label><span id="custom-day-note" hidden>Custom setup</span><div id="playback-slot"><div class="simulation-controls"><div class="simulation-clock"><span class="running-dot"></span><span id="play-status">Simulation running</span><output id="elapsed-time" aria-label="Elapsed simulated time" title="Elapsed simulated time">00:00:00</output></div><div class="playback-row"><button class="button play-button" data-action="play">${icon('pause')}<span>Pause</span></button><select id="simulation-speed" aria-label="Simulation speed" aria-describedby="speed-description"><option value="1">1× speed</option><option value="30" selected>30× speed</option><option value="60">60× speed</option></select><span id="speed-description" class="sr-only">30 simulated seconds</span><button class="icon-button" data-action="reset" aria-label="Reset simulation time and readings" title="Reset readings">${icon('reset')}</button></div></div></div></div>
     <div class="workspace">
       <section class="model-panel" aria-label="Interactive apartment model">
         <div class="model-toolbar"><div class="segmented overlay-modes" role="group" aria-label="Model overlay">
           ${(['model', 'temperature', 'airflow', 'pressure', 'pm25'] as ViewMode[]).map(mode => `<button data-mode="${mode}" ${mode === 'pressure' ? 'hidden' : ''} aria-pressed="${mode === 'model'}">${({ model: 'Model', temperature: 'Heat', airflow: 'Air movement', pressure: 'Pressure', pm25: 'Haze' })[mode]}</button>`).join('')}
         </div></div>
         <div id="scene" class="scene" aria-label="3D apartment. Drag to orbit, scroll to zoom. Use room selector for keyboard access."><div id="scene-loading" class="scene-message" role="status"><span class="loading-mark">${icon('cube')}</span><strong>Setting up your home</strong><span>Preparing the 3D floor plan…</span></div></div>
-        <div class="model-title"><span id="view-label">Your home, in perspective</span><small id="home-bearing">Plan top faces north</small><p id="view-description">Right-click a fan or purifier for quick controls. Drag to move; select a room for its openings.</p></div>
-        <div class="view-tools"><div class="segmented camera-modes" role="group" aria-label="Camera view"><button data-camera="perspective" aria-pressed="true">${icon('cube')}<span>Isometric</span></button><button data-camera="top" aria-pressed="false">${icon('plan')}<span>Floor plan</span></button></div><button class="icon-button" data-action="reset-camera" title="Reset view" aria-label="Reset camera view">${icon('reset')}</button></div>
-        <details class="view-disclosure"><summary>View</summary><div class="view-options" aria-label="Model display options"><label><input type="checkbox" data-view="cutaway" checked>Cutaway</label><label><input type="checkbox" data-view="labels" checked>Room labels</label><label><input type="checkbox" data-view="dimensions">Dimensions</label></div></details>
+        <div class="model-title"><span id="view-label">Your home, in perspective</span><small id="home-bearing">Plan top faces north</small><p id="view-description">Click a room to open its windows and doors. Right-click a fan or purifier for quick controls.</p></div>
+        <div class="view-tools"><div class="segmented camera-modes" role="group" aria-label="Camera view"><button data-camera="perspective" aria-pressed="true">${icon('cube')}<span>3D</span></button><button data-camera="top" aria-pressed="false">${icon('plan')}<span>Plan</span></button></div><button class="icon-button" data-action="reset-camera" title="Reset view" aria-label="Reset camera view">${icon('reset')}</button></div>
+        <details class="view-disclosure"><summary>View</summary><div class="view-options" aria-label="Model display options"><label><input type="checkbox" data-view="cutaway" checked>Cutaway</label><label><input type="checkbox" data-view="labels">Room labels</label><label><input type="checkbox" data-view="dimensions">Dimensions</label></div></details>
         <div class="model-legend" id="model-legend" hidden></div>
-
       </section>
-      <aside class="control-panel" id="controls" aria-labelledby="manual-controls-title" tabindex="-1"><div class="manual-controls-heading"><h2 id="manual-controls-title">Make your own changes</h2><p>Adjust a room, place devices or set the weather.</p></div>
-        <div class="control-tabs" role="tablist" aria-label="Control section"><button role="tab" id="tab-room" aria-controls="panel-room" aria-selected="true" data-tab="room">Windows & doors</button><button role="tab" id="tab-devices" aria-controls="panel-devices" aria-selected="false" tabindex="-1" data-tab="devices">Devices</button><button role="tab" id="tab-environment" aria-controls="panel-environment" aria-selected="false" tabindex="-1" data-tab="environment">Weather</button></div>
+      <aside class="control-panel" id="controls" aria-label="Controls" tabindex="-1">
+        <div class="control-tabs" role="tablist" aria-label="Control section">${[['home', 'Home'], ['room', 'Room'], ['devices', 'Devices'], ['environment', 'Weather'], ['suggest', 'Suggest']].map(([id, label]) => `<button role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${id === 'home'}" ${id === 'home' ? '' : 'tabindex="-1"'} data-tab="${id}">${label}</button>`).join('')}</div>
         <div class="control-scroll">
-          <section id="panel-environment" role="tabpanel" aria-labelledby="tab-environment" hidden>
-            <div id="weather-loader" class="weather-loader"></div><label class="field-label" for="house-orientation">Direction the top of your floor plan faces</label><select id="house-orientation" class="device-select"><option value="0">North</option><option value="90">East</option><option value="180">South</option><option value="270">West</option></select><p class="section-note">Rotates the home relative to geographic wind and sun; camera orbit only changes your view.</p><div class="section-heading"><h2>Try a scenario</h2><span id="scenario-label">Normal day</span></div>
-            <div class="scenario-grid">${PRESETS.map((preset, index) => `<button class="scenario-button" data-preset="${escape(preset.id)}" ${preset.id === 'validation' ? 'hidden' : ''} aria-pressed="false"><span class="scenario-symbol">${icon(index === 1 ? 'wind' : index === 2 ? 'house' : index === 3 ? 'info' : 'sun')}</span><span>${escape(preset.name)}</span></button>`).join('')}</div>
-            <p class="section-note" id="scenario-description">Change the conditions, then watch the rooms respond over time.</p>
-            <details id="manual-weather" class="manual-disclosure"><summary>Set my own weather</summary><div class="disclosure-body">
-            ${range('outdoorTemperature', 'Temperature', 10, 60, 0.1, '°C')}
-            ${outdoorNumber('outdoorTemperature', 'Enter temperature (°C)', 10, 60)}
-            ${range('windSpeed', 'Wind speed', 0, 10, 0.1, ' m/s')}
-            ${outdoorNumber('windSpeed', 'Enter wind speed (m/s)', 0, 10)}
-            <label class="field-label" for="windFrom">Wind from</label><select id="windFrom" class="device-select"><option value="">Scenario direction</option><option value="N">North → towards south</option><option value="E">East → towards west</option><option value="S">South → towards north</option><option value="W">West → towards east</option></select>
-            <div class="spaced">${range('outdoorPm25', 'Outdoor PM2.5', 0, 1000, 0.1, ' µg/m³')}</div>
-            ${outdoorNumber('outdoorPm25', 'Enter PM2.5 (µg/m³)', 0, 1000)}
-            <div class="outdoor-entry"><label class="field-label" for="outdoor-aqi">${escape(US_PM25_AQI_EQUIVALENT_LABEL)}</label><input class="device-select" id="outdoor-aqi" type="number" min="0" max="500" step="1" aria-describedby="outdoor-aqi-note outdoor-aqi-range"></div>
-            <p class="section-note" id="outdoor-aqi-range" hidden>PM2.5 is above the supported 0–500 index scale. Its concentration remains unchanged.</p><p class="section-note" id="outdoor-aqi-note">${escape(US_PM25_AQI_EQUIVALENT_NOTE)} <a href="${US_PM25_AQI_SOURCE}" target="_blank" rel="noopener">EPA scale</a></p>
-            <p class="section-note" id="outdoor-source"></p><button class="button secondary full-width spaced" data-action="reset-weather">Reset outdoor conditions to scenario</button>
-            <p class="section-note">Set conditions manually or load a regional forecast above. Choosing another day clears weather overrides.</p></div></details>
-
+          <section id="panel-home" role="tabpanel" aria-labelledby="tab-home">
+            <section class="quick-controls" aria-label="Quick home controls">${[['internal', 'Internal doors'], ['external', 'Windows & main door'], ['ceiling', 'Ceiling fans'], ['standing', 'Standing fans']].map(([group, label]) => `<div class="quick-row"><span>${label}<small data-quick-status="${group}"></small></span><button class="button secondary" data-quick-toggle="${group}"></button></div>`).join('')}<div class="quick-links"><button class="text-link" data-action="add-standing-fan">Add a fan</button><button class="text-link" data-action="purifier-menu">Purifier</button><button class="text-link" data-action="weather-controls">Area & weather</button></div></section>
+            <section class="results-panel" aria-label="Simulated room readings">
+              <div class="rooms-heading"><h2>Rooms</h2><span id="room-sort-label">Warmest first</span><span class="simulated-tag">Simulated</span></div>
+              <div class="room-readings" aria-label="Select a room">${primaryRooms.map(room => `<div class="room-row" data-room-row="${room}"><button class="room-reading ${room === 'living' ? 'selected' : ''}" data-room="${room}" aria-pressed="${room === 'living'}"><span>${roomLabel(room)}</span><strong id="reading-${room}">—</strong><span class="room-reading-detail" id="airflow-${room}">—</span></button>${room === 'bedroom3' ? `<details id="bedroom3-purifier-monitor" class="bedroom-monitor" aria-label="Bedroom 3 simulated air quality"><summary><span id="bedroom3-purifier-status"></span> · PM2.5 <output id="bedroom3-pm25">—</output></summary><p>SIMULATED · ${escape(US_PM25_AQI_EQUIVALENT_LABEL)}: <output id="bedroom3-aqi-equivalent">—</output>. ${escape(US_PM25_AQI_EQUIVALENT_NOTE)} Particle levels respond gradually. D5 held down turns the Bedroom 3 purifier on; releasing it turns it off.</p><p><strong>Bedroom 3 windows</strong><br><output id="bedroom3-window-status"></output></p><button class="button secondary full-width" id="bedroom3-window-toggle" data-action="bedroom3-windows">Open both windows</button><p>D4 toggles both windows together. The individual controls remain independent.</p></details>` : ''}</div>`).join('')}</div>
+              <button class="text-link show-all-rooms" data-action="show-all-rooms" aria-expanded="false">Show all rooms</button>
+              <dl class="flat-summary"><div><dt>Whole flat</dt><dd id="mean-temperature">—</dd></div><div><dt>PM2.5</dt><dd id="mean-pm25">—</dd></div><div><dt>Power</dt><dd id="power">—</dd></div></dl>
+              <p class="reading-detail"><span id="feels-like">Feels like —</span> · <span id="energy">0.000 kWh used</span><svg id="temperature-history" viewBox="0 0 160 32" aria-label="Average temperature trend" role="img"><path d="M0 24H160"/></svg></p>
+            </section>
           </section>
-          <section id="panel-room" role="tabpanel" aria-labelledby="tab-room">
-            <div class="section-divider"></div><div class="section-heading"><h2>Whole-home openings</h2><span id="window-count"></span></div>
-            <div class="button-pair"><button class="button secondary" data-bulk="windows" data-value="true">Open windows</button><button class="button secondary" data-bulk="windows" data-value="false">Close windows</button></div>
-            <div class="button-pair"><button class="button text-button" data-quick-group="internal" data-value="true">Open internal doors</button><button class="button text-button" data-quick-group="internal" data-value="false">Close internal doors</button></div>
-            <p class="section-note">Opening windows exchanges indoor air with outdoors. On hazy days, this can bring particles inside.</p>
-            <label class="field-label" for="room-select">Select a room</label><select id="room-select">${model.rooms.map(room => `<option value="${room.name}" ${room.name === 'living' ? 'selected' : ''}>${roomLabel(room.name)}</option>`).join('')}</select>
+          <section id="panel-room" role="tabpanel" aria-labelledby="tab-room" hidden>
+            <label class="field-label" for="room-select">Room</label><select id="room-select">${model.rooms.map(room => `<option value="${room.name}" ${room.name === 'living' ? 'selected' : ''}>${roomLabel(room.name)}</option>`).join('')}</select>
             <div id="room-detail"></div>
           </section>
           <section id="panel-devices" role="tabpanel" aria-labelledby="tab-devices" hidden>
-            <h2 class="section-title">Place your devices</h2><p class="section-note">Drag standing fans onto clear floor space, or use the position controls. Each powered fan contributes to simulated airflow and electricity.</p>
+            <p class="section-note panel-intro">Drag fans in the model, or use these controls.</p>
             <h3 class="control-group-title">Standing fans <span id="standing-fan-count">1 / 8</span></h3>
             <div class="standing-fan-editor">
               <label class="field-label" for="standing-fan-select">Fan to adjust</label><select id="standing-fan-select" class="device-select"><option value="primary">Main fan</option></select>
@@ -162,20 +149,29 @@ $('#app').innerHTML = `
             <label class="toggle-control"><span>AC power<small id="ac-state">Off</small></span><input type="checkbox" data-device-key="acOn" aria-label="Air conditioning power"><span class="switch-track" aria-hidden="true"></span></label>
             <label class="field-label spaced" for="ac-unit">Room to cool</label><select id="ac-unit" class="device-select" data-device-key="acUnit">${Object.keys(deviceRoom).filter(id => id.startsWith('ac_')).map(id => `<option value="${id}">${roomLabel(deviceRoom[id])}</option>`).join('')}</select>
             <div class="spaced">${range('acSetpoint', 'Set temperature', 18, 30, 0.5, '°C')}</div>
-            <section id="optimiser-panel" aria-label="What to try"><div class="advice-heading"><h2>What to try</h2><span class="simulated-tag">SIMULATED</span></div><p id="advice-room-context" class="advice-context">Explore a change for your home.</p><details id="advice-settings"><summary>Devices to test</summary><label class="field-label" for="optimiser-budget">Available devices</label><select id="optimiser-budget" class="device-select"><option value="fan">Fan only</option><option value="fan+purifier" selected>Fan + purifier</option><option value="fan+purifier+ac">Fan + purifier + AC</option></select><label class="option-check"><input id="optimiser-openings" type="checkbox" checked>Also suggest windows and doors</label><p class="section-note">Added fans stay fixed. Suggestions test preset positions for the main fan.</p></details><button class="button primary full-width" id="run-optimiser" data-action="optimise" aria-keyshortcuts="O" title="Suggest changes (O)">Suggest changes</button><div id="optimiser-result" aria-live="polite"><p class="section-note">Pick a day, then suggest changes. We’ll test fan, purifier and opening combinations and show what helped most.</p></div><p class="advice-honesty">A rough simulation to compare ideas, not a measurement or health advice.</p></section>
           </section>
-          <details class="hardware-section"><summary>${icon('usb')}Connect physical model (USB)<span class="details-plus">+</span></summary><div id="hardware-controls"><p class="hardware-state"><span class="status-dot"></span><strong>SSTuino not connected</strong></p><p class="section-note">Everything works with the on-screen controls and keyboard. When your model is ready, connect USB to use its switches and buttons.</p><button class="button secondary full-width" id="connect-hardware" type="button">Connect SSTuino</button><p class="hardware-help" id="hardware-status" role="status">USB serial works in desktop Chrome or Edge.</p></div></details>
+          <section id="panel-environment" role="tabpanel" aria-labelledby="tab-environment" hidden>
+            <div id="weather-loader" class="weather-loader"></div><label class="field-label" for="house-orientation">Direction the top of your floor plan faces</label><select id="house-orientation" class="device-select"><option value="0">North</option><option value="90">East</option><option value="180">South</option><option value="270">West</option></select><p class="section-note">Rotates the home relative to geographic wind and sun; camera orbit only changes your view.</p><p class="section-note scenario-summary"><strong id="scenario-label">Normal day</strong> <span id="scenario-description">Change the conditions, then watch the rooms respond over time.</span></p>
+            <details id="manual-weather" class="manual-disclosure"><summary>Set my own weather</summary><div class="disclosure-body">
+            ${range('outdoorTemperature', 'Temperature', 10, 60, 0.1, '°C')}
+            ${outdoorNumber('outdoorTemperature', 'Enter temperature (°C)', 10, 60)}
+            ${range('windSpeed', 'Wind speed', 0, 10, 0.1, ' m/s')}
+            ${outdoorNumber('windSpeed', 'Enter wind speed (m/s)', 0, 10)}
+            <label class="field-label" for="windFrom">Wind from</label><select id="windFrom" class="device-select"><option value="">Scenario direction</option><option value="N">North → towards south</option><option value="E">East → towards west</option><option value="S">South → towards north</option><option value="W">West → towards east</option></select>
+            <div class="spaced">${range('outdoorPm25', 'Outdoor PM2.5', 0, 1000, 0.1, ' µg/m³')}</div>
+            ${outdoorNumber('outdoorPm25', 'Enter PM2.5 (µg/m³)', 0, 1000)}
+            <div class="outdoor-entry"><label class="field-label" for="outdoor-aqi">${escape(US_PM25_AQI_EQUIVALENT_LABEL)}</label><input class="device-select" id="outdoor-aqi" type="number" min="0" max="500" step="1" aria-describedby="outdoor-aqi-note outdoor-aqi-range"></div>
+            <p class="section-note" id="outdoor-aqi-range" hidden>PM2.5 is above the supported 0–500 index scale. Its concentration remains unchanged.</p><p class="section-note" id="outdoor-aqi-note">${escape(US_PM25_AQI_EQUIVALENT_NOTE)} <a href="${US_PM25_AQI_SOURCE}" target="_blank" rel="noopener">EPA scale</a></p>
+            <p class="section-note" id="outdoor-source"></p><button class="button secondary full-width spaced" data-action="reset-weather">Reset outdoor conditions to scenario</button>
+            <p class="section-note">Set conditions manually or load a regional forecast above. Choosing another day clears weather overrides.</p></div></details>
+
+          </section>
+          <section id="panel-suggest" role="tabpanel" aria-labelledby="tab-suggest" hidden>
+            <section id="optimiser-panel" aria-label="What to try"><div class="advice-heading"><h2>Suggest a setup</h2><span class="simulated-tag">SIMULATED</span></div><p id="advice-room-context" class="advice-context">Explore a change for your home.</p><details id="advice-settings"><summary>Devices to test</summary><label class="field-label" for="optimiser-budget">Available devices</label><select id="optimiser-budget" class="device-select"><option value="fan">Fan only</option><option value="fan+purifier" selected>Fan + purifier</option><option value="fan+purifier+ac">Fan + purifier + AC</option></select><label class="option-check"><input id="optimiser-openings" type="checkbox" checked>Also suggest windows and doors</label><p class="section-note">Added fans stay fixed. Suggestions test preset positions for the main fan.</p></details><button class="button primary full-width" id="run-optimiser" data-action="optimise" aria-keyshortcuts="O" title="Suggest changes (O)">Suggest changes</button><div id="optimiser-result" aria-live="polite"><p class="section-note">Pick a day, then suggest changes. We’ll test fan, purifier and opening combinations and show what helped most.</p></div><p class="advice-honesty">A rough simulation to compare ideas, not a measurement or health advice.</p></section>
+          </section>
         </div>
-        <div class="simulation-controls"><div class="simulation-clock"><span class="running-dot"></span><span id="play-status">Simulation running</span><output id="elapsed-time" aria-label="Elapsed simulated time" title="Elapsed simulated time">00:00:00</output></div><div class="playback-row"><button class="button play-button" data-action="play">${icon('pause')}<span>Pause</span></button><select id="simulation-speed" aria-label="Simulation speed"><option value="1">1× speed</option><option value="30" selected>30× speed</option><option value="60">60× speed</option></select><button class="icon-button" data-action="reset" aria-label="Reset simulation time and readings" title="Reset readings">${icon('reset')}</button></div><p class="speed-help">Target: 1 real second = <span id="speed-description">30 simulated seconds</span>. Actual progress may slow on busy devices.</p><p id="simulation-engine" role="status">CPU · 2D</p></div>
       </aside>
     </div>
-    <section class="results-panel" aria-label="Simulated room readings">
-      <div class="rooms-heading"><h2>Rooms</h2><span class="simulated-tag">SIMULATED</span><span id="room-sort-label">Warmest first</span></div>
-      <div class="room-readings" aria-label="Select a room">${primaryRooms.map(room => `<div class="room-row" data-room-row="${room}"><button class="room-reading ${room === 'living' ? 'selected' : ''}" data-room="${room}" aria-pressed="${room === 'living'}"><span>${roomLabel(room)}</span><strong id="reading-${room}">—</strong><span class="room-reading-detail" id="airflow-${room}">—</span></button>${room === 'bedroom3' ? `<details id="bedroom3-purifier-monitor" class="bedroom-monitor" aria-label="Bedroom 3 simulated air quality"><summary><span id="bedroom3-purifier-status"></span> · PM2.5 <output id="bedroom3-pm25">—</output></summary><p>SIMULATED · ${escape(US_PM25_AQI_EQUIVALENT_LABEL)}: <output id="bedroom3-aqi-equivalent">—</output>. ${escape(US_PM25_AQI_EQUIVALENT_NOTE)} Particle levels respond gradually. D5 held down turns the Bedroom 3 purifier on; releasing it turns it off.</p><p><strong>Bedroom 3 windows</strong><br><output id="bedroom3-window-status"></output></p><button class="button secondary full-width" id="bedroom3-window-toggle" data-action="bedroom3-windows">Open both windows</button><p>D4 toggles both windows together. The individual controls remain independent.</p></details>` : ''}</div>`).join('')}</div>
-      <button class="text-link show-all-rooms" data-action="show-all-rooms" aria-expanded="false">Show all rooms</button>
-      <div class="flat-summary">Whole flat: <strong id="mean-temperature">—</strong> · PM2.5 <strong id="mean-pm25">—</strong> · <strong id="power">—</strong></div>
-      <details class="reading-detail"><summary>Comfort & electricity</summary><span id="feels-like">Feels like —</span> · <span id="energy">0.000 kWh used</span><svg id="temperature-history" viewBox="0 0 160 32" aria-label="Average temperature trend" role="img"><path d="M0 24H160"/></svg></details>
-    </section>
     </section>
     <section id="cooling-lab-workspace" aria-labelledby="cooling-lab-title" hidden>
       <div class="workspace-heading"><div><h1 id="cooling-lab-title" tabindex="-1">Window fan test</h1><p>Does a window fan help this room? Compare fan off and on under the same weather.</p></div><button class="button secondary" data-workspace="flat">Back to my flat</button></div>
@@ -191,29 +187,9 @@ $('#app').innerHTML = `
   <dialog id="readings-dialog" class="readings-dialog" aria-labelledby="readings-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">Every room, at a glance</span><h2 id="readings-dialog-title">Room readings</h2></div><button class="icon-button" data-close aria-label="Close room readings">${icon('close')}</button></div><p class="dialog-note">Illustrative values at <span id="readings-time"></span>. These are not sensor measurements.</p><div class="readings-table-wrap"><table><thead><tr><th>Room</th><th>Temperature</th><th>Feels like</th><th>Air speed</th><th>PM2.5</th></tr></thead><tbody id="readings-table"></tbody></table></div><button class="button secondary" data-action="export">${icon('download')}Export this snapshot</button></dialog>
   <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-dialog-title"><div class="dialog-heading"><h2 id="about-dialog-title">A model for asking “what if?”</h2><button class="icon-button" data-close aria-label="Close explanation">${icon('close')}</button></div><p>${escape(SIMULATION_NOTE)}</p><p>Change a scenario or a control, then let simulated time pass. Temperature and particles respond gradually. Fans move air and change perceived comfort; air conditioning cools rooms and uses electricity.</p><p>The pressure view shows the 2D solver’s relative pressure potential, normalised from −1 to +1 within the current layout. It is a dimensionless simulated index, not pressure in pascals (Pa). Colours show relative differences within one arrangement; airflow arrows show the solved direction of travel.</p><p>The 3D view and cardboard plans use the same floor-plan geometry. Cutaway walls, overlays and camera changes only change the view.</p><p>Use this to compare ideas for your presentation. It is not a building assessment or a source of measured indoor air quality.</p></dialog>
   <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">Presentation controls</span><h2 id="help-dialog-title">Keep the demo in your hands</h2></div><button class="icon-button" data-close aria-label="Close keyboard help">${icon('close')}</button></div><div class="keyboard-help"><p><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><span>Bedroom 3 north / living south / living east / Bedroom 3 east window</span></p><p><kbd>Shift</kbd> + <kbd>1</kbd><kbd>2</kbd><span>Main door / Bedroom 3 door</span></p><p><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>T</kbd><kbd>Y</kbd><span>The six scenarios, in order</span></p><p><kbd>F</kbd><kbd>A</kbd><kbd>P</kbd><span>Fan / AC / purifier power</span></p><p><kbd>[</kbd><kbd>]</kbd><span>Fan direction ±15°</span></p><p><kbd>,</kbd><kbd>.</kbd><span>Previous / next fan position</span></p><p><kbd>−</kbd><kbd>=</kbd><span>Decrease / increase fan speed</span></p><p><kbd>Shift</kbd> + <kbd>P</kbd><span>Next purifier position</span></p><p><kbd>O</kbd><kbd>Enter</kbd><span>Compare layouts / apply suggestion</span></p><p><kbd>Space</kbd><kbd>Backspace</kbd><span>Pause / reset simulation</span></p><p><kbd>C</kbd><kbd>H</kbd><span>Connect SSTuino / show this help</span></p></div><p class="section-note">Tab moves between accessible controls. Shortcuts pause while you use a form field or dialog. D4 on the physical model toggles both Bedroom 3 windows; D5 controls its purifier. Unmapped keys do nothing.</p></dialog>
-  <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><h2 id="guide-title">Try one change at a time</h2><button class="icon-button" data-close aria-label="Close getting started">${icon('close')}</button></div><ol class="getting-started"><li><strong>Choose the day.</strong><p>Pick heat, haze or a cooler evening. Use a scenario or explicitly load a regional forecast in Weather.</p></li><li><strong>Explore your rooms.</strong><p>Select a room on the map or in the room list. Openings and devices are below the map.</p></li><li><strong>Compare an idea.</strong><p>Suggest changes tests arrangements from the same starting conditions. Review the trade-offs, then Apply. Undo is available until another setting changes.</p></li></ol><p class="section-note">Qualitative toy CFD. Use the simulation to compare ideas, not as a measurement or building assessment.</p><button class="button primary" data-close>Explore my flat</button></dialog>
+  <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><h2 id="guide-title">Try one change at a time</h2><button class="icon-button" data-close aria-label="Close getting started">${icon('close')}</button></div><ol class="getting-started"><li><strong>Choose the day.</strong><p>Pick heat, haze or a cooler evening. Use a scenario or explicitly load a regional forecast in Weather.</p></li><li><strong>Explore your rooms.</strong><p>Click a room in the model or the Home list. Its windows and doors open in the Room tab beside the model.</p></li><li><strong>Compare an idea.</strong><p>Suggest changes tests arrangements from the same starting conditions. Review the trade-offs, then Apply. Undo is available until another setting changes.</p></li></ol><p class="section-note">Qualitative toy CFD. Use the simulation to compare ideas, not as a measurement or building assessment.</p><button class="button primary" data-close>Explore my flat</button></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>`;
 
-const adviceRail = document.createElement('aside');
-adviceRail.className = 'advice-rail';
-adviceRail.setAttribute('aria-label', 'Suggestions and room readings');
-const quick = document.createElement('section');
-quick.className = 'quick-controls'; quick.setAttribute('aria-label', 'Quick home controls');
-quick.innerHTML = `<h2>Try a change</h2><p>Start with a route for air, then add a fan.</p>${[['internal', 'Internal doors'], ['external', 'All exterior openings'], ['ceiling', 'Ceiling fans'], ['standing', 'Standing fans']].map(([group, label]) => `<div class="quick-row"><span>${label}<small data-quick-status="${group}"></small></span><button class="button secondary" data-quick-toggle="${group}"></button></div>`).join('')}<div class="button-pair"><button class="button secondary" data-action="add-standing-fan">Add fan</button><button class="button secondary" data-action="purifier-menu">Purifier controls</button></div><button class="text-link" data-action="weather-controls">Choose area & weather</button>`;
-const adviceDisclosure = document.createElement('details'); adviceDisclosure.id = 'suggestion-disclosure';
-adviceDisclosure.innerHTML = '<summary>Suggest a setup for me</summary>'; adviceDisclosure.append($('#optimiser-panel'));
-adviceRail.append(quick, $('.results-panel'), adviceDisclosure);
-const manualLink = document.createElement('a');
-manualLink.className = 'manual-controls-link';
-manualLink.href = '#controls';
-manualLink.textContent = 'Adjust windows, devices & weather';
-manualLink.addEventListener('click', () => { $('#controls').focus({ preventScroll: true }); });
-adviceRail.append(manualLink);
-$('#flat-workspace .workspace').append(adviceRail);
-$('#flat-workspace').append($('#controls'));
-$('#playback-slot').append($('.simulation-controls'));
-$('#science-status').append($('#simulation-engine'), $('.speed-help'));
-$('#hardware-menu-slot').append($('.hardware-section'));
 for (const heading of Array.from($('#panel-devices').querySelectorAll('h3'))) {
   const group = document.createElement('div');
   group.className = 'device-group';
@@ -225,6 +201,7 @@ for (const heading of Array.from($('#panel-devices').querySelectorAll('h3'))) {
     item = next;
   }
 }
+
 
 
 const doorRooms: Record<string, string[]> = {
@@ -304,7 +281,7 @@ function syncControls(): void {
   $('#custom-day-note').hidden = activePreset !== '';
   if (conditions.scenarioId === 'validation') {
     $<HTMLInputElement>('#science-views').checked = true;
-    document.querySelectorAll<HTMLElement>('[data-mode="pressure"], [data-preset="validation"], #day-select option[value="validation"]').forEach(element => { element.hidden = false; });
+    document.querySelectorAll<HTMLElement>('[data-mode="pressure"], #day-select option[value="validation"]').forEach(element => { element.hidden = false; });
   }
   document.querySelectorAll<HTMLInputElement>('[data-field]').forEach(input => {
     const field = input.dataset.field as keyof Conditions;
@@ -331,8 +308,6 @@ function syncControls(): void {
     input.checked = conditions[group][input.dataset.id!];
     $(`[data-control-status="${input.dataset.id}"]`).textContent = group === 'devices' ? (input.checked ? 'On' : 'Off') : (input.checked ? 'Open' : 'Closed');
   });
-  $('#window-count').textContent = `${Object.values(conditions.windows).filter(Boolean).length} / ${Object.keys(conditions.windows).length} open`;
-  document.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.preset === activePreset)));
   const fan = conditions.portableFan ?? { on: false, slot: 0, angleDeg: 90, speed: 2 };
   const purifier = conditions.purifier ?? { on: false, slot: 0 };
   $<HTMLInputElement>('[data-device-key="fanOn"]').checked = fan.on;
@@ -849,7 +824,7 @@ document.addEventListener('click', event => {
   if (isSeparateWorkspaceControl(target)) return;
   if (target.hasAttribute('data-close')) { target.closest<HTMLDialogElement>('dialog')?.close(); return; }
   if (target.dataset.tab) selectTab(target.dataset.tab);
-  if (target.dataset.room) selectRoom(target.dataset.room);
+  if (target.dataset.room) { selectRoom(target.dataset.room); $('#controls').scrollIntoView({ block: 'nearest' }); $('#room-select').focus({ preventScroll: true }); }
   if (target.dataset.mode) { view.mode = target.dataset.mode as ViewMode; updateOverlay(); }
   if (target.dataset.camera) {
     camera = target.dataset.camera as 'perspective' | 'top';
@@ -869,10 +844,10 @@ document.addEventListener('click', event => {
     markCustom(true);
   }
   switch (target.dataset.action) {
-    case 'add-standing-fan': addStandingFan(!target.closest('.quick-controls')); break;
+    case 'add-standing-fan': if (!target.closest('.quick-controls')) selectTab('devices'); addStandingFan(!target.closest('.quick-controls')); break;
     case 'fan-menu': { const rect = target.getBoundingClientRect(); openDeviceMenu({ kind: 'fan', id: selectedStandingFan }, rect.left, rect.top); break; }
     case 'purifier-menu': { const rect = target.getBoundingClientRect(); openDeviceMenu({ kind: 'purifier' }, rect.left, rect.top); break; }
-    case 'weather-controls': selectTab('environment'); $('#controls').scrollIntoView({ block: 'start' }); $('#house-orientation').focus({ preventScroll: true }); break;
+    case 'weather-controls': selectTab('environment'); $('#controls').scrollIntoView({ block: 'nearest' }); $('#house-orientation').focus({ preventScroll: true }); break;
     case 'remove-standing-fan': removeStandingFan(); break;
     case 'place-standing-fan': moveStandingFan(selectedStandingFan, $<HTMLInputElement>('#standing-fan-x').valueAsNumber, $<HTMLInputElement>('#standing-fan-z').valueAsNumber); break;
     case 'guide': openDialog('#guide-dialog', target); break;
@@ -984,7 +959,7 @@ document.addEventListener('change', event => {
   if (['standing-fan-on', 'standing-fan-speed', 'standing-fan-heading'].includes(input.id)) { editStandingFan(input.id, input.type === 'checkbox' ? input.checked : input.id === 'standing-fan-heading' ? input.valueAsNumber : Number(input.value)); return; }
   if (input.id === 'day-select') { loadScenario(input.value); return; }
   if (input.id === 'science-views') {
-    document.querySelectorAll<HTMLElement>('[data-mode="pressure"], [data-preset="validation"], #day-select option[value="validation"]').forEach(element => { element.hidden = !input.checked; });
+    document.querySelectorAll<HTMLElement>('[data-mode="pressure"], #day-select option[value="validation"]').forEach(element => { element.hidden = !input.checked; });
     if (!input.checked) {
       if (flatViewMode === 'pressure') flatViewMode = 'model';
       if (view.mode === 'pressure') { view.mode = 'model'; updateOverlay(); }
@@ -1030,6 +1005,12 @@ document.addEventListener('change', event => {
   if (input.dataset.deviceKey && input.type !== 'range') editDevice(input.dataset.deviceKey, input.type === 'checkbox' ? input.checked : input.value);
   if (input.dataset.view) { view[input.dataset.view as 'cutaway' | 'labels' | 'dimensions'] = input.checked; updateScene(); }
 });
+$('.skip-link').addEventListener('click', event => {
+  if (workspace !== 'flat') return;
+  event.preventDefault();
+  $('#controls').scrollIntoView({ block: 'nearest' });
+  $<HTMLButtonElement>('[data-tab][aria-selected="true"]').focus();
+});
 const dialogLaunchers = new WeakMap<HTMLDialogElement, HTMLElement>();
 function openDialog(selector: string, launcher: HTMLElement): void {
   deviceMenu.close();
@@ -1052,9 +1033,9 @@ $('.control-tabs').addEventListener('keydown', event => {
   const keyEvent = event as KeyboardEvent;
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(keyEvent.key)) return;
   keyEvent.preventDefault();
-  const tabs = ['room', 'devices', 'environment'];
+  const tabs = ['home', 'room', 'devices', 'environment', 'suggest'];
   const index = tabs.findIndex(tab => $(`#tab-${tab}`).getAttribute('aria-selected') === 'true');
-  const tab = keyEvent.key === 'Home' ? tabs[0] : keyEvent.key === 'End' ? tabs[2] : tabs[(index + (keyEvent.key === 'ArrowRight' ? 1 : 2)) % tabs.length];
+  const tab = keyEvent.key === 'Home' ? tabs[0] : keyEvent.key === 'End' ? tabs[tabs.length - 1] : tabs[(index + (keyEvent.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
   selectTab(tab); $(`#tab-${tab}`).focus();
 });
 document.addEventListener('keydown', event => {
@@ -1091,8 +1072,8 @@ document.addEventListener('keydown', event => {
     case 'backspace': $('[data-action="reset"]').click(); break;
     case 'c': $<HTMLDetailsElement>('#more-menu').open = true; $<HTMLDetailsElement>('.hardware-section').open = true; $('#connect-hardware').click(); break;
     case 'h': openDialog('#help-dialog', target); break;
-    case 'o': $('#run-optimiser').click(); $('#run-optimiser').focus(); break;
-    case 'enter': document.getElementById('apply-optimiser')?.click(); break;
+    case 'o': selectTab('suggest'); $('#run-optimiser').click(); $('#run-optimiser').focus(); break;
+    case 'enter': if ($('#panel-suggest').hidden) return; document.getElementById('apply-optimiser')?.click(); break;
     default: return;
   }
   event.preventDefault();
@@ -1267,9 +1248,14 @@ function animate(time: number): void {
 }
 requestAnimationFrame(animate);
 document.addEventListener('visibilitychange', () => { if (document.hidden) invalidateGpuStep(); });
+const header = $('.app-header');
+const syncHeaderSize = () => header.classList.toggle('compact', window.scrollY > 32);
+window.addEventListener('scroll', syncHeaderSize, { passive: true });
+syncHeaderSize();
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
   disposed = true;
+  window.removeEventListener('scroll', syncHeaderSize);
   weatherControls.dispose(); deviceMenu.close();
   invalidateGpuStep();
   gpu?.dispose();

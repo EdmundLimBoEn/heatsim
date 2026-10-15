@@ -1,5 +1,7 @@
 # 01 · Architecture
 
+**Hosting update, 16 October 2026:** the user authorized a static Cloudflare deployment at https://heatsim.sillyapps.co. Local development and browser-only simulation remain supported; no backend, accounts or analytics were added.
+
 ## MVP amendment · implemented architecture
 
 **This section supersedes the original 3D/WebGPU architecture below.** The main apartment uses the documented 2D fallback. Cooling Lab is an independent two-layer/surface model and does not replace that field with a 3D solver. See [simulation details](02-simulation.md), [run commands](../README.md) and [verification status](../CHECKLIST.md).

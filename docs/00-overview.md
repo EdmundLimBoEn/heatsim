@@ -1,5 +1,7 @@
 # 00 · Overview
 
+**Hosting update, 16 October 2026:** the user authorized a static Cloudflare deployment at https://heatsim.sillyapps.co. Local development and browser-only simulation remain supported; no backend, accounts or analytics were added.
+
 ## MVP amendment · 15 October 2026
 
 **This amendment describes the app that exists and takes precedence over the original roadmap below.** Use the [README](../README.md) for running and presenting it, and [CHECKLIST](../CHECKLIST.md) for verified versus pending work.

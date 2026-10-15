@@ -5,12 +5,12 @@ Run `bun run dev` and open the localhost address. No SSTuino is needed. The visi
 ## 1. Show the outdoor inputs
 
 1. Open **My flat → Weather → Set my own weather**. Enter **31°C**, **200 µg/m³ PM2.5** and **2 m/s** wind, then choose **Wind from South**. This means air arriving from the south towards the north.
-2. Show **US EPA PM2.5 index equivalent (24-hour scale)**. Say: “This is a scenario equivalent, not Singapore PSI, live AQI or a health forecast.” Raw PM2.5 remains the model input; no API is used.
+2. Show **US EPA PM2.5 index equivalent (24-hour scale)**. Say: “This is a scenario equivalent, not Singapore PSI, live AQI or a health forecast.” Raw PM2.5 remains manual; the optional weather loader does not fetch haze.
 3. **Reset outdoor conditions to scenario** restores weather while keeping controls/readings. Selecting another scenario also resets indoor fields.
 
 ## 2. Compare open windows with closed ordinary windows during haze
 
-1. Refresh for a clean setup, leave AC and ordinary fans off, and open **Window fan test → Weather, openings & advanced comparisons**. Choose **Captured baseline / candidate**, **Bedroom 3**, its **north window** fan adapter, and **20 minutes**.
+1. Refresh for a clean setup, leave AC and ordinary fans off, and open **Window fan test → Customize test**. Choose **Captured baseline / candidate**, **Bedroom 3**, its **north window** fan adapter, and **20 minutes**.
 2. Select **Haze outside**. Set shared outdoor conditions to **31°C**, **200 µg/m³**, **2 m/s from South**. Leave the optional corridor boundary **off**. Uncheck **Candidate vent fan powered**; keep its rating at **120 m³/h**. The adapter's passive opening remains present in both trials.
 3. Select **Open windows + internal doors**. Enable **Portable purifier powered** at **Bedroom 3**; leave fixed purifiers off. Keep envelope conductance **1.5 W/m²K**, absorptance **0.6**, shading **0%**. Click **Capture baseline**.
 4. Expand **Individual windows and doors**. Close every ordinary exterior window that can be changed, leaving the selected fan-adapter opening and **all internal-door states unchanged**. Leave the main entrance closed. Keep the purifier on in the same room.
@@ -35,7 +35,7 @@ A solver check of these presets gives approximately **−0.58°C occupied-layer 
 
 **Why a custom comparison may show little change:** the route may be blocked, outdoor air may be as warm as indoor air, natural ventilation may already be doing much of the work, or a local change may be diluted in a whole-flat mean. This model does not calculate a fan’s evaporative comfort effect on a person. Do not invent cooling to make the chart dramatic.
 
-**Weather, openings & advanced comparisons** retains the individual controls. Editing a demo turns it into a custom setup. **Refresh from the flat** restores the flat’s current weather/openings/devices; it never changes the flat. **Compared inputs** and **Air exchange and heat balance** remain available as disclosures beneath the result.
+**Customize test** retains the individual controls. Editing a demo turns it into a custom setup. **Refresh from the flat** restores the flat’s current weather/openings/devices; it never changes the flat. **Compared inputs** and **Air exchange and heat balance** remain available as disclosures beneath the result.
 
 ## 4. Optional corridor, envelope and pressure questions
 
@@ -46,7 +46,7 @@ A solver check of these presets gives approximately **−0.58°C occupied-layer 
 
 ## Optional multiple-fan walkthrough
 
-Open **My flat → Devices → Standing fans**, click **Add fan**, then choose each fan under **Fan to adjust**. Switch both on at nonzero speed; point one north (**0°**) and another east (**90°**). Drag them onto valid floor or use **Move to a room / Exact floor position**. Inspect **Air movement** without presenting the illustrative arrows as measured airflow. Turn an individual fan off, or remove an added fan, to compare the setup. Fans move air rather than refrigerating it.
+Open **My flat → Devices → Standing fans**, click **Add fan**, then choose each fan under **Fan to adjust**. Switch both on at nonzero speed; point one toward the plan top (**0°**) and another toward the plan right (**90°**). Drag them onto valid floor or use **Move to a room / Exact floor position**. Inspect **Air movement** without presenting the illustrative arrows as measured airflow. Turn an individual fan off, or remove an added fan, to compare the setup. Fans move air rather than refrigerating it.
 
 Run **Suggest changes** and show the note that added fans stay fixed while Main fan presets are tested. Fan-control browser checks pass, including invalid placements and workspace retention. Native multiple-fan dragging still needs rehearsal on the presentation machine; the room selector is the checked alternative.
 

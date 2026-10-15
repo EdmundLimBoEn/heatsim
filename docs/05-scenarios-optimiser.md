@@ -72,6 +72,8 @@ Given a snapshot of the scenario and controls, compare layouts within an **avail
 
 Budgets allow equipment; they do not require it to be on. New proposals disable the existing fixed fans, fixed purifiers and AC units, then consider the devices above. The user's exact current layout is always retained as a comparison candidate, even if it uses more devices than the selected budget. If it wins, the recommendation can be to keep it.
 
+Added standing fans stay fixed in every candidate, including the devices-off baseline; the budget controls only the Main fan, purifier and AC being searched. The exact current layout retains the Main fan's free position and world heading. Proposed Main fan presets clear those overrides, and candidates that overlap an added fan are skipped.
+
 The score is computed from the final simulated room readings, with each room weighted by its JSON `area_m2`:
 
 ```text

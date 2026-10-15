@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { defaultConditions, model } from '../src/domain';
 import { createThermalConfig, createThermalState, stepThermalState, thermalSnapshot, THERMAL_MODEL_PARAMETERS, THERMAL_OPENINGS } from '../src/thermal-model';
 import type { ThermalConfig, ThermalState } from '../src/thermal-types';
+import { findStandingFanPosition, resolveStandingFans } from '../src/standing-fans';
 
 function sealed(): ThermalConfig {
   const config = createThermalConfig(defaultConditions());
@@ -14,6 +15,36 @@ const bedroom = model.rooms.findIndex(room => room.name === 'bedroom3');
 const pmMass = (state: ThermalState) => model.rooms.reduce((sum, room, index) => sum + room.area_m2 * model.ceiling_height / 2 * (state.lowerPm25[index] + state.upperPm25[index]), 0);
 
 describe('whole-flat conservative two-layer thermal model', () => {
+  test('counts every standing fan in its derived room with the same speed-scaled mixing, motor heat and electricity', () => {
+    const config = sealed(), initial = createThermalState(config), withoutFans = thermalSnapshot(initial, config);
+    const primaryPosition = findStandingFanPosition('living', config.base, 'primary')!;
+    expect(primaryPosition).not.toBeNull();
+    config.base.portableFan = { on: true, slot: 0, angleDeg: 90, speed: 1, position: primaryPosition, headingDeg: 90 };
+    config.base.standingFans = [];
+    for (const [room, speed] of [['bedroom3', 2], ['dining', 3]] as const) {
+      const point = findStandingFanPosition(room, config.base)!;
+      expect(point).not.toBeNull();
+      config.base.standingFans.push({ id: room, ...point, angleDeg: 180, speed, on: true });
+    }
+    const resolved = resolveStandingFans(config.base);
+    expect(resolved.map(fan => [fan.room, fan.speed])).toEqual([['living', 1], ['bedroom3', 2], ['dining', 3]]);
+    const snapshot = thermalSnapshot(initial, config);
+    expect(snapshot.heatBudgetW.appliances - withoutFans.heatBudgetW.appliances).toBe(150);
+    expect(snapshot.powerWatts - withoutFans.powerWatts).toBe(150);
+    for (const fan of resolved) {
+      const index = model.rooms.findIndex(room => room.name === fan.room);
+      expect(snapshot.rooms[index].buoyancyExchangeM3h - withoutFans.rooms[index].buoyancyExchangeM3h).toBeCloseTo(fan.speed / 2 * 0.2 * 3600, 8);
+    }
+    const after = stepThermalState(initial, config, 60), final = thermalSnapshot(after, config);
+    expect(final.energyWh).toBeCloseTo(150 * 60 / 3600, 10);
+    expect(final.fanEnergyWh).toBe(0);
+    expect(Math.abs(final.energyResidualJ)).toBeLessThan(1e-5);
+    config.base.standingFans[0].on = false;
+    config.base.standingFans[1].speed = 0;
+    expect(thermalSnapshot(initial, config).powerWatts).toBe(25);
+    config.base.portableFan.on = false;
+    expect(thermalSnapshot(initial, config).powerWatts).toBe(0);
+  });
   test('uses full-size JSON volumes, serializable state and exterior window adapters', () => {
     const config = sealed(), state = createThermalState(config), snapshot = thermalSnapshot(state, config);
     expect(state.lowerT.length).toBe(model.rooms.length);

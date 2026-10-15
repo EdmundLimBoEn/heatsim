@@ -35,9 +35,13 @@ describe('independent imported floorplan thermal models', () => {
     plan.devices.push({ id: 'filter', kind: 'purifier', roomId: 'b', on: true });
     const base = defaultConditions(); for (const key of Object.keys(base.devices)) base.devices[key] = true;
     base.portableFan!.on = true; base.purifier!.on = true;
+    base.portableFan!.position = { x: 8, z: 3.9 }; base.portableFan!.headingDeg = 230;
+    base.standingFans = [{ id: 'flat_extra', x: 10, z: 6, angleDeg: 90, speed: 3, on: true }];
     const config = createThermalModel(plan).createConfig(base);
     expect(config.base.windows).toEqual({ wa: true, wb: false }); expect(config.base.doors).toEqual({ door: true });
     expect(config.base.devices).toEqual({ filter: true }); expect(config.base.portableFan).toBeUndefined(); expect(config.base.purifier).toBeUndefined();
+    expect(config.base.standingFans).toBeUndefined();
+    expect(base.standingFans).toHaveLength(1); expect(base.portableFan!.position).toEqual({ x: 8, z: 3.9 });
     expect(config.vent).toEqual({ opening: '', on: false, mode: 'exhaust', ratedM3h: 0 }); expect(config.occupancyPeople).toBe(4);
   });
   test('isolates instances and rejects states from different geometry with the same room count', () => {

@@ -19,7 +19,7 @@ Temperature and PM2.5 use conservative upwind face transport and diffusion. The 
 
 | Source | Implemented assumption |
 |---|---|
-| Portable fan | Five slots, hardware angle 0–180° about each slot's base yaw, three nonzero speed levels; drives local flow, never directly reduces temperature. |
+| Standing fans | Main fan plus up to seven added fans, each with validated floor coordinates, world heading and three nonzero speed levels. Main fan retains five hardware presets and their 0–180° relative angle. Each drives local flow, never directly reduces temperature. |
 | Ceiling fan | Optional planar circulation approximation. |
 | AC | Local 0.65 m outlet neighborhood, relaxation toward the selected setpoint at coefficient 0.8/s; projected planar jet. UI allows one active AC. |
 | Purifier | Six slots; local 0.65 m neighborhood, PM2.5 removal coefficient 0.2/s. No humidity treatment. |

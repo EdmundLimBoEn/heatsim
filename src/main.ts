@@ -66,9 +66,12 @@ const connection = new HardwareConnection({
           if (next.scenarioId !== preset.id || next.windFrom !== undefined || fields.some(key => next[key] !== preset.conditions[key])) loadScenario(preset.id, 'hardware');
           observed = readConditions();
           return;
-        case 'FANPOS': if (message.value >= FAN_SLOTS.length) return; fan.slot = message.value; break;
+        case 'FANPOS':
+          if (message.value >= FAN_SLOTS.length) return;
+          fan.slot = message.value; delete fan.position; delete fan.headingDeg;
+          break;
         case 'PURPOS': if (message.value >= PURIFIER_SLOTS.length) return; purifier.slot = message.value; break;
-        case 'FANANG': fan.angleDeg = message.value; break;
+        case 'FANANG': fan.angleDeg = message.value; delete fan.headingDeg; break;
         case 'FANSPD': fan.speed = message.value; break;
       }
     }

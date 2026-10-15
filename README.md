@@ -58,11 +58,19 @@ The nine new wall reference pages are paper instructions, not additional cardboa
 
 Print at **100% / Actual size**, turn off “Fit to page”, and measure the **50 mm calibration bar** before cutting. The handoff accounts for 3 mm butt joints and one narrowed doorway. Dry-fit actual stock before gluing; no real switch or servo mounting dimensions are assumed.
 
+## Add and arrange standing fans
+
+In **My flat → Devices → Standing fans**, choose **Add fan** for up to **eight total**, including the Main fan. Use **Fan to adjust** or click a fan to select it, then set its power, speed and **Direction (degrees)**: **0° north, 90° east, 180° south, 270° west**.
+
+Drag a fan onto valid room floor, or use **Move to a room** and **Exact floor position** (X east / Z south, in metres) without dragging. Invalid or overlapping manual placements are rejected; Escape cancels a drag. **Remove fan** removes an added fan; turn off the Main fan instead. The purifier still uses its existing preset positions.
+
+**Suggest changes** holds added fans fixed while trying Main fan preset positions. Apply/Undo and exports retain the added-fan setup; this is not a search over every fan’s placement. Main-fan shortcuts remain under **Main fan presets & shortcuts**. Legacy `FANPOS` clears the Main fan’s free position, and `FANANG` restores its slot-relative angle; neither removes added fans. D4/D5 controls are unchanged.
+
 ## Compare floor plans
 
 For the **noncommercial hackathon demo**, open **Compare floor plans**, click **Try the 3 example plans** or import your own supported JSON, enter one shared weather/starting-condition brief, and compare. Each plan supplies its actual room sizes, openings, orientation and declared devices to the model. This is a separate study; imported plans do not change the original HDB workspaces or cardboard cut geometry.
 
-Drag study appliances into another room, or use their room selectors; movement updates the room assignment used by the model and report. In the original Flat view, only the portable fan/purifier drag to existing marked slots; fixed AC units stay fixed.
+Drag study appliances into another room, or use their room selectors; movement updates the room assignment used by the model and report. In My flat, standing fans use valid floor placement, while the purifier uses marked slots; fixed AC units stay fixed.
 
 Use the [floor-plan JSON and study guide](docs/contractor-study.md) for the three examples, complete input sample, validation rules, weather provenance and report workflow. Images/PDFs are not automatically interpreted. Windy is a reference display; model conditions must be entered manually.
 
@@ -114,7 +122,7 @@ USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, hum
 
 HeatSim is a **qualitative teaching demonstration**, not a validated building assessment. The main apartment view is toy CFD: a **64 × 48 grid with 20 cm cells at y = 1.2 m** transports heat and PM2.5 using a steady pressure-flow approximation. It has no vertical buoyancy or turbulence. The 3D view is a presentation of the apartment, not a 3D airflow solver.
 
-In the main apartment, six scenarios supply initial fields and default outdoor conditions; manual weather controls override the outdoor values. Its power display assumes **50 W per fan, 40 W per purifier and 1000 W per active AC**, and energy integrates those assumed watts over simulated time. Comfort is an illustrative indicator, not a medical heat index. No sensors or live environmental API are used. The master-bath window is above the slice and has no effect on this 2D field. Pressure, when displayed, is a **normalized qualitative index from −1 to +1**, not pascals or measured building pressure; arrows indicate simulated planar flow direction. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
+In the main apartment, six scenarios supply initial fields and default outdoor conditions; manual weather controls override the outdoor values. Its power display assumes **50 W per powered fan with nonzero speed, 40 W per purifier and 1000 W per active AC**, and energy integrates those assumed watts over simulated time. Comfort is an illustrative indicator, not a medical heat index. No sensors or live environmental API are used. The master-bath window is above the slice and has no effect on this 2D field. Pressure, when displayed, is a **normalized qualitative index from −1 to +1**, not pascals or measured building pressure; arrows indicate simulated planar flow direction. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
 
 Cooling Lab is a different reduced-order calculation. Its layer and surface temperatures, exchange rates and envelope coefficients are assumptions, not measurements. It does not transport humidity, model condensation/dehumidification, or establish a health-safe ventilation strategy. Neither model validates the other.
 

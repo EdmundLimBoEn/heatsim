@@ -1,6 +1,7 @@
 import { deviceRoom, model, type Conditions, type ModelBox, type PlanField, type SimulationResult } from './domain';
 import { FAN_SLOTS, PURIFIER_SLOTS, type DeviceSlot } from './config/slots';
 import { SCENARIOS } from './simulation';
+import { resolveStandingFans } from './standing-fans';
 
 export const PLAN_SIMULATION_NOTE = 'Qualitative toy CFD · 2D plan-view mode. A 20 cm floorplan grid transports heat and haze through openings using a steady pressure-flow approximation. No vertical buoyancy, turbulence, sensors or live data. Humidity adjusts an illustrative comfort indicator, not a medical heat index. Temperatures, comfort and energy are not calibrated predictions. The master-bath window is above this 1.2 m slice.';
 export const PLAN_GRID = { nx: 64, nz: 48, dx: 0.2, origin: [-0.3, -0.3] as [number, number], height: 1.2 };
@@ -95,7 +96,7 @@ interface Flow {
 }
 const flowForResult = new WeakMap<SimulationResult, Flow>();
 function configurationKey(conditions: Conditions): string {
-  return JSON.stringify([conditions.scenarioId, conditions.windSpeed, conditions.windFrom, conditions.timeOfDay, conditions.doors, conditions.windows, conditions.devices, conditions.portableFan, conditions.purifier]);
+  return JSON.stringify([conditions.scenarioId, conditions.windSpeed, conditions.windFrom, conditions.timeOfDay, conditions.doors, conditions.windows, conditions.devices, conditions.portableFan, conditions.standingFans, conditions.purifier]);
 }
 
 function buildFlow(conditions: Conditions, key: string): Flow {
@@ -107,12 +108,13 @@ function buildFlow(conditions: Conditions, key: string): Flow {
   const forceX = new Float64Array(size), forceZ = new Float64Array(size);
   const heat = new Float32Array(size), cooling = new Float32Array(size), cleaning = new Float32Array(size);
   let powerWatts = 0;
-  const fan = conditions.portableFan;
-  if (fan?.on && fan.speed > 0) {
-    const slot = FAN_SLOTS[clamp(Math.round(finite(fan.slot, 0)), 0, FAN_SLOTS.length - 1)];
-    const yaw = (slot.baseYaw + clamp(finite(fan.angleDeg, 90), 0, 180) - 90) * Math.PI / 180;
+  for (const fan of resolveStandingFans(conditions)) if (fan.on && fan.speed > 0) {
+    const original = conditions.portableFan;
+    const legacyYaw = fan.isPrimary && original && !Number.isFinite(original.headingDeg)
+      ? FAN_SLOTS[clamp(Math.round(finite(original.slot, 0)), 0, FAN_SLOTS.length - 1)].baseYaw + clamp(finite(original.angleDeg, 90), 0, 180) - 90 : undefined;
+    const yaw = (legacyYaw ?? 180 - fan.angleDeg) * Math.PI / 180;
     const strength = clamp(finite(fan.speed, 2), 0, 3) / 3 * 1.8;
-    for (const cell of localCells(slot, 0.5, mask)) { forceX[cell] += Math.sin(yaw) * strength; forceZ[cell] += Math.cos(yaw) * strength; }
+    for (const cell of localCells(fan, 0.5, mask)) { forceX[cell] += Math.sin(yaw) * strength; forceZ[cell] += Math.cos(yaw) * strength; }
     powerWatts += 50;
   }
   const addPurifier = (slot: DeviceSlot) => {

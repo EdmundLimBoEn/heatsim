@@ -40,6 +40,12 @@ The chart is **bedroom 3's occupied layer**; the headline temperature is the **w
 - **Can pressure expansion cool the room?** Under **About this test**, use the separate pressure-expansion calculator at **30 Pa / 50%**. It gives about **0.0256°C** ideal static-temperature drop and **3 W** fan input under its stated assumptions. That drop is never subtracted from room temperatures. The apartment's relative pressure index cannot be converted to these pascals.
 - **Where does air travel?** Return to **My flat**, enable **More → Science views → Show pressure and validation**, close exterior openings, select **Validation case**, then open the bedroom 3 north window and main door. **Air movement** shows the planar connected route; pressure is a relative index, not Pa. Lab results do not repaint that field.
 
+## Optional multiple-fan walkthrough
+
+Open **My flat → Devices → Standing fans**, click **Add fan**, then choose each fan under **Fan to adjust**. Switch both on at nonzero speed; point one north (**0°**) and another east (**90°**). Drag them onto valid floor or use **Move to a room / Exact floor position**. Inspect **Air movement** without presenting the illustrative arrows as measured airflow. Turn an individual fan off, or remove an added fan, to compare the setup. Fans move air rather than refrigerating it.
+
+Run **Suggest changes** and show the note that added fans stay fixed while Main fan presets are tested. Fan-control browser checks pass, including invalid placements and workspace retention. Native multiple-fan dragging still needs rehearsal on the presentation machine; the room selector is the checked alternative.
+
 ## Optional homeowner and switch walkthrough
 
 In **My flat**, choose a day and use **What to try → Suggest changes**. Read the actual change list and heat/haze/power trade-offs before clicking **Apply these changes**. Use **Undo** before making another edit. The suggestion compares whole-flat options and does not predict a health-safe or professionally assessed outcome.

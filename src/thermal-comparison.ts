@@ -1,5 +1,6 @@
 import { createThermalState, stepThermalState, thermalSnapshot } from './thermal-model';
 import { roomLabel } from './domain';
+import { resolveStandingFans, type ResolvedStandingFan } from './standing-fans';
 import type { ThermalConfig, ThermalHeatBudget, ThermalSnapshot, ThermalState } from './thermal-types';
 
 export type ThermalComparisonConfig = ThermalConfig;
@@ -81,6 +82,16 @@ function describeChanges(baseline: ThermalConfig, candidate: ThermalConfig): The
   for (const [key, label] of [['on', 'Portable fan power'], ['slot', 'Portable fan slot (zero-based)'], ['angleDeg', 'Portable fan angle (°)'], ['speed', 'Portable fan speed']] as const) {
     add(label, baseline.base.portableFan?.[key], candidate.base.portableFan?.[key]);
   }
+  const beforeFans = new Map(resolveStandingFans(baseline.base).map(fan => [fan.id, fan]));
+  const afterFans = new Map(resolveStandingFans(candidate.base).map(fan => [fan.id, fan]));
+  const placement = (fan: ResolvedStandingFan | undefined) => fan
+    ? `${roomLabel(fan.room)}; x ${fan.x} m, z ${fan.z} m; heading ${fan.angleDeg}°` : 'Not present';
+  add('Portable fan resolved placement', placement(beforeFans.get('primary')), placement(afterFans.get('primary')));
+  const description = (fan: ResolvedStandingFan | undefined) => fan
+    ? `${placement(fan)}; ${fan.on ? 'On' : 'Off'}; speed ${fan.speed}` : 'Not present';
+  for (const id of [...new Set([...beforeFans.keys(), ...afterFans.keys()])].filter(id => id !== 'primary').sort()) {
+    add(`Standing fan ${id}`, description(beforeFans.get(id)), description(afterFans.get(id)));
+  }
   for (const [key, label] of [['on', 'Purifier power'], ['slot', 'Purifier slot (zero-based)']] as const) {
     add(label, baseline.base.purifier?.[key], candidate.base.purifier?.[key]);
   }
@@ -113,6 +124,7 @@ export function compareThermalCases(
     offConfig.base.windows = captured.base.windows;
     offConfig.base.devices = captured.base.devices;
     offConfig.base.portableFan = captured.base.portableFan;
+    offConfig.base.standingFans = captured.base.standingFans;
     offConfig.base.purifier = captured.base.purifier;
     offConfig.base.acSetpoint = captured.base.acSetpoint;
     offConfig.vent = captured.vent;

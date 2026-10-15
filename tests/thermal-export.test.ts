@@ -139,6 +139,24 @@ describe('Cooling Lab CSV', () => {
     expect(() => thermalComparisonCsv(report)).toThrow('environments or durations differ');
   });
 
+  test('serializes each actual fan array and primary placement override without replacing captured settings', () => {
+    const report = fixture(); report.comparisonMode = 'configuration';
+    report.baselineConfig.base.portableFan!.position = { x: 8, z: 3.9 };
+    report.baselineConfig.base.portableFan!.headingDeg = 25;
+    report.baselineConfig.base.standingFans = [{ id: 'fan_baseline', x: 10, z: 6, angleDeg: 90, speed: 2, on: true }];
+    report.candidateConfig.base.portableFan!.position = { x: 6.9, z: 6.9 };
+    report.candidateConfig.base.portableFan!.headingDeg = 230;
+    report.candidateConfig.base.standingFans = [{ id: 'fan_candidate', x: 9, z: 5, angleDeg: 270, speed: 1, on: false }];
+    const original = structuredClone(report), rows = readCsv(thermalComparisonCsv(report));
+    for (const [runId, settings] of [['baseline', report.baselineConfig], ['candidate', report.candidateConfig]] as const) {
+      expect(JSON.parse(rows.find(row => row.parameter === 'base_conditions_json' && row.run_id === runId)!.value)).toEqual(settings.base);
+      expect(JSON.parse(rows.find(row => row.parameter === 'actual_config_json' && row.run_id === runId)!.value)).toEqual(settings);
+    }
+    expect(report).toEqual(original);
+    report.candidateConfig.base.standingFans![0].x = NaN;
+    expect(() => thermalComparisonCsv(report)).toThrow('non-finite');
+  });
+
   test('rejects nonfinite values in results, initial fields and source configuration', () => {
     for (const bad of [NaN, Infinity, -Infinity]) {
       let report = fixture();

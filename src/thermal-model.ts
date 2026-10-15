@@ -1,5 +1,6 @@
 import { defaultConditions, deviceRoom, model, type Conditions, type ModelBox, type Room } from './domain';
-import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
+import { PURIFIER_SLOTS } from './config/slots';
+import { resolveStandingFans } from './standing-fans';
 import { SCENARIOS } from './simulation';
 import { parseContractorPlan, contractorPlanGeometryId, type ContractorPlan } from './contractor-plan';
 import type { ThermalConfig, ThermalHeatBudget, ThermalSnapshot, ThermalState, ThermalModelInstance, ThermalOpeningFlow } from './thermal-types';
@@ -114,7 +115,7 @@ export function createThermalModel(inputPlan?: ContractorPlan): ThermalModelInst
       conditions.doors = Object.fromEntries(plan.openings.filter(opening => opening.kind !== 'window').map(opening => [opening.id, opening.kind === 'passage' || opening.open]));
       conditions.windows = Object.fromEntries(plan.openings.filter(opening => opening.kind === 'window').map(opening => [opening.id, opening.open]));
       conditions.devices = Object.fromEntries(plan.devices.map(device => [device.id, device.on]));
-      delete conditions.portableFan; delete conditions.purifier;
+      delete conditions.portableFan; delete conditions.standingFans; delete conditions.purifier;
       return { base: conditions, vent: { opening: '', on: false, mode: 'exhaust', ratedM3h: 0 },
         envelope: { uValue: 1.5, solarAbsorptance: 0.6, shadeFraction: 0 }, occupancyPeople: 4, durationSeconds: 1200 };
     }
@@ -198,9 +199,10 @@ export function createThermalModel(inputPlan?: ContractorPlan): ThermalModelInst
       if (device.kind === 'fan') circulationFans[room]++;
       if (device.kind === 'purifier') purifierCounts[room]++;
     }
-    if (!plan && base.portableFan?.on && base.portableFan.speed > 0) {
-      const slot = FAN_SLOTS[Math.round(bounded(base.portableFan.slot, 0, 0, FAN_SLOTS.length - 1))];
-      circulationFans[rooms.findIndex(room => room.name === slot.room)] += bounded(base.portableFan.speed, 2, 0, 3) / 2;
+    if (!plan) for (const fan of resolveStandingFans(base)) {
+      if (!fan.on || fan.speed <= 0) continue;
+      const room = rooms.findIndex(room => room.name === fan.room);
+      if (room >= 0) circulationFans[room] += fan.speed / 2;
     }
     if (!plan && base.purifier?.on) {
       const slot = PURIFIER_SLOTS[Math.round(bounded(base.purifier.slot, 0, 0, PURIFIER_SLOTS.length - 1))];

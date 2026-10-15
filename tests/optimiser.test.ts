@@ -3,6 +3,7 @@ import { HARDWARE_OPENINGS } from '../src/config/mapping';
 import { FAN_SLOTS, PURIFIER_SLOTS } from '../src/config/slots';
 import { defaultConditions, model, type Conditions, type SimulationResult } from '../src/domain';
 import { createOptimiser, optimiseLayouts, scoreResult, type WorkerResponse } from '../src/optimiser';
+import { findStandingFanPosition, resolveStandingFans, validateStandingFanPosition, STANDING_FAN_CLEARANCE_M, PORTABLE_PURIFIER_CLEARANCE_M } from '../src/standing-fans';
 
 function result(feelsLike = 34, pm25 = 70, powerWatts = 0): SimulationResult {
   return {
@@ -51,6 +52,45 @@ describe('optimiser scoring', () => {
 });
 
 describe('layout optimiser', () => {
+  test('holds effective extra fans fixed, preserves the baseline override and skips primary/purifier collisions', async () => {
+    const conditions = defaultConditions();
+    conditions.purifier = { on: false, slot: 3 };
+    conditions.portableFan = { on: true, slot: 0, angleDeg: 90, speed: 2,
+      position: findStandingFanPosition('master_bedroom', conditions, 'primary')!, headingDeg: 37 };
+    conditions.standingFans = [
+      { id: 'corridor_fan', x: FAN_SLOTS[1].x, z: FAN_SLOTS[1].z, angleDeg: 180, speed: 2, on: true },
+      { id: 'living_fan', x: PURIFIER_SLOTS[4].x, z: PURIFIER_SLOTS[4].z, angleDeg: 90, speed: 1, on: true },
+    ];
+    const original = structuredClone(conditions), extras = resolveStandingFans(original).filter(fan => !fan.isPrimary);
+    expect(extras).toHaveLength(2);
+    const evaluated: Conditions[] = [];
+    const report = await optimiseLayouts(conditions, 'fan+purifier', false, candidate => {
+      evaluated.push(structuredClone(candidate));
+      return evaluate(candidate);
+    }, fixedClock);
+    expect(report.you.conditions).toEqual(original);
+    expect(evaluated[1].portableFan?.position).toEqual(original.portableFan!.position);
+    expect(evaluated[1].portableFan?.headingDeg).toBe(37);
+    for (const candidate of evaluated) {
+      expect(candidate.standingFans).toEqual(original.standingFans);
+      expect(resolveStandingFans(candidate).filter(fan => !fan.isPrimary)).toEqual(extras);
+      if (candidate.portableFan?.on && !candidate.portableFan.position) {
+        const slot = FAN_SLOTS[candidate.portableFan.slot];
+        expect(candidate.portableFan.headingDeg).toBeUndefined();
+        expect(validateStandingFanPosition(slot.x, slot.z, candidate, 'primary').valid).toBe(true);
+        expect(candidate.portableFan.slot).not.toBe(1);
+      }
+      if (candidate.purifier?.on) {
+        const slot = PURIFIER_SLOTS[candidate.purifier.slot];
+        expect(candidate.purifier.slot).not.toBe(4);
+        expect(resolveStandingFans(candidate).every(fan => Math.hypot(fan.x - slot.x, fan.z - slot.z)
+          >= STANDING_FAN_CLEARANCE_M + PORTABLE_PURIFIER_CLEARANCE_M - 1e-8)).toBe(true);
+      }
+    }
+    expect(conditions).toEqual(original);
+    expect(report.layouts.every(layout => JSON.stringify(layout.conditions.standingFans) === JSON.stringify(original.standingFans))).toBe(true);
+  });
+
   test('returns three distinct deterministic layouts, sorted by score, without mutating input', async () => {
     const conditions = defaultConditions();
     const original = structuredClone(conditions);

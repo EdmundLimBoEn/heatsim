@@ -75,8 +75,10 @@ function localCells(slot: DeviceSlot, radius: number, mask: Uint8Array): number[
   return queue;
 }
 function environment(conditions: Conditions) {
+  const scenario = SCENARIOS.find(scenario => scenario.id === conditions.scenarioId) ?? SCENARIOS[0];
   return {
-    scenario: SCENARIOS.find(scenario => scenario.id === conditions.scenarioId) ?? SCENARIOS[0],
+    scenario,
+    windFrom: conditions.windFrom && ['N', 'E', 'S', 'W'].includes(conditions.windFrom) ? conditions.windFrom : scenario.windward,
     temperature: clamp(finite(conditions.outdoorTemperature, 30), 10, 60),
     pm25: clamp(finite(conditions.outdoorPm25, 20), 0, 1000),
     humidity: clamp(finite(conditions.humidity, 70), 0, 100),
@@ -93,11 +95,11 @@ interface Flow {
 }
 const flowForResult = new WeakMap<SimulationResult, Flow>();
 function configurationKey(conditions: Conditions): string {
-  return JSON.stringify([conditions.scenarioId, conditions.windSpeed, conditions.timeOfDay, conditions.doors, conditions.windows, conditions.devices, conditions.portableFan, conditions.purifier]);
+  return JSON.stringify([conditions.scenarioId, conditions.windSpeed, conditions.windFrom, conditions.timeOfDay, conditions.doors, conditions.windows, conditions.devices, conditions.portableFan, conditions.purifier]);
 }
 
 function buildFlow(conditions: Conditions, key: string): Flow {
-  const { scenario, wind, hour } = environment(conditions);
+  const { scenario, wind, windFrom, hour } = environment(conditions);
   const mask = closedMask.slice();
   for (const opening of openings) if ((opening.type === 'door' ? conditions.doors : conditions.windows)[opening.name]) {
     for (const cell of openingCells.get(opening.name)!) mask[cell] = FLUID;
@@ -163,8 +165,10 @@ function buildFlow(conditions: Conditions, key: string): Flow {
     const direction = next - cell;
     const component = Math.abs(direction) === 1 ? forceX : forceZ;
     const sign = Math.sign(direction), drive = sign * (component[cell] + (mask[next] === FLUID ? component[next] : 0)) / 2;
-    const [, z] = position(next);
-    const outsidePressure = mask[next] === OUTSIDE && ((scenario.windward === 'N' && z < 0) || (scenario.windward === 'S' && z > 7.5)) ? wind * 5 : 0;
+    const [x, z] = position(next);
+    const windward = (windFrom === 'N' && z < 0) || (windFrom === 'S' && z > 7.5)
+      || (windFrom === 'E' && x > 12) || (windFrom === 'W' && x < 0);
+    const outsidePressure = mask[next] === OUTSIDE && windward ? wind * 5 : 0;
     from.push(cell); to.push(next); directions.push(direction); drives.push(drive); reservoir.push(outsidePressure);
     diagonal[cell]++; rhs[cell] -= drive;
     if (mask[next] === FLUID) { diagonal[next]++; rhs[next] += drive; }

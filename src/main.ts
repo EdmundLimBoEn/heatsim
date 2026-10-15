@@ -59,7 +59,7 @@ const connection = new HardwareConnection({
         case 'SCN':
           const preset = PRESETS[message.value - 1];
           const fields = ['outdoorTemperature', 'outdoorPm25', 'humidity', 'windSpeed', 'timeOfDay'] as const;
-          if (next.scenarioId !== preset.id || fields.some(key => next[key] !== preset.conditions[key])) loadScenario(preset.id, 'hardware');
+          if (next.scenarioId !== preset.id || next.windFrom !== undefined || fields.some(key => next[key] !== preset.conditions[key])) loadScenario(preset.id, 'hardware');
           observed = readConditions();
           return;
         case 'FANPOS': if (message.value >= FAN_SLOTS.length) return; fan.slot = message.value; break;

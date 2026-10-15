@@ -20,6 +20,7 @@ export interface Conditions {
   outdoorPm25: number;
   humidity: number;
   windSpeed: number;
+  windFrom?: 'N' | 'E' | 'S' | 'W';
   timeOfDay: number;
   acSetpoint: number;
   doors: Record<string, boolean>;

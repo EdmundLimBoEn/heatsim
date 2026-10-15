@@ -21,3 +21,5 @@ dialog{padding:28px;border:1px solid #d6e1d3;border-radius:13px;color:var(--ink)
 .model-toolbar .overlay-modes{min-width:0}.legend-pressure .legend-caption{position:absolute;left:0;bottom:calc(100% + 7px);white-space:nowrap;font-size:10px;font-weight:600;letter-spacing:.35px;color:#586e63}.pressure-scale{position:relative;display:block}.legend-pressure i{background:linear-gradient(90deg,#456eaa,#edf0e7,#b96552)}.pressure-scale small{position:absolute;left:50%;top:9px;transform:translateX(-50%);font-size:11px;line-height:1}.model-title p{max-width:min(440px,calc(100vw - 70px))}@media(max-width:480px){.model-title{top:104px}.model-title p{max-width:285px}.legend-pressure .legend-caption{font-size:9px}}
 
 .optimiser-improvement.is-worse{color:#8b593d}.optimiser-improvement.is-equal{color:var(--muted)}
+
+.outdoor-entry{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-5px 0 18px;max-width:100%}.outdoor-entry .field-label{margin:0}.outdoor-entry input.device-select{width:90px;max-width:100%;flex:none}

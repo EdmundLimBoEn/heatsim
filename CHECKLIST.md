@@ -1,15 +1,33 @@
 # MVP verification and handoff
 
-**Final software checkpoint: 15 October 2026, 10:45 SGT. The presentation runs standalone with Cooling Lab and optional WebGPU scalar transport. The SSTuino has not arrived.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
+**Outdoor-controls and annotation checkpoint: 15 October 2026, 11:05 SGT. The presentation runs standalone with Cooling Lab and optional WebGPU scalar transport. The SSTuino has not arrived.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
 
-## Final integration gate
+## Outdoor conditions and explicit comparisons
+
+- [x] `bun run test`: **173 tests across 13 files passed** at **10:58:54 SGT**; strict TypeScript/Vite production build and `bun src/scene-check.ts` passed.
+- [x] `tests/air-quality.test.ts`: **16 tests passed**, including breakpoint/truncation/beyond-scale handling and all 501 integer equivalent round trips. This verifies the scenario helper, not health or live-AQI accuracy.
+- [x] Seven added planar wind tests cover cardinal FROM direction, conservation and flow-cache invalidation; GPU transport receives the same CPU-prepared flow.
+- [x] Thermal model focused suite: **18 tests passed**, including main-door-only corridor temperature/PM2.5, wind direction, sheltered hydrostatic boundary, incoming-flow air-change accounting and signed heat-removal/energy metrics.
+- [x] Generalized comparison focused suite: **13 tests passed**, including captured interventions with **current** weather/corridor/duration, identical cloned initial state, both actual configurations and candidate-minus-baseline deltas. Existing cancellation/error/sample bounds remain covered.
+- [x] `scripts/browser-environment-check.js`: **17 browser assertions passed** for manual inputs, index equivalent and units, beyond-scale/invalid values, four wind-from choices, scenario/weather reset preserving controls, form-shortcut isolation and CSV. At **390 × 844**, document width stayed **390 px** with controls in bounds; native Tab moved PM input → index-equivalent input.
+- [x] Actual generalized **Bun worker** pairs of **1200/7200 seconds** completed in about **223/1051 ms**, with at most **121 samples/progress reports**. A 10 ms parent heartbeat had maximum **13 ms** gap; current shared conditions, new CSV metrics, `AbortError` cancellation and immediate retry passed. Maximum observed energy/mass residuals were **4.30 × 10⁻⁷ J / 3.40 × 10⁻¹⁶ m³/s**. These are local runtime checks, not browser FPS.
+- [x] Final `scripts/browser-cooling-check.js` regression: **69 assertions passed**, covering baseline/candidate actual configurations, current shared weather/corridor/horizon, CSV metrics, local weather/reset/scenario behavior, stale/cancel handling and retained GPU-fallback checks. The 1200-second worker pair took about **91 ms**, with 121 samples and a maximum **21 ms** parent-heartbeat gap over six ticks.
+- [x] Final `scripts/browser-serial-check.js`: **13 mocked-serial assertions passed**, including same-scenario wind-override reset, no echo and duplicate messages preserving time/energy. At **390 × 844**, the lab had no horizontal overflow; native Tab moved experiment mode → Capture baseline. Headless WebGL was unavailable: these are application-behavior checks, not new real-device GPU/3D evidence.
+- [x] Native **Zen** executed the new west-wind `gpu-check.html?case=west` case on an actual GPU. At **60.2 simulated seconds**, maximum CPU/GPU differences were **0.00001717°C / 0.0001221 µg/m³**. This extends planar numerical parity evidence; it is not physical validation or Chrome-specific verification.
+- [x] Fresh direct-engine probe of the [haze walkthrough](docs/presentation-demo.md): only ten ordinary windows differed, with identical current weather/initial state and 1200-second horizon. Whole-flat PM2.5 was **146.48 → 34.21 µg/m³**, integrated concentration **35.41 → 12.11 µg·h/m³**, and electricity **13.33 Wh per arm**. The closed-window candidate's single passive exterior connection has approximately zero sustained flow in this model; leakage and single-sided turbulent exchange are omitted.
+- [x] Final annotation guard passed: all **7 original A4 pages, 140 rectangle attributes and 97 original lines** retained. **40 opening-offset/gap labels and 20 table rows** match the schedules to **0.001 mm**. Dimensions, CSVs, floor/leaf plans and source geometry are byte-identical to the prior release. Material remains **2 A4 sheets, 3 mm, no roof**. Raster/glyph checks found no clipping/collisions; printer/cutter validation remains pending.
+- [x] Final generator and strict TypeScript/production build passed after the annotation freeze at **11:05 SGT**; production output contains the updated SVGs and ZIP. Nine changed application/specification documents passed relative-link/authorship checks; `git diff --check` passed.
+
+These new checks are distinct from the prior Cooling Lab/WebGPU checkpoint below. Test counts and browser assertions are separate measurements, not interchangeable acceptance totals.
+
+## Prior integration gate · 10:45 SGT
 
 - [x] `bun run test`: **137 tests across 12 files passed** after the final envelope model and GPU additions.
 - [x] `bun run build`: strict TypeScript and Vite production build passed; build and `bun src/scene-check.ts` were rerun after the final scene-label polish at **10:45 SGT**.
 - [x] `python3 scripts/build-pack.py` assertions passed. The generated physical pack, its generator/guide and canonical geometry remain unchanged from the released two-A4-sheet handoff. `git diff --check` passed.
 - [x] Final Cooling Lab browser regression passed **40 persistent assertions**, plus the separate backflow fixture below. Native-device GPU checks passed in Zen; Chrome GPU execution was not verified.
 
-## Cooling Lab extension acceptance
+## Prior Cooling Lab extension acceptance · 10:45 SGT
 
 - [x] `tests/thermal-model.test.ts`: **10 tests passed**, including JSON-derived volumes, equilibrium, isolated energy/particle conservation, genuine make-up routes, blocked flow with motor heat, warm-below mixing, hotter-inlet warming and the final exterior-face/envelope balance.
 - [x] `tests/thermal-comparison.test.ts`: **10 tests passed** for cloned identical initial fields, only `vent.on` changing, exact final partial intervals, signed differences, bounded samples, cancellation/replacement, stale events, errors and timeout handling.
@@ -22,9 +40,9 @@
 - [x] The tested 1200-second browser pair completed in about **93 ms**, with 121 samples; six parent-heartbeat ticks had a maximum **25 ms** gap. This is one headless behavior run, not a full-GPU FPS benchmark.
 - [x] At **390 × 844**, document width remained 390 with no horizontal overflow. Native Tab moved Room → Opening; ArrowRight changed the calculator from 30 to 35 Pa and the ideal drop from 0.0256 to 0.0299°C while retaining the completed comparison.
 - [x] Final integrated browser workflow rerun after the GPU/app wiring freeze. A separate focused backflow fixture used the real lab component/worker with a core-valid 10 m/s opposing wind: **−10.0 m³/h** produced an inward arrow and an explicit backflow description. This is **40 script assertions plus one fixture**, not 41 assertions in the script.
-- [x] [Cooling Lab walkthrough](docs/presentation-demo.md) uses direct engine probes for 300 m³/h, 20-minute bedroom 3 evening open/blocked-route comparisons, with exact scopes and assumed fan power. Browser/spoken rehearsal remains separate.
+- [x] The earlier Cooling Lab walkthrough was checked against direct engine probes for 300 m³/h, 20-minute bedroom 3 evening open/blocked-route comparisons. The [current walkthrough](docs/presentation-demo.md) adds explicit baseline/candidate outdoor-condition experiments; its new evidence is recorded above. Spoken rehearsal remains separate.
 
-The final extension evidence above is separate from the earlier baseline record below. Physical cardboard dimensions and electronics status remain unchanged.
+The prior extension evidence above is separate from the earlier baseline record below. Physical cardboard dimensions and electronics status remain unchanged.
 
 ## Optional WebGPU transport verification
 

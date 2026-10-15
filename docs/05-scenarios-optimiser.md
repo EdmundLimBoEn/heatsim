@@ -3,7 +3,7 @@
 **Main apartment implementation:** the apartment view and layout optimiser use the spatial **2D plan-view toy CFD** in `src/plan-simulation.ts`. The original 3D WebGPU LBM design is deferred. This document describes the implemented fallback, including its limits.
 
 ## 1. Scenario presets (`SCENARIOS` and `PRESETS` in `src/simulation.ts`) [V code; all numbers illustrative]
-Heat and haze come **only** from these presets or the on-screen scenario controls (no sensors, no live API). Each scenario sets the outdoor boundary conditions and initial indoor fields, then the user or hardware toggles openings and devices.
+Heat and haze come **only** from these presets or manually entered on-screen conditions (no sensors, no live API). Each scenario sets the outdoor boundary conditions and initial indoor fields, then the user or hardware toggles openings and devices.
 
 Façade naming follows the JSON plan: **N = z<0 side** (master, bedroom2, bedroom3 windows), **S = z>7.5** (living windows, service yard window, main door), **W = x<0** (master window 2, kitchen window), **E = x>12** (bedroom3 window 2, living window 3).
 
@@ -17,10 +17,18 @@ Façade naming follows the JSON plan: **N = z<0 side** (master, bedroom2, bedroo
 | 6 `Y` | `validation` | Validation case (setup from doc 06) | 33 | 100 | 28 | 0 | none | N (ρ 1.003) | 100 W heat block in bedroom3 | internal doors open; exterior openings selected manually |
 
 - The original planning notes cite **203 µg/m³ 1-h PM2.5 (west), 14 Oct 2026 9 PM** as inspiration for the 200 haze preset. The application treats 200 as an illustrative scenario value and fetches no live NEA data.
-- The density values in the table remain scenario metadata from the LBM design. The implemented 2D pressure solve uses the windward façade and a heuristic pressure proportional to wind speed; it does not simulate lattice density. Preset wind speed is 1.2 m/s for `baseline` and `night_cool`, and 1.8 m/s otherwise.
+- The density values in the table remain scenario metadata from the LBM design. The implemented 2D pressure solve uses the manual wind-from façade when set, otherwise the scenario windward façade, and a heuristic pressure proportional to wind speed; it does not simulate lattice density. Preset wind speed is 1.2 m/s for `baseline` and `night_cool`, and 1.8 m/s otherwise.
 - Fresh preset objects start with devices off and openings closed, except validation's internal doors. In the UI, **changing scenario preserves the existing windows, doors, device states, positions and AC setpoint**, resets indoor fields and simulated time, and clears old optimiser results. Selecting `validation` additionally opens all internal doors; exterior openings and devices remain as set.
 - The fallback starts immediately from the specified indoor fields; there is no hidden 300-step LBM warm-up. Preset time is 20:00 for `night_cool` and 14:00 otherwise. Time of day scales west-sun heating. Humidity is a fixed comfort assumption, not a simulated moisture field.
 - The UI shows each scenario's one-line story, e.g. "PM2.5 is 200 outdoors. Should Mdm Tan open the window?"
+
+### Manual conditions and comparison context
+
+The main **Outside the home** controls accept temperature **10–60°C**, wind speed **0–10 m/s**, PM2.5 **0–1000 µg/m³**, and **Wind from** North/East/South/West or Scenario direction. “From North” means towards the south. Manual edits retain current fields, devices and openings; **Reset outdoor conditions to scenario** restores preset weather without resetting those fields. Selecting another scenario clears the manual overrides and starts fresh indoor fields. Sun/occupancy behavior remains tied to the scenario, so manual temperature alone does not turn a night case into a sunny afternoon.
+
+The **US EPA PM2.5 index equivalent (24-hour scale)** is a display/input convenience for scenario PM2.5, not Singapore PSI, a live AQI reading or a health forecast. It does not assert that a manually entered value has been averaged for 24 hours. The concentration remains the solver input. The main app accepts an equivalent integer **0–500** and maps it to a representative concentration; concentrations outside the supported equivalent scale remain valid raw inputs up to 1000 µg/m³. [Doc 02](02-simulation.md) records the rounding rule and official breakpoint source. Cooling Lab displays the equivalent alongside its shared outdoor concentration.
+
+Cooling Lab can optionally prescribe a different sheltered reservoir at **the exterior main door only**. Its current corridor values, outdoor conditions, scenario initial fields and duration are shared by both arms of every comparison. That boundary is fixed, not a simulated corridor that responds to the flat. See the [step-by-step experiments](presentation-demo.md).
 
 ## 2. Demo storyline using the presets
 1. `haze_outside`, all closed → indoor C stays low but T creeps up (people).
@@ -147,29 +155,42 @@ The result card displays the before/suggested score, combined-score improvement,
 
 Editing controls or changing scenario invalidates an old recommendation. Cancel and errors preserve the live setup. No result is automatically applied, and no improvement is fabricated from live readings after Apply.
 
-## 5. Cooling Lab matched fan experiment
+## 5. Cooling Lab matched experiments
 
-This is separate from the layout optimiser above. `src/thermal-comparison.ts` and `src/thermal-worker.ts` compare **one high-level fan off versus on** using the two-layer/surface model in [doc 02](02-simulation.md). They do not search layouts, optimise the current live field or automatically apply an arrangement to the 3D apartment.
+This is separate from the layout optimiser above. `src/thermal-comparison.ts` and `src/thermal-worker.ts` run two explicit configurations using the two-layer/surface model in [doc 02](02-simulation.md). They do not search layouts, use the current live temperature field or automatically apply an arrangement to the 3D apartment.
 
-Both cases clone **one initial `ThermalState`**. Only `config.vent.on` changes; exterior conditions, openings, supply/exhaust direction, rating, envelope coefficients, other devices and simulated duration remain identical. The selected fan aperture has the same adapter and resistive passage in both cases; fan-off does not imply zero wind-driven or buoyancy-driven flow. This avoids attributing a different starting temperature or an extra open window to the fan.
+**Quick fan off / on** changes only `config.vent.on`. Weather, corridor boundary, openings, supply/exhaust direction, rating, envelope and other devices stay identical. The selected aperture has the same adapter in both arms; its passive fan passage can carry wind/buoyancy-driven flow with the motor off.
 
-The horizon is `durationSeconds`: positive, at most **7200 seconds**, with a model default of **1200 seconds**. Each arm includes the same initial and final sample times; the report retains at most **121 samples** per arm. Read the actual duration on the result rather than comparing unequal elapsed runs.
+**Captured baseline / candidate** lets the user capture interventions, adjust the candidate, then compare. Captured interventions are windows, doors, fixed devices, portable fan, purifier, AC setpoint, high-level fan settings and envelope properties. The actual baseline is rebuilt from the **current candidate's** scenario, outdoor temperature/PM2.5, humidity, time of day, wind speed/direction, corridor boundary and duration; only the saved interventions are restored. Historical weather from the capture is not reused. Changing the fan location changes its adapter location deliberately; all varied settings are listed in the result.
 
-Differences are **fan ON minus fan OFF**:
+Both cases clone **one current-scenario initial `ThermalState`**, including lower/upper air, particles, surfaces and counters. Neither inherits a previous trial's warmed fields. The horizon is `durationSeconds`: positive, at most **7200 seconds**, default **1200 seconds**. Both arms share initial/final sample times and retain at most **121 samples** each.
+
+All differences are **candidate minus baseline**, equivalent to **fan ON minus fan OFF** in quick mode:
 
 | Difference | Interpretation |
 |---|---|
-| All-air temperature, °C | Negative means the on case ends cooler on average across both air layers; it is not a comfort score. |
-| Upper-layer temperature, °C | Negative means the upper layer ends cooler. Use lower-layer room readings separately for the occupied zone. |
-| PM2.5, µg/m³ | Negative means lower final model concentration; a hotter/hazier outdoor source can worsen a result. |
-| Cumulative PM exposure, µg·h/m³ | Integral of the model concentration over the run; not measured personal exposure or a health prediction. |
-| Stored heat, J | Difference in the thermal states' stored energy, separate from electrical consumption. |
-| Electrical energy, Wh | Estimated electricity used during the matched run; it is not heat removed. |
+| All-air temperature, °C | Negative means the candidate ends cooler across both air layers; not an occupied-zone comfort score. |
+| Upper-layer temperature, °C | Negative means the upper layer ends cooler. Per-room lower-layer readings describe the occupied zone. |
+| PM2.5, µg/m³ | Negative means lower final model concentration; hotter/hazier replacement air can worsen a result. |
+| Cumulative PM exposure, µg·h/m³ | Integral of whole-flat model concentration over time; not inhaled dose or measured personal exposure. |
+| Actual fan flow, m³/h | Difference in flow signed relative to each case's chosen direction. If directions differ, read both configurations before interpreting the delta. |
+| Boundary air changes, h⁻¹ | Difference in incoming boundary flow divided by volume, excluding internal-room recirculation. |
+| Sensible heat removed, W / integrated J | Positive removal exports sensible heat; negative removal adds heat. The delta compares the candidate's removal with the baseline's. |
+| Stored heat, J | Difference in state energy, separate from accumulated ventilation heat removal. |
+| Electrical energy / vent-fan energy, Wh | Whole-flat consumption / the selected vent fan's consumption. Neither is heat removed or a COP. |
 
-`createThermalComparisonRunner().run(config, onProgress?)` returns a promise. `cancel()` and `dispose()` terminate the worker and reject with `AbortError`. The UI discards cancelled/stale results and clears a completed pair when its configuration changes. A **30-second wall-clock timeout** terminates a run that fails to return. No improvement is guaranteed: blocked paths, hot inlet air and haze are teaching outcomes, not failures to conceal.
+```ts
+const runner = createThermalComparisonRunner();
+runner.run(config, onProgress);                       // quick fan off / on
+runner.compare(capturedBaseline, candidate, onProgress); // explicit interventions
+runner.cancel();
+runner.dispose();
+```
 
-The CSV includes the captured controls, shared initial state, matched traces, final room values, signed differences and units. Instantaneous heat-budget rates in watts are separate from accumulated energy in joules or watt-hours.
+The report contains `comparisonMode`, actual `baselineConfig` and `candidateConfig`, and `variedSettings`. For compatibility, `off` and `on` are the baseline and candidate result fields even in configuration mode; UI/CSV labels follow the mode. Cancellation/disposal terminate the worker and reject with `AbortError`. A **30-second wall-clock timeout** handles a missing result. Stale or cancelled results are discarded, and editing experiment settings clears the old result. No improvement is guaranteed.
 
-The ideal-expansion calculator is not an experimental treatment and does not change either arm's temperatures. Its numerical result is an independent ideal thermodynamic calculation.
+CSV records the actual two configurations, shared current environment/corridor, shared initial state, matched traces, final room values, changed settings, units and sign convention. Instantaneous heat-budget rates in W, integrated heat in J and electricity in Wh remain separate. A mismatch in the report's environment or duration prevents export.
+
+The ideal-expansion calculator is independent. It does not change either arm's temperatures or use the main scene's normalized pressure index.
 
 Written by gpt-6-astra in Codex on behalf of Edmund

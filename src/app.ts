@@ -1,6 +1,6 @@
 import './style.css';
 import { defaultConditions, defaultView, deviceRoom, model, roomLabel, type Conditions, type ModelBox, type ViewMode } from './domain';
-import { PRESETS } from './simulation';
+import { PRESETS, SCENARIOS } from './simulation';
 import { createSimulation, stepSimulation, PLAN_SIMULATION_NOTE as SIMULATION_NOTE } from './plan-simulation';
 import { createPlanGpu, type PlanGpu } from './plan-gpu';
 import { createScene, type SceneController, type ThermalVentConfig } from './scene';
@@ -8,6 +8,7 @@ import { mountCoolingLab } from './cooling-lab';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { openingForKey } from './config/mapping';
 import { createOptimiser, type OptimiserReport, type OptimiserBudget } from './optimiser';
+import { pm25ToUsAqiEquivalent, usAqiEquivalentToPm25, US_PM25_AQI_EQUIVALENT_LABEL, US_PM25_AQI_EQUIVALENT_NOTE, US_PM25_AQI_SOURCE } from './air-quality';
 
 const icons: Record<string, string> = {
   house: '<path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7M3 10h18"/>',
@@ -63,6 +64,7 @@ let disposed = false;
 const formatTime = (hour: number) => `${Math.floor(hour).toString().padStart(2, '0')}:${Math.round((hour % 1) * 60).toString().padStart(2, '0')}`;
 const elapsed = (seconds: number) => `${Math.floor(seconds / 3600).toString().padStart(2, '0')}:${Math.floor(seconds % 3600 / 60).toString().padStart(2, '0')}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
 const range = (field: keyof Conditions, label: string, min: number, max: number, step: number, unit: string) => `<label class="range-control" for="${field}"><span>${label}<output id="${field}-value"></output></span><input id="${field}" type="range" min="${min}" max="${max}" step="${step}" value="${conditions[field]}" data-field="${field}" data-unit="${unit}"><span class="range-limits"><span>${min}${unit}</span><span>${max}${unit}</span></span></label>`;
+const outdoorNumber = (field: 'outdoorTemperature' | 'windSpeed' | 'outdoorPm25', label: string, min: number, max: number) => `<div class="outdoor-entry"><label class="field-label" for="${field}-number">${label}</label><input class="device-select" id="${field}-number" type="number" min="${min}" max="${max}" step="0.1" value="${conditions[field]}" data-weather-number="${field}"></div>`;
 const primaryRooms = ['living', 'dining', 'master_bedroom', 'bedroom2', 'bedroom3', 'kitchen'];
 
 $('#app').innerHTML = `
@@ -96,10 +98,17 @@ $('#app').innerHTML = `
             <div class="scenario-grid">${PRESETS.map((preset, index) => `<button class="scenario-button" data-preset="${escape(preset.id)}" aria-pressed="false"><span class="scenario-symbol">${icon(index === 1 ? 'wind' : index === 2 ? 'house' : index === 3 ? 'info' : 'sun')}</span><span>${escape(preset.name)}</span></button>`).join('')}</div>
             <p class="section-note" id="scenario-description">Change the conditions, then watch the rooms respond over time.</p>
             <div class="section-divider"></div><h2 class="section-title">Outside the home</h2>
-            ${range('outdoorTemperature', 'Temperature', 22, 40, 0.5, '°C')}
-            ${range('windSpeed', 'Wind speed', 0, 8, 0.1, ' m/s')}
-            ${range('outdoorPm25', 'Outdoor PM2.5', 0, 300, 1, ' µg/m³')}
-            <p class="section-note">Wind direction and sun exposure follow the scenario. Humidity adjusts the comfort estimate; this 2D model does not transport moisture or simulate vertical airflow.</p>
+            ${range('outdoorTemperature', 'Temperature', 10, 60, 0.1, '°C')}
+            ${outdoorNumber('outdoorTemperature', 'Enter temperature (°C)', 10, 60)}
+            ${range('windSpeed', 'Wind speed', 0, 10, 0.1, ' m/s')}
+            ${outdoorNumber('windSpeed', 'Enter wind speed (m/s)', 0, 10)}
+            <label class="field-label" for="windFrom">Wind from</label><select id="windFrom" class="device-select"><option value="">Scenario direction</option><option value="N">North → towards south</option><option value="E">East → towards west</option><option value="S">South → towards north</option><option value="W">West → towards east</option></select>
+            <div class="spaced">${range('outdoorPm25', 'Outdoor PM2.5', 0, 1000, 0.1, ' µg/m³')}</div>
+            ${outdoorNumber('outdoorPm25', 'Enter PM2.5 (µg/m³)', 0, 1000)}
+            <div class="outdoor-entry"><label class="field-label" for="outdoor-aqi">${escape(US_PM25_AQI_EQUIVALENT_LABEL)}</label><input class="device-select" id="outdoor-aqi" type="number" min="0" max="500" step="1" aria-describedby="outdoor-aqi-note outdoor-aqi-range"></div>
+            <p class="section-note" id="outdoor-aqi-range" hidden>PM2.5 is above the supported 0–500 index scale. Its concentration remains unchanged.</p><p class="section-note" id="outdoor-aqi-note">${escape(US_PM25_AQI_EQUIVALENT_NOTE)} <a href="${US_PM25_AQI_SOURCE}" target="_blank" rel="noopener">EPA scale</a></p>
+            <p class="section-note" id="outdoor-source"></p><button class="button secondary full-width spaced" data-action="reset-weather">Reset outdoor conditions to scenario</button>
+            <p class="section-note">Manual outdoor values override the selected scenario. Choosing another scenario clears these overrides. Sun exposure follows the scenario; humidity adjusts the comfort estimate. No sensors or live data are used.</p>
             <div class="section-divider"></div><div class="section-heading"><h2>Whole-home openings</h2><span id="window-count"></span></div>
             <div class="button-pair"><button class="button secondary" data-bulk="windows" data-value="true">Open windows</button><button class="button secondary" data-bulk="windows" data-value="false">Close windows</button></div>
             <div class="button-pair"><button class="button text-button" data-bulk="doors" data-value="true">Open all doors</button><button class="button text-button" data-bulk="doors" data-value="false">Close all doors</button></div>
@@ -215,6 +224,19 @@ function syncControls(): void {
     $(`#${field}-value`).textContent = field === 'timeOfDay' ? formatTime(value) : `${value}${input.dataset.unit}`;
     input.style.setProperty('--range-progress', `${(value - Number(input.min)) / (Number(input.max) - Number(input.min)) * 100}%`);
   });
+  document.querySelectorAll<HTMLInputElement>('[data-weather-number]').forEach(input => {
+    input.value = String(conditions[input.dataset.weatherNumber as 'outdoorTemperature' | 'windSpeed' | 'outdoorPm25']);
+  });
+  const direction = $<HTMLSelectElement>('#windFrom');
+  const scenario = SCENARIOS.find(item => item.id === conditions.scenarioId) ?? SCENARIOS[0];
+  direction.value = conditions.windFrom ?? '';
+  direction.options[0].textContent = `Scenario direction (${scenario.windward === 'N' ? 'north' : 'south'})`;
+  $('#outdoor-source').textContent = `Base scenario: ${scenario.name}. Outdoor edits keep your current openings and devices.`;
+  const aqi = pm25ToUsAqiEquivalent(conditions.outdoorPm25);
+  const aqiInput = $<HTMLInputElement>('#outdoor-aqi');
+  aqiInput.value = aqi === null ? '' : String(aqi);
+  aqiInput.placeholder = aqi === null ? 'Beyond scale' : '';
+  $('#outdoor-aqi-range').hidden = aqi !== null;
   document.querySelectorAll<HTMLInputElement>('[data-control]').forEach(input => {
     const group = input.dataset.control === 'window' ? 'windows' : input.dataset.control === 'door' ? 'doors' : 'devices';
     input.checked = conditions[group][input.dataset.id!];
@@ -512,9 +534,13 @@ function exportCsv(): void {
     ['Simulated seconds', result.elapsedSeconds.toFixed(1)],
     ['Outdoor temperature C', String(conditions.outdoorTemperature)],
     ['Outdoor PM2.5 ug/m3', String(conditions.outdoorPm25)],
+    [US_PM25_AQI_EQUIVALENT_LABEL, String(pm25ToUsAqiEquivalent(conditions.outdoorPm25) ?? 'Beyond supported index scale')],
+    ['Index interpretation', US_PM25_AQI_EQUIVALENT_NOTE],
     ['Relative humidity %', String(conditions.humidity)],
     ['Time of day', formatTime(conditions.timeOfDay)],
     ['Wind speed m/s', String(conditions.windSpeed)],
+    ['Wind from', conditions.windFrom ?? (SCENARIOS.find(item => item.id === conditions.scenarioId) ?? SCENARIOS[0]).windward],
+    ['Wind direction source', conditions.windFrom ? 'Manual override' : 'Scenario'],
     ['AC setpoint C', String(conditions.acSetpoint)],
     ['Portable fan on', String(conditions.portableFan?.on ?? false)],
     ['Portable fan slot (zero-based)', String(conditions.portableFan?.slot ?? 0)],
@@ -587,6 +613,14 @@ document.addEventListener('click', event => {
       invalidateGpuStep();
       result = createSimulation(conditions); history = []; lastSample = -1; renderReadings(); updateScene();
       notify('Readings and time reset. Your controls are unchanged.'); break;
+    case 'reset-weather': {
+      const preset = PRESETS.find(item => item.id === conditions.scenarioId) ?? PRESETS[0];
+      for (const field of ['outdoorTemperature', 'outdoorPm25', 'windSpeed', 'humidity', 'timeOfDay'] as const) conditions[field] = preset.conditions[field];
+      delete conditions.windFrom;
+      markCustom(true);
+      notify('Scenario outdoor conditions restored. Your openings, devices and readings are unchanged.');
+      break;
+    }
     case 'reset-camera': scene?.resetCamera(); camera = 'perspective'; document.querySelectorAll<HTMLButtonElement>('[data-camera]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.camera === camera))); break;
     case 'screenshot':
       if (!scene) { notify('The 3D model is still loading.'); break; }
@@ -609,6 +643,28 @@ document.addEventListener('input', event => {
 document.addEventListener('change', event => {
   const input = event.target as HTMLInputElement;
   if (isCoolingLabControl(input)) return;
+  if (input.id === 'outdoor-aqi') {
+    const concentration = usAqiEquivalentToPm25(input.valueAsNumber);
+    if (concentration === null) { syncControls(); notify('Enter a whole-number US EPA PM2.5 index equivalent from 0 to 500.'); return; }
+    if (conditions.outdoorPm25 !== concentration) { conditions.outdoorPm25 = concentration; markCustom(true); }
+    else syncControls();
+    return;
+  }
+  if (input.dataset.weatherNumber) {
+    const field = input.dataset.weatherNumber as 'outdoorTemperature' | 'windSpeed' | 'outdoorPm25';
+    const value = input.valueAsNumber;
+    if (!Number.isFinite(value)) { syncControls(); notify(`Enter a number between ${input.min} and ${input.max}.`); return; }
+    const bounded = Number(Math.min(Number(input.max), Math.max(Number(input.min), value)).toFixed(1));
+    if (conditions[field] !== bounded) { conditions[field] = bounded; markCustom(true); }
+    else syncControls();
+    return;
+  }
+  if (input.id === 'windFrom') {
+    if (input.value === '') delete conditions.windFrom;
+    else if (['N', 'E', 'S', 'W'].includes(input.value)) conditions.windFrom = input.value as Conditions['windFrom'];
+    else return;
+    markCustom(true); return;
+  }
   if (input.id === 'room-select') selectRoom(input.value);
   if (input.id === 'simulation-speed') {
     speed = Number(input.value);

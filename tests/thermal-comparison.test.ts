@@ -45,6 +45,8 @@ describe('matched thermal comparison', () => {
     expect(report.difference.energyWh).toBe(report.on.final.energyWh - report.off.final.energyWh);
     expect(report.difference.averageTemperature).toBe(report.on.final.averageTemperature - report.off.final.averageTemperature);
     expect(report.difference.pmExposureUgHoursM3).toBe(report.on.pmExposureUgHoursM3 - report.off.pmExposureUgHoursM3);
+    expect(report.comparisonMode).toBe('fan-toggle');
+    expect(report.variedSettings).toEqual([{ label: 'High-vent fan power', baseline: 'Off', candidate: 'On' }]);
     expect(input).toEqual(original);
     input.base.outdoorTemperature += 5;
     expect(report.config).toEqual(original);
@@ -59,6 +61,67 @@ describe('matched thermal comparison', () => {
       if (key === 'heatBudgetW') for (const term of Object.values(value)) expect(term).toBe(0);
       else expect(value).toBe(0);
     }
+  });
+
+  test('compares captured interventions under current shared weather, corridor and duration', () => {
+    const baseline = config(1_200), candidate = config(25.5);
+    Object.assign(baseline.base, { scenarioId: 'hot_afternoon', outdoorTemperature: 40, outdoorPm25: 300, humidity: 95, windSpeed: 4, windFrom: 'W', timeOfDay: 14 });
+    Object.assign(candidate.base, { scenarioId: 'night_cool', outdoorTemperature: 27, outdoorPm25: 15, humidity: 60, windSpeed: 2, windFrom: 'E', timeOfDay: 20 });
+    baseline.corridor = { enabled: false, temperature: 20, pm25: 20 };
+    candidate.corridor = { enabled: true, temperature: 29, pm25: 100 };
+    baseline.vent = { opening: 'window_bedroom3_1', on: true, mode: 'exhaust', ratedM3h: 200 };
+    candidate.vent = { opening: 'window_living_1', on: false, mode: 'supply', ratedM3h: 100 };
+    baseline.base.doors.door_bedroom3 = true;
+    baseline.base.portableFan = { on: true, slot: 3, angleDeg: 45, speed: 1 };
+    baseline.base.acSetpoint = 23;
+    candidate.base.windows.window_living_2 = true;
+    candidate.base.devices.purifier_living = true;
+    candidate.base.purifier = { on: true, slot: 2 };
+    candidate.envelope.shadeFraction = 0.8;
+    const originals = structuredClone({ baseline, candidate });
+    const initialCalls: ThermalState[] = [];
+    const actualStep = thermalModel.stepThermalState;
+    vi.spyOn(thermalModel, 'stepThermalState').mockImplementation((state, settings, dt) => {
+      if (state.elapsedSeconds === 0) initialCalls.push(state);
+      return actualStep(state, settings, dt);
+    });
+    const report = compareThermalCases(candidate, { baselineConfig: baseline });
+    expect(report.comparisonMode).toBe('configuration');
+    expect(report.candidateConfig).toEqual(candidate);
+    expect(report.baselineConfig).toEqual({
+      ...candidate,
+      base: { ...candidate.base, doors: baseline.base.doors, windows: baseline.base.windows, devices: baseline.base.devices,
+        portableFan: baseline.base.portableFan, purifier: baseline.base.purifier, acSetpoint: baseline.base.acSetpoint },
+      vent: baseline.vent, envelope: baseline.envelope,
+    });
+    expect(report.baselineConfig.vent.on).toBe(true);
+    expect(report.candidateConfig.vent.on).toBe(false);
+    expect(report.off.final.elapsedSeconds).toBe(25.5);
+    expect(report.on.final.elapsedSeconds).toBe(25.5);
+    expect(initialCalls[0]).toEqual(initialCalls[1]);
+    expect(initialCalls[0].lowerT).not.toBe(initialCalls[1].lowerT);
+    expect(report.initialState).toEqual(thermalModel.createThermalState(candidate));
+    expect(report.variedSettings.map(change => change.label)).toEqual(expect.arrayContaining([
+      'Window: Living 2', 'Door: Bedroom 3', 'Device: Purifier living',
+      'High-vent fan power', 'High-vent opening', 'High-vent direction', 'High-vent rated flow (m³/h)', 'Shade fraction', 'Purifier power',
+    ]));
+    expect(report.variedSettings.some(change => /weather|wind direction|wind speed|corridor|duration|humidity|scenario/i.test(change.label))).toBe(false);
+    for (const key of ['actualVentM3h', 'airChangesPerHour', 'fanEnergyWh', 'sensibleHeatRemovedWatts', 'ventilationHeatRemovedJ'] as const) {
+      expect(Number.isFinite(report.difference[key])).toBe(true);
+      expect(report.difference[key]).toBe(report.on.final[key] - report.off.final[key]);
+    }
+    expect({ baseline, candidate }).toEqual(originals);
+    report.baselineConfig.base.windows.window_living_2 = false;
+    expect(report.candidateConfig.base.windows.window_living_2).toBe(true);
+  });
+
+  test('identical configurations produce equal arms and no varied settings', () => {
+    const input = config(20);
+    input.vent.ratedM3h = 200;
+    const report = compareThermalCases(input, { baselineConfig: structuredClone(input) });
+    expect(report.off).toEqual(report.on);
+    expect(report.variedSettings).toEqual([]);
+    expect(report.comparisonMode).toBe('configuration');
   });
 
   test('integrates PM exposure over the real final partial interval and reports signed deltas', () => {
@@ -167,6 +230,29 @@ describe('thermal comparison worker lifecycle', () => {
     expect(workers[0].terminate).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
     runner.dispose();
+  });
+
+  test('runs a general comparison through the same isolated worker and cancellation lifecycle', async () => {
+    const runner = createThermalComparisonRunner();
+    const baseline = config(1_200), candidate = config(20);
+    baseline.base.windows.window_living_1 = true;
+    const result = compareThermalCases(candidate, { baselineConfig: baseline });
+    const promise = runner.compare(baseline, candidate);
+    const sent = workers[0].postMessage.mock.calls[0][0];
+    expect(sent).toEqual({ type: 'run', config: candidate, baselineConfig: baseline });
+    baseline.base.windows.window_living_1 = false;
+    candidate.base.outdoorTemperature = 50;
+    expect(sent.baselineConfig.base.windows.window_living_1).toBe(true);
+    expect(sent.config.base.outdoorTemperature).not.toBe(50);
+    workers[0].deliver({ type: 'result', result });
+    await expect(promise).resolves.toEqual(result);
+    expect(vi.getTimerCount()).toBe(0);
+    const cancelled = runner.compare(baseline, candidate);
+    const rejected = expect(cancelled).rejects.toMatchObject({ name: 'AbortError' });
+    runner.dispose();
+    await rejected;
+    expect(workers[1].terminate).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   test('contains worker failures, decoding failures and hard timeouts with complete cleanup', async () => {

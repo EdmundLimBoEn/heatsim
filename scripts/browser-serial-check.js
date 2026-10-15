@@ -24,6 +24,8 @@ return await (async () => {
   };
   const descriptor = Object.getOwnPropertyDescriptor(navigator, 'serial');
   const saved = app.readConditions();
+  const wasPlaying = document.querySelector('#play-status').textContent.includes('running');
+  const setPlaying = value => { if (document.querySelector('#play-status').textContent.includes('running') !== value) document.querySelector('[data-action="play"]').click(); };
   const button = document.querySelector('#connect-hardware');
   try {
     Object.defineProperty(navigator, 'serial', { configurable: true, value: { requestPort: async () => port, getPorts: async () => [] } });
@@ -43,6 +45,22 @@ return await (async () => {
     send('WIN1:<script>'); send('FANANG:999'); send('FANPOS:9'); send('SCN:99');
     await wait(100);
     assert(JSON.stringify(app.readConditions()) === beforeBadInput, 'Invalid or unmapped ranges cannot alter model');
+    const windy = app.readConditions();
+    windy.windFrom = 'E'; windy.portableFan.on = true;
+    app.replaceConditions(windy);
+    const controlsBeforeScenario = JSON.stringify([windy.windows, windy.doors, windy.devices, windy.portableFan]);
+    const scenarioWrites = writes.filter(line => line.startsWith('SCN:')).length;
+    send('SCN:6'); await wait(100);
+    const restored = app.readConditions();
+    assert(restored.windFrom === undefined, 'Same hardware scenario clears a manual wind direction');
+    assert(JSON.stringify([restored.windows, restored.doors, restored.devices, restored.portableFan]) === controlsBeforeScenario, 'Hardware weather reset preserves openings and devices');
+    setPlaying(true); await wait(500); setPlaying(false); await wait(300);
+    const clock = document.querySelector('#elapsed-time').textContent;
+    const energy = document.querySelector('#energy').textContent;
+    send('SCN:6'); await wait(300);
+    assert(clock !== '00:00:00' && document.querySelector('#elapsed-time').textContent === clock && document.querySelector('#energy').textContent === energy, 'Repeated hardware scenario preserves completed time and energy');
+    assert(writes.filter(line => line.startsWith('SCN:')).length === scenarioWrites, 'Hardware scenario reset and duplicate do not echo');
+    setPlaying(wasPlaying);
     stream.close(); await wait(100);
     assert(document.querySelector('#hardware-controls').dataset.connection === 'disconnected', 'USB removal is handled');
     key();
@@ -51,6 +69,7 @@ return await (async () => {
     if (document.querySelector('#hardware-controls').dataset.connection === 'connected') { button.click(); await wait(100); }
     if (descriptor) Object.defineProperty(navigator, 'serial', descriptor); else delete navigator.serial;
     app.replaceConditions(saved, true);
+    setPlaying(wasPlaying);
   }
   return { checks, writes };
 })()

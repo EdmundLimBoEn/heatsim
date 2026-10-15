@@ -132,12 +132,12 @@ def header(s,title,subtitle):
     s.text(10,21,title,5,weight='bold')
     s.text(10,27,subtitle,2.6)
 
-def footer(s):
+def footer(s,annotation_clearance=False):
     s.line(10,280,60,280,sw=.6)
     for x in [10,60]: s.line(x,278,x,282,sw=.4)
     s.text(35,286,'50 mm — measure before cutting',2.5,'middle')
-    s.text(200,280,'A4 · Actual size / 100%',2.7,'end',weight='bold')
-    s.text(200,286,'All dimensions in mm · 1:65 scale',2.5,'end')
+    s.text(200,284 if annotation_clearance else 280,'A4 · Actual size / 100%',2.7,'end',weight='bold')
+    s.text(200,288 if annotation_clearance else 286,'All dimensions in mm · 1:65 scale',2.5,'end')
     s.text(10,293,'Written by gpt-6-astra in Codex on behalf of Edmund',1.8)
 
 s = SVG('HeatSim 1:65 floor plan — print A4 at actual size')
@@ -198,6 +198,10 @@ The 12.2 × 7.7 m source apartment fits inside a 200 × 150 mm work area on an A
 
 Print **100% / Actual size**, disable “Fit to page” and browser headers/footers, and measure the **50 mm calibration bar**. All measurements below are millimetres. Coordinates start at the outside northwest corner, x to the east and z to the south. Dimensions use the outer faces, with 3 mm cardboard for every wall kept inside those footprints. Actual material thickness must be measured before fitting.
 
+## Reading the added measurements
+
+The annotations do not change any existing cut. In the printed panel view, **x walls are viewed from the south with west at the left; z walls are viewed from the west with north at the left**. Keep this face/orientation; do not mirror a panel. **L** measures from the panel's left cut edge to the opening's left cut edge. Grey ticked lines below each panel show the clear gap before the first opening, between adjacent opening edges, and the final **R** gap to the right panel edge. **Grey measurement lines are not cut lines.** Values are displayed to 0.001 mm; the underlying geometry is unchanged. Wall elevation sheet 4 contains the complete offset/gap/width/height/sill schedule. The W10/D07 left gap is only 0.038 mm; its leader is displaced for readability, not a larger physical gap.
+
 ## Wall cut list
 
 Every panel is **40 mm tall**. Exact values are the fabrication geometry; the practical column rounds to 0.1 mm for marking. Dry-fit and trim. Horizontal panels run west to east; vertical panels run north to south. Cut doors and windows before assembly.
@@ -252,9 +256,37 @@ for i,p in enumerate(walls):
     for q in walls[:i]:
         assert not overlap(r,plan_rect(q)), (p['id'],q['id'])
 
+def annotate_panel(s,p,x,y):
+    ops=sorted((o for o in openings if o['wall_id']==p['id']),key=lambda o:o['offset_mm'])
+    if not ops:
+        return
+    s.parts.append(f'<g class="measurement-annotations" data-panel="{p["id"]}">')
+    spans=[]
+    previous=0.0
+    for i,o in enumerate(ops):
+        left=o['offset_mm']
+        gap=left-previous
+        assert gap>=-1e-8
+        spans.append((previous,left,'L' if i==0 else ''))
+        px,py=x+left,y+H-o['sill_mm']-o['height_mm']
+        s.text(px+o['width_mm']/2,py+o['height_mm']/2+3.2,f'L {left:.3f}',2.05,'middle')
+        previous=left+o['width_mm']
+    spans.append((previous,p['length_mm'],'R'))
+    assert math.isclose(sum(b-a for a,b,_ in spans)+sum(o['width_mm'] for o in ops),p['length_mm'])
+    for a,b,prefix in spans:
+        midpoint=x+(a+b)/2
+        label_x=max(x+5,min(x+p['length_mm']-5,midpoint))
+        s.line(x+a,y+H+1.5,x+b,y+H+1.5,'#778787',.14)
+        for edge in [a,b]:
+            s.line(x+edge,y+H+.4,x+edge,y+H+2.1,'#778787',.14)
+        if abs(label_x-midpoint)>.1:
+            s.line(midpoint,y+H+1.5,label_x,y+H+2,'#778787',.14)
+        s.text(label_x,y+H+4.1,f'{prefix} {b-a:.3f}'.strip(),2.05,'middle')
+    s.parts.append('</g>')
+
 def draw_panel(s,p,x,y):
     s.rect(x,y,p['length_mm'],H,fill='#fbfbf8',stroke='#17332e',sw=.2)
-    s.text(x+1,y+3.2,f"{p['id']} · {p['length_mm']:.2f} × 40",2.1,weight='bold')
+    s.text(x+1,y+3.2,f"{p['id']} {p['axis']} · {p['length_mm']:.2f} × 40",2.1,weight='bold')
     for o in [o for o in openings if o['wall_id']==p['id']]:
         px,py=x+o['offset_mm'],y+H-o['sill_mm']-o['height_mm']
         color='#a8552b' if o['kind']=='door' else '#2273a1'
@@ -264,6 +296,7 @@ def draw_panel(s,p,x,y):
             hinge_x=px if o['hinge_side'] in ['west','north'] else px+o['width_mm']
             s.line(hinge_x,py+1,hinge_x,py+o['height_mm']-1,'#b3518d',.55)
     s.line(x,y+H+1,x+min(5,p['length_mm']),y+H+1,'#17332e',.25)
+    annotate_panel(s,p,x,y)
 
 # Nesting is physical stock allocation; print pages for schedules do not require more card.
 stock_layouts = [
@@ -271,7 +304,7 @@ stock_layouts = [
 ]
 stock_manifest=[]
 for filename,title,rows in stock_layouts:
-    s=SVG(title); s.text(10,5,title,2.5,weight='bold'); s.text(10,8.5,'Black: panel cut / blue: window insert / brown: doorway / magenta: door hinge. Gaps 2 mm across, 5 mm down.',1.8)
+    s=SVG(title); s.text(10,5,title+' / dimensions in mm',2.5,weight='bold'); s.text(10,8.5,'x: viewed from south, left=west. z: viewed from west, left=north. L=left-edge offset; below=clear gaps; R=right gap. Grey lines are NOT cuts.',1.8)
     placed=[]
     for row,indices in enumerate(rows):
         x,y=10,10+row*45
@@ -284,20 +317,42 @@ for filename,title,rows in stock_layouts:
             placed.append(dict(wall_id=p['id'],rect_mm=rect))
             x+=p['length_mm']+2
     assert len(placed)==13
-    footer(s); s.save(OUT/filename)
+    footer(s,annotation_clearance=True); s.save(OUT/filename)
     stock_manifest.append(dict(file=filename,placements=placed))
 manifest['cardboard_sheets']=dict(total=2,existing_base_3mm=1,extra_all_walls_3mm=1,roof=False,horizontal_gap_mm=2,vertical_gap_mm=5,nesting=stock_manifest)
 for obsolete in ['exterior-wall-stock.svg','interior-wall-stock.svg']:
     (OUT/obsolete).unlink(missing_ok=True)
 
+opening_measurement_rows=[]
 for page in range(4):
     s=SVG(f'Wall elevation templates {page+1} / 4')
-    header(s,f'Wall elevations / {page+1} of 4','Actual-size templates. Left = west/north. Coloured holes are removed; magenta marks hinge edge.')
+    header(s,f'Wall elevations / {page+1} of 4','mm · L = panel LEFT edge to opening LEFT edge. Below panels: clear gaps; R = final right gap.')
+    s.text(10,32,'x: viewed from south (west at left). z: viewed from west (north at left). Do not mirror. Grey lines are NOT cuts.',2.4)
     for row,p in enumerate(walls[page*4:(page+1)*4]):
         y=40+row*55
         s.text(10,y-3,p['name'].removeprefix('wall_').replace('_',' ')+f" / {p['thickness_mm']:g} mm card",2.7)
         draw_panel(s,p,10,y)
-        s.text(10,y+H+5,f"Length {p['length_mm']:.4f} mm; mark {p['practical_length_mm']:.1f} mm. Height 40 mm.",2.3)
+        s.text(10,y+H+9,f"Length {p['length_mm']:.4f} mm; mark {p['practical_length_mm']:.1f} mm. Height 40 mm.",2.3)
+    if page==3:
+        s.parts.append('<g class="measurement-annotations" data-schedule="opening-offsets">')
+        s.text(10,101,'Opening measurements / existing cuts unchanged',3.6,weight='bold')
+        s.text(10,108,'All mm, shown to 0.001 mm. L is from the panel left cut edge; gap is clear edge-to-edge.',2.5)
+        s.text(10,113,'R is shown only for the final opening on each panel. Sill is measured up from panel bottom.',2.5)
+        columns=[10,25,43,68,95,119,143,167]
+        for cx,label in zip(columns,['ID','Wall','L offset','Gap before','Width','Height','Sill','R after']):
+            s.text(cx,122,label,2.6,weight='bold')
+        s.line(10,125,200,125,'#778787',.2)
+        for row,o in enumerate(openings):
+            p=by_wall[o['wall_name']]
+            ops=sorted((a for a in openings if a['wall_id']==p['id']),key=lambda a:a['offset_mm'])
+            i=ops.index(o)
+            previous=ops[i-1]['offset_mm']+ops[i-1]['width_mm'] if i else 0
+            values=[o['id'],p['id'],f"{o['offset_mm']:.3f}",f"{o['offset_mm']-previous:.3f}",f"{o['width_mm']:.3f}",f"{o['height_mm']:.3f}",f"{o['sill_mm']:.3f}",f"{p['length_mm']-o['offset_mm']-o['width_mm']:.3f}" if i==len(ops)-1 else '—']
+            opening_measurement_rows.append(values)
+            for cx,value in zip(columns,values):
+                s.text(cx,131+row*6.5,value,2.65)
+        s.text(10,267,'W10 / D07: L = 0.038 mm (nearly flush). Leader is enlarged for reading; the cut is unchanged.',2.4)
+        s.parts.append('</g>')
     footer(s); s.save(OUT/f'wall-templates-{page+1}.svg')
 
 s=SVG('Door and window leaf templates — reuse 3 mm wall cutouts')
@@ -337,7 +392,7 @@ manifest.update(furniture=furniture,devices=devices,controls=controls)
 (OUT/'dimensions.json').write_text(json.dumps(manifest,indent=2)+'\n')
 
 md=md.replace('Keep all hardware and leaf motion inside the A4 sheet.', 'Use **lift-out window inserts with tape tabs** for the fastest build, or slide panels along the inner wall face after checking real mechanism clearance. Do not swing windows outward: west/east leaves would exceed the 11.15 mm A4 side margin. The digital scene uses sliding sashes. Mount door tape hinges on the inner wall face, not the centre line of thick card. Keep all hardware and leaf motion inside the A4 sheet; servo bodies and linkages need measured clearance, especially at the narrow kitchen/bedroom corners.')
-md=md.replace('- [All wall dimensions CSV]', '- [All 13 walls on one A4 of 3 mm card — no roof](../public/build-pack/all-walls-stock.svg)\n- [Movable leaf templates](../public/build-pack/door-window-leaves.svg)\n- [Complete printable build pack](../public/build-pack/index.html)\n- [All wall dimensions CSV]')
+md=md.replace('- [All wall dimensions CSV]', '- [All 13 walls on one A4 of 3 mm card — no roof](../public/build-pack/all-walls-stock.svg)\n- [Movable leaf templates](../public/build-pack/door-window-leaves.svg)\n- [Opening offset and gap measurements — SVG sheet 4](../public/build-pack/wall-templates-4.svg)\n- [Complete printable build pack](../public/build-pack/index.html)\n- [All wall dimensions CSV]')
 md+='\n## Primary hardware channel labels\n\n| Channel | Opening | App object |\n|---|---|---|\n'+''.join(f"| {o['hardware_channel']} | {o['id']} | `{o['name']}` |\n" for o in openings if o['hardware_channel'])+'\nThese five channel names match `docs/04-hardware-protocol.md`. Other openings can stay manual for the MVP; no pin numbers or actual servo counts are assumed.\n'
 md=md.replace('\nWritten by gpt-6-astra in Codex on behalf of Edmund\n','\n')
 md+='\n## Supplementary schedules\n\n`control-map.csv` maps all 20 openings to exact application object names, and lists 11 separate app device toggles. `devices.csv` gives scale device envelopes/positions, not real hardware clearances. `optional-furniture.csv` gives 20 simplified furniture blocks; omit them until the mechanisms work. `rooms.csv` gives source room rectangles before the physical wall-thickness adjustment, not clear finished room sizes.\n'
@@ -350,9 +405,9 @@ def table(headers,rows):
     return '<div class="table-wrap"><table><thead><tr>'+''.join(f'<th>{html.escape(str(h))}</th>' for h in headers)+'</tr></thead><tbody>'+''.join('<tr>'+''.join(f'<td>{html.escape(str(c))}</td>' for c in row)+'</tr>' for row in rows)+'</tbody></table></div>'
 
 wall_table=table(['ID','Panel','Cut length × height','Card','Mark length'],[(p['id'],p['name'].removeprefix('wall_').replace('_',' '),f"{p['length_mm']:.3f} × 40",f"{p['thickness_mm']:g}",f"{p['practical_length_mm']:.1f}") for p in walls])
-opening_table=table(['ID','Opening','Wall','Offset','Width × height','Sill','Hinge'],[(o['id'],o['name'].replace('_',' '),o['wall_id'],f"{o['offset_mm']:.3f}",f"{o['width_mm']:.3f} × {o['height_mm']:.3f}",f"{o['sill_mm']:.3f}",o['hinge_side'] if o['kind']=='door' else 'lift-out') for o in openings])
+opening_table=table(['ID','Wall','L offset','Gap before','Width','Height','Sill','R after'],opening_measurement_rows)
 room_table=table(['Room','Source rectangle in model','Real area'],[(r['name'].replace('_',' '),f"{r['width_mm']:.2f} × {r['depth_mm']:.2f} mm",f"{r['source_area_m2']:.2f} m²") for r in rooms])
-links=[('heatsim-build-pack.zip','Download complete pack ZIP'),('floor-plan.svg','Floor plan · A4 1:1'),('all-walls-stock.svg','All walls · one A4 · 3 mm'),('door-window-leaves.svg','Door / window leaves'),('cut-list.csv','Wall dimensions CSV'),('openings.csv','Opening dimensions CSV'),('control-map.csv','Control map CSV'),('dimensions.json','All dimensions JSON'),('optional-furniture.csv','Optional furniture CSV'),('devices.csv','Device envelopes CSV'),('README.md','Builder notes')]
+links=[('heatsim-build-pack.zip','Download complete pack ZIP'),('floor-plan.svg','Floor plan · A4 1:1'),('all-walls-stock.svg','Annotated wall stock · A4'),('wall-templates-1.svg','Wall elevations 1 · W01–W04'),('wall-templates-2.svg','Wall elevations 2 · W05–W08'),('wall-templates-3.svg','Wall elevations 3 · W09–W12'),('wall-templates-4.svg','Opening measurements · sheet 4'),('door-window-leaves.svg','Door / window leaves'),('cut-list.csv','Wall dimensions CSV'),('openings.csv','Opening dimensions CSV'),('control-map.csv','Control map CSV'),('dimensions.json','All dimensions JSON'),('optional-furniture.csv','Optional furniture CSV'),('devices.csv','Device envelopes CSV'),('README.md','Builder notes')]
 page='''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HeatSim — physical build pack</title><style>
 *{box-sizing:border-box}html{font-family:Arial,Helvetica,sans-serif;color:#17332e;background:#f1f3ed}body{margin:0}main{max-width:1160px;margin:auto;padding:48px 32px}a{color:#145b45}h1{font-size:clamp(32px,5vw,62px);letter-spacing:-2px;margin:10px 0 18px;line-height:1.02}h2{margin:0 0 16px;font-size:26px;letter-spacing:-.6px}h3{font-size:18px}.eyebrow{letter-spacing:2px;font-size:12px;font-weight:700}.lead{font-size:19px;line-height:1.5;max-width:760px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0}.metric{background:#17332e;color:white;padding:22px}.metric strong{display:block;font-size:28px;margin-bottom:8px}.metric span{font-size:13px;color:#cdded5}.note{padding:20px;background:#fff5d9;border-left:4px solid #b47c2b;line-height:1.6}.downloads{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}.downloads a,button{border:1px solid #b4c6bb;background:white;padding:12px 15px;border-radius:4px;font:inherit;text-decoration:none;cursor:pointer}button{background:#174e3c;color:white;border-color:#174e3c;font-weight:700}section{margin-top:36px;background:#fff;padding:28px;break-inside:avoid}.sheet{width:210mm;max-width:100%;margin:auto;box-shadow:0 5px 24px #132a2212;background:white}.sheet svg{display:block;width:100%;height:auto}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px;line-height:1.4}th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:#eaf0eb}th,td{padding:10px 9px;border-bottom:1px solid #e1e7e2}td:nth-child(n+3){font-variant-numeric:tabular-nums;white-space:nowrap}li{margin:8px 0;line-height:1.55}.small{font-size:13px;color:#546b60;line-height:1.6}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}.print-only{display:none}.template{margin-top:32px}footer{font-size:12px;color:#546b60;margin-top:28px} @media(max-width:700px){main{padding:24px 16px}.metrics{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}section{padding:18px}.metric strong{font-size:25px}}@page{size:A4;margin:0}@media print{html{background:white}main{padding:0;max-width:none}.screen-only{display:none}.print-only{display:block}.sheet{box-shadow:none;max-width:none;width:210mm;height:297mm;break-before:page;break-after:page;margin:0}.sheet:first-child{break-before:auto}.sheet.template{margin-top:0}.sheet svg{width:210mm;height:297mm}.print-notes{padding:12mm;break-before:page}section{margin:0;padding:12mm;background:white}table{font-size:10px}th,td{padding:6px}h2{font-size:20px}.table-wrap{overflow:visible}}
 </style></head><body><main>'''
@@ -365,7 +420,7 @@ for filename,_,_ in stock_layouts:
 page+='<div class="sheet template">'+(OUT/'door-window-leaves.svg').read_text()+'</div>'
 page+='<section class="screen-only"><h2>Primary hardware labels</h2>'+table(['Channel','Opening','App object'],[(o['hardware_channel'],o['id'],o['name']) for o in openings if o['hardware_channel']])+'<p class="small">These channels follow docs/04-hardware-protocol.md; additional openings can remain manual. Servo mounting, pinout and power depend on the actual parts.</p></section>'
 page+='<section class="print-notes"><h2>Wall schedule · all dimensions in mm</h2><p class="small">All walls are 40 mm tall. Exact cut lengths include butt-joint adjustments for 3 mm cardboard throughout. Mark to 0.1 mm, dry-fit and trim. Do not add card thickness to these lengths.</p>'+wall_table+'</section>'
-page+='<section class="print-notes"><h2>Door and window schedule · all dimensions in mm</h2><p class="small">Offsets start from each cut panel’s west/north end. Sill is measured up from the floor. Reuse 3 mm cutouts: door leaves trim 1.5 mm in width and 0.5 mm in height; lift-out window inserts trim 0.5 mm in both. D02 is reduced to 11.577 mm clear width to avoid its thicker partition. D09 hinges on its east edge; other doors on the west/north edge. Windows lift out using tape pull-tabs. Magenta template marks indicate the hinge edge.</p>'+opening_table+'</section>'
+page+='<section class="print-notes"><h2>Door and window schedule · all dimensions in mm</h2><p class="small">All values are mm, displayed to 0.001 mm. Viewed from south for x walls (west at left), or west for z walls (north at left). L is panel left cut edge to opening left cut edge. Gap before is the clear distance from the previous opening’s right edge (or panel left edge for the first opening). R is the final right-side remainder. Grey dimension lines are not cuts; all cut geometry is unchanged. Sill is measured up from the panel bottom. Reuse 3 mm cutouts: door leaves trim 1.5 mm in width and 0.5 mm in height; lift-out window inserts trim 0.5 mm in both. D02 is reduced to 11.577 mm clear width to avoid its thicker partition. D09 hinges on its east edge; other doors on the west/north edge. Windows lift out using tape pull-tabs. Magenta template marks indicate the hinge edge.</p>'+opening_table+'</section>'
 page+='''<section class="print-notes"><h2>Assembly order</h2><ol><li>Verify the 50 mm bar, then glue the floor plan onto the existing A4 base without stretching.</li><li>Measure actual stock thickness. Cut and label W01–W13 using the single wall-stock nesting sheet; remove the door/window holes before assembly.</li><li>W01 and W02 span the full width. W03 and W04 butt between them. Confirm the outer rectangle is 187.69 × 118.46 mm before gluing.</li><li>Fit W05 between the exterior walls. W06–W08 butt between W01 and W05. W09 fits between W06 and W07. W10 fits between W05 and W02, W11 between W03 and W10, W12 starts at W10’s east face, and W13 butts below W12 and against W02.</li><li>D02 master-bedroom clear width is 11.577 mm after trimming its east edge to the partition face. Bedroom 2, bedroom 3 and kitchen junctions are effectively flush (0.038 mm theoretical clearance); reinforce them with tape.</li><li>Mount tape hinges on the inner wall face so reused 3 mm leaves sit proud of the wall when closed. <strong>Use lift-out window inserts with tape pull-tabs</strong>; optional sliding rails need a measured hardware fit. Outward-swinging windows exceed the A4 side margin. Check door swing and servo travel before adding furniture.</li><li>Build the removable electronics panel after measuring actual parts. Route wires away from moving leaves. Keep the model roofless for visibility and repair.</li><li>Label door/window controls with the matching D/G identifiers. Test one physical input at a time against the app. Add optional furniture only after the controls work.</li></ol><div class="note">Approximate educational model, not an official HDB drawing. These are scale geometry dimensions, not real servo/switch footprints. Hardware holes and pin assignments remain pending actual components.</div></section>'''
 page+='<section class="screen-only"><h2>Room reference dimensions</h2><p class="small">Source room rectangles before adjusting physical card thickness. These are not finished clear internal room dimensions.</p>'+room_table+'</section>'
 page+='<footer class="screen-only">Written by gpt-6-astra in Codex on behalf of Edmund</footer></main></body></html>'

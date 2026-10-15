@@ -9,12 +9,17 @@ The 12.2 × 7.7 m source apartment fits inside a 200 × 150 mm work area on an A
 - [Floor plan, A4 actual size](../public/build-pack/floor-plan.svg)
 - [All 13 walls on one A4 of 3 mm card — no roof](../public/build-pack/all-walls-stock.svg)
 - [Movable leaf templates](../public/build-pack/door-window-leaves.svg)
+- [Opening offset and gap measurements — SVG sheet 4](../public/build-pack/wall-templates-4.svg)
 - [Complete printable build pack](../public/build-pack/index.html)
 - [All wall dimensions CSV](../public/build-pack/cut-list.csv)
 - [Door and window cutouts CSV](../public/build-pack/openings.csv)
 - [Exact dimensions JSON](../public/build-pack/dimensions.json)
 
 Print **100% / Actual size**, disable “Fit to page” and browser headers/footers, and measure the **50 mm calibration bar**. All measurements below are millimetres. Coordinates start at the outside northwest corner, x to the east and z to the south. Dimensions use the outer faces, with 3 mm cardboard for every wall kept inside those footprints. Actual material thickness must be measured before fitting.
+
+## Reading the added measurements
+
+The annotations do not change any existing cut. In the printed panel view, **x walls are viewed from the south with west at the left; z walls are viewed from the west with north at the left**. Keep this face/orientation; do not mirror a panel. **L** measures from the panel's left cut edge to the opening's left cut edge. Grey ticked lines below each panel show the clear gap before the first opening, between adjacent opening edges, and the final **R** gap to the right panel edge. **Grey measurement lines are not cut lines.** Values are displayed to 0.001 mm; the underlying geometry is unchanged. Wall elevation sheet 4 contains the complete offset/gap/width/height/sill schedule. The W10/D07 left gap is only 0.038 mm; its leader is displaced for readability, not a larger physical gap.
 
 ## Wall cut list
 

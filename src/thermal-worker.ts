@@ -9,6 +9,7 @@ worker.onmessage = ({ data }) => {
   try {
     if (data.type !== 'run') return;
     const result = compareThermalCases(data.config, {
+      baselineConfig: data.baselineConfig,
       onProgress: progress => worker.postMessage({ type: 'progress', progress }),
     });
     worker.postMessage({ type: 'result', result });

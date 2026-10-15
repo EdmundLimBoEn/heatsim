@@ -13,7 +13,7 @@
 
 ### Flow, transport and device assumptions
 
-A graph pressure solve projects local fan/AC drives onto conservative face flows through the fluid mask. Outdoor reservoir differences depend on the selected scenario's windward side and the wind-speed setting. This is a steady pressure-flow approximation, not Navier–Stokes/LBM, measured pressure or turbulence modelling. Flow is recomputed after relevant control changes. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
+A graph pressure solve projects local fan/AC drives onto conservative face flows through the fluid mask. Outdoor reservoir differences use the manual **Wind from** direction (`N/E/S/W`) when set, otherwise the scenario's windward side. North means wind arriving from the north, travelling towards the south. The chosen façade receives the heuristic reservoir drive `5 × wind speed`, with the other façades at zero; these solver values are not calibrated pascals. This is a steady pressure-flow approximation, not Navier–Stokes/LBM, measured pressure or turbulence modelling. Flow is recomputed after relevant control changes. Pressure is normalized separately for each arrangement: compare colors within the current layout, not as absolute pressure differences between layouts.
 
 Temperature and PM2.5 use conservative upwind face transport and diffusion. The illustrative coefficients in the implementation are **0.025 m²/s for temperature** and **0.012 m²/s for haze**. Walls block transport. Exterior reservoirs retain the scenario/user outdoor values. New opening cells use adjacent valid fields; finite-value guards and bounds keep temperature in **10–60 °C** and PM2.5 in **0–1000 µg/m³**.
 
@@ -30,6 +30,12 @@ Temperature and PM2.5 use conservative upwind face transport and diffusion. The 
 These are **MVP fallback coefficients**, replacing the original lattice-unit constants for this implementation. Device powers are **fan 50 W, purifier 40 W, active AC 1000 W**; the power estimate is not thermostat cycling or an electricity-bill prediction. Energy integrates watts × actual simulated seconds / 3,600,000. Room means use fluid cells, with floor-area weighting for whole-home summaries.
 
 Humidity is a shared scenario setting used only in an illustrative comfort adjustment; it is not a transported field. Comfort is `T + max(T−24,0)·max(RH−40,0)/100 − min(3,2.5·speed)`, not a medical heat index or validated comfort standard. The UI follows scenario time/sun exposure. Pressure colors and flow arrows are qualitative visual aids, not pressure measurements.
+
+### Manual outdoor conditions and PM2.5 index equivalent
+
+Outdoor temperature, PM2.5 and wind are manual scenario inputs, not observations: **10–60°C**, **0–1000 µg/m³**, **0–10 m/s**, and a cardinal wind-from direction. The main apartment retains its live fields and openings/devices when those inputs change. Selecting another scenario restores its weather and initial indoor fields; **Reset outdoor conditions to scenario** restores weather without resetting the live fields. Sun exposure still follows the scenario/time settings, and humidity remains a comfort assumption.
+
+`src/air-quality.ts` converts a scenario concentration to a **US EPA PM2.5 index equivalent (24-hour scale)**. This does not turn a manually entered concentration into a 24-hour measurement, Singapore PSI, current official AQI or a health forecast. The solver always uses raw PM2.5 in µg/m³. The helper truncates concentration to one decimal, interpolates the EPA PM2.5 breakpoints and rounds the index to an integer. A quantized concentration above **325.4 µg/m³** has no equivalent in the supported 0–500 index; the raw concentration is preserved, not capped to fit the index. Entering a whole-number equivalent chooses one representative PM2.5 concentration because the rounded mapping has no unique inverse. The breakpoint/method source is [US EPA's May 2026 AQI technical assistance document, Table 6](https://document.airnow.gov/technical-assistance-document-for-the-reporting-of-daily-air-quailty.pdf).
 
 ### Time, stability and evidence
 
@@ -61,7 +67,7 @@ Cooling Lab uses `src/thermal-model.ts` and the contracts in `src/thermal-types.
 | Air/surface and interlayer exchange | Surface-to-air convection uses **2.5 W/(m²·K)**. Heat transferred between model states is equal and opposite. An idealized hydrostatic pressure term links the two air layers; warm-below instability and circulation fans increase conservative mixing. This illustrates buoyancy/stratification without resolving plumes or a vertical velocity field. |
 | People | **70% of people heat enters the upper layer** by an explicit unresolved-plume assumption. This split is illustrative, not measured. |
 | High-level fan | Exhaust or supply at a selected exterior window; default exhaust at `window_bedroom3_1`, rated **120 m³/h**, initially off. A finite **20 Pa** linear pump model limits actual flow through the connected opening network. The rating is not a guaranteed flow. |
-| Fan adapter | The selected window has the same adapter in **both** cases, independent of its main-app flag. The adapter closes the remaining window area but leaves a resistive fan passage; wind/buoyancy can produce flow while the motor is off. Other windows/doors retain their states. A missing make-up/relief route can block sustained flow; no hidden leakage is added. |
+| Fan adapter | Each case's selected window has a fan adapter, independent of its ordinary window flag. Quick fan-off/on mode uses the same adapter in both cases; a captured baseline/candidate experiment can deliberately change its location. The adapter closes the remaining window area but leaves a resistive fan passage; wind/buoyancy can produce flow while the motor is off. Other windows/doors retain their states. A missing make-up/relief route can block sustained flow; no hidden leakage is added. |
 | Signed flow | `actualVentM3h` is signed relative to the requested fan direction. A negative value means modelled backflow, not a negative fan power. |
 | Vent-fan power | When on with nonzero rating, assumed input is **4 + rated m³/h ÷ 30 watts**: **8 W at 120 m³/h**, all entering the upper air layer as heat, even if flow is blocked. This is an illustrative motor assumption, not a measured power curve. |
 | Other captured devices | Circulation fans add mixing and **50 W per effective fan** (portable speed scales its contribution). Each purifier removes particles with assumed **250 m³/h** clean-air delivery and adds **40 W** heat. |
@@ -71,7 +77,21 @@ The exterior face is solved as a massless balance. The reported conduction, radi
 
 The thermal calculation includes outdoor air enthalpy and PM2.5 transport, fan/device heat and AC removal. Circulating fans redistribute air and add energy; they are not negative heat sources. The model's network/layer approximation does not establish the strength of real stack ventilation, a real fan curve, construction performance or humidity/latent cooling loads. No expansion term is subtracted from room temperatures.
 
-The model's default comparison horizon is **1200 seconds (20 minutes)**. [Doc 05](05-scenarios-optimiser.md) describes the matched fan-off/on worker and result signs. [CHECKLIST](../CHECKLIST.md) records checks for this extension separately from the earlier planar engine. Conservation tests establish numerical consistency only, not calibration or experimental validity.
+### Optional sheltered main-door boundary and ventilation metrics
+
+Only Cooling Lab has the optional `corridor` boundary. When enabled, the exterior **`main_door` opening into dining** exchanges with a fixed prescribed temperature/PM2.5 reservoir. It does not change the internal rooms named `corridor` or `corridor_lobby`, add geometry, or predict a shared corridor's conditions. The reservoir does **not** warm up or accumulate pollution in response to the flat. Every window still exchanges with outdoors; disabling the option restores the outdoor boundary at the main door.
+
+This boundary is sheltered from the façade wind drive: gauge pressure is **zero at floor level**, with a temperature-consistent hydrostatic correction at each layer height. Zero floor pressure does not mean zero pressure difference everywhere or zero flow. Outdoors, the chosen wind-from façade receives the lab's illustrative `0.3 × wind speed²` pressure drive; other façades receive zero. This separate network law is not the planar solver's pressure index or a calibrated building-pressure prediction. Closed openings still block exchange, and the finite fan still needs a connected make-up/relief route.
+
+| Lab metric | Exact scope and sign |
+|---|---|
+| Outdoor / corridor inflow, m³/h | Incoming boundary flow, counted once and reported separately; neither is necessarily clean air. |
+| Boundary air changes, h⁻¹ | Incoming outdoor plus corridor flow divided by the full air volume. Whole-flat volume is **234 m³**. Room values count only that room's direct boundary inflow and exclude internal-room exchange. Inlet and outlet are not added together. |
+| Sensible heat removed, W | Negative of the ventilation heat-budget term: positive removes indoor heat, negative adds it. This excludes fan motor heat and AC cooling and does not calculate latent moisture loads. |
+| Ventilation heat removed, J | Time integral of the signed sensible heat-removal rate, not the flat's stored-energy change. |
+| Vent-fan electricity, Wh | Integrated high-level fan input only; whole-flat electricity also includes other devices. No AC COP or heat-removal efficiency is inferred from their ratio. |
+
+The model's default comparison horizon is **1200 seconds (20 minutes)**. [Doc 05](05-scenarios-optimiser.md) describes the quick fan-off/on and captured baseline/candidate worker modes, shared conditions and result signs. [CHECKLIST](../CHECKLIST.md) records checks for this extension separately from the earlier planar engine. Conservation tests establish numerical consistency only, not calibration or experimental validity.
 
 ### Educational pressure–temperature calculator
 

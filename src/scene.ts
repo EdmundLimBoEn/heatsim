@@ -41,7 +41,7 @@ const DOOR_SWING: Record<string, number> = {
   door_bedroom3: 1, door_master_bath: 1, door_kitchen: -1, door_service_yard: -1, door_shelter: 1,
 };
 const ROOM_ANCHORS: Record<string, [number, number]> = {
-  master_bedroom: [1.9, 2.45], master_bath: [4.7, 1.55], common_bath: [4.7, 2.95],
+  master_bedroom: [1.9, 2.45], master_bath: [5.25, 0.65], common_bath: [4.7, 2.95],
   bedroom2: [7.25, 2.45], bedroom3: [10.4, 2.45], kitchen: [1.65, 4.65],
   service_yard: [1.45, 6.3], household_shelter: [3.6, 6.75], corridor: [8.4, 3.92],
   corridor_lobby: [3.6, 5.1], dining: [5.8, 6.65], living: [10, 6.65],
@@ -552,22 +552,22 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   roof.visible = false;
   roof.castShadow = false;
 
-  const labels: { room: string; element: HTMLButtonElement; value: HTMLSpanElement; anchor: THREE.Vector3 }[] = [];
+  const labels: { room: string; element: HTMLButtonElement; value: HTMLSpanElement; anchor: THREE.Vector3; flag: string; styleKey: string }[] = [];
   for (const room of model.rooms) {
     const element = document.createElement('button');
     element.type = 'button';
     element.setAttribute('aria-label', `Select ${roomLabel(room.name)}`);
-    element.style.cssText = 'position:absolute;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.8);border-radius:5px;background:rgba(251,252,248,.88);color:#344940;padding:4px 7px;box-shadow:0 1px 6px rgba(29,48,36,.05);font:600 10px/1.25 inherit;white-space:nowrap;pointer-events:auto;cursor:pointer;backdrop-filter:blur(3px);';
+    element.style.cssText = 'position:absolute;transform:translate(-50%,-50%);border:1px solid #ccd4cc;border-radius:5px;background:rgba(251,252,248,.94);color:#344940;padding:4px 7px;box-shadow:0 1px 6px rgba(29,48,36,.05);font:600 10px/1.25 inherit;white-space:nowrap;pointer-events:auto;cursor:pointer;backdrop-filter:blur(3px);';
     const name = document.createElement('span');
     name.textContent = roomLabel(room.name).replace('Household shelter', 'Shelter').replace('Entrance lobby', 'Lobby');
     name.style.cssText = 'display:block;font-size:10px;font-weight:600;letter-spacing:-.1px;';
     const value = document.createElement('span');
-    value.style.cssText = 'display:block;font-size:12px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;';
+    value.style.cssText = 'display:none;font-size:12px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;';
     element.append(name, value);
     element.addEventListener('click', () => onSelectRoom(room.name));
     labelLayer.appendChild(element);
     const anchor = ROOM_ANCHORS[room.name];
-    labels.push({ room: room.name, element, value, anchor: new THREE.Vector3(anchor[0], 0.4, anchor[1]) });
+    labels.push({ room: room.name, element, value, anchor: new THREE.Vector3(anchor[0], 0.4, anchor[1]), flag: '', styleKey: '' });
   }
   const dimensionGroup = new THREE.Group();
   dimensionGroup.visible = false;
@@ -592,6 +592,9 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   let currentView = { ...defaultView };
   let lastViewSignature = '';
   let lastShadowSignature = '';
+  let lastLabelUpdate = -Infinity;
+  let lastLabelMode = '';
+  let lastLabelElapsed = -1;
   let width = Math.max(container.clientWidth, 1);
   let height = Math.max(container.clientHeight, 1);
   let disposed = false;
@@ -830,18 +833,45 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
         mat.opacity = view.selectedRoom === name ? 0.6 : 0.42;
       }
     }
+    const now = performance.now();
+    const labelMode = `${view.mode}:${Boolean(thermalVentConfig)}`;
+    const sampleLabels = now - lastLabelUpdate >= 500 || labelMode !== lastLabelMode || result.elapsedSeconds < lastLabelElapsed;
+    const temperatures = sampleLabels ? result.rooms.map(reading => reading.temperature).filter(Number.isFinite) : [];
+    const warmest = Math.max(...temperatures);
+    const differentTemperatures = warmest - Math.min(...temperatures) > 0.1;
     for (const label of labels) {
-      const reading = result.rooms.find(r => r.room === label.room);
-      const pressure = view.mode === 'pressure' ? roomPressure(result.field, model.rooms.find(room => room.name === label.room)!) : 0;
-      const pressureLabel = `${Math.abs(pressure) < 0.005 ? '0.00' : `${pressure > 0 ? '+' : ''}${pressure.toFixed(2)}`} rel.`;
-      label.value.textContent = view.mode === 'pressure' ? pressureLabel : !reading || view.mode === 'model' ? '' : view.mode === 'temperature' ? `${reading.temperature.toFixed(1)}°` : view.mode === 'airflow' ? `${reading.airflow.toFixed(2)} m/s` : `${Math.round(reading.pm25)} µg/m³`;
-      label.value.style.display = label.value.textContent ? 'block' : 'none';
+      if (sampleLabels) {
+        const reading = result.rooms.find(r => r.room === label.room);
+        const metric = view.mode === 'pm25' ? reading?.pm25 : view.mode === 'airflow' ? reading?.airflow : view.mode === 'pressure' ? result.field?.pressure ? roomPressure(result.field, model.rooms.find(room => room.name === label.room)!) : undefined : reading?.temperature;
+        let value = '';
+        label.flag = '';
+        if (!thermalVentConfig && metric !== undefined && Number.isFinite(metric)) {
+          value = view.mode === 'pm25' ? `${Math.round(metric)} µg/m³` : view.mode === 'airflow' ? `${metric.toFixed(2)} m/s` : view.mode === 'pressure' ? `${Math.abs(metric) < 0.005 ? '0.00' : `${metric > 0 ? '+' : ''}${metric.toFixed(2)}`} rel.` : `${metric.toFixed(1)}°C`;
+          if ((view.mode === 'model' || view.mode === 'temperature') && differentTemperatures && metric >= warmest - 0.05) label.flag = 'Warmest room in this flat';
+          if (view.mode === 'pm25' && Number.isFinite(result.averagePm25) && result.averagePm25 > 0 && metric > result.averagePm25 * 1.2) label.flag = 'Hazier than the flat average';
+        }
+        if (label.value.textContent !== value) {
+          label.value.textContent = value;
+          label.value.style.display = value ? 'block' : 'none';
+        }
+        const metricName = view.mode === 'pm25' ? 'PM2.5' : view.mode === 'airflow' ? 'air speed' : view.mode === 'pressure' ? 'relative pressure potential' : 'temperature';
+        const description = `Select ${roomLabel(label.room)}${value ? `. Simulated ${metricName}: ${value}` : ''}${label.flag ? `. ${label.flag}` : ''}`;
+        if (label.element.getAttribute('aria-label') !== description) {
+          label.element.setAttribute('aria-label', description);
+          label.element.title = description;
+        }
+      }
       const selected = view.selectedRoom === label.room;
-      label.element.style.background = selected ? '#245b47' : 'rgba(251,252,248,.88)';
-      label.element.style.color = selected ? '#fff' : '#344940';
-      label.element.style.borderColor = selected ? '#245b47' : 'rgba(255,255,255,.8)';
-      label.element.setAttribute('aria-pressed', String(selected));
+      const styleKey = `${selected}:${label.flag}`;
+      if (styleKey !== label.styleKey) {
+        label.styleKey = styleKey;
+        label.element.style.background = selected ? '#245b47' : 'rgba(251,252,248,.94)';
+        label.element.style.color = selected ? '#fff' : '#344940';
+        label.element.style.borderColor = selected ? '#245b47' : label.flag.startsWith('Warmest') ? '#bd854d' : label.flag ? '#648b9d' : '#ccd4cc';
+        label.element.setAttribute('aria-pressed', String(selected));
+      }
     }
+    if (sampleLabels) { lastLabelUpdate = now; lastLabelMode = labelMode; lastLabelElapsed = result.elapsedSeconds; }
   }
   updateView();
   let frame = 0;
@@ -866,7 +896,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     camera.updateMatrixWorld();
     for (const label of labels) {
       projected.copy(label.anchor).project(camera);
-      const show = currentView.labels && currentView.roofOpacity < 0.65 && projected.z < 1 && projected.z > -1 && Math.abs(projected.x) < 1 && Math.abs(projected.y) < 1;
+      const show = currentView.labels && (width >= 520 || label.room === currentView.selectedRoom) && currentView.roofOpacity < 0.65 && projected.z < 1 && projected.z > -1 && Math.abs(projected.x) < 1 && Math.abs(projected.y) < 1;
       label.element.style.display = show ? 'block' : 'none';
       label.element.style.left = `${(projected.x + 1) / 2 * width}px`;
       label.element.style.top = `${(1 - projected.y) / 2 * height}px`;
@@ -919,7 +949,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       lines.forEach((text, i) => context!.fillText(text, x, y + (i - (lines.length - 1) / 2) * 14));
     }
     if (currentView.labels && currentView.roofOpacity < 0.65) {
-      for (const label of labels) badge(label.anchor, [label.element.firstElementChild!.textContent!, label.value.textContent!].filter(Boolean), currentView.selectedRoom === label.room);
+      for (const label of labels) if (width >= 520 || label.room === currentView.selectedRoom) badge(label.anchor, [label.element.firstElementChild!.textContent!, label.value.textContent!].filter(Boolean), currentView.selectedRoom === label.room);
     }
     if (thermalVentConfig && currentView.roofOpacity < 0.65) badge(ventLabelAnchor, ventLabel.textContent!.split('\n'), false, false, true);
     if (currentView.dimensions) for (const dimension of dimensions) badge(dimension.anchor, [dimension.element.textContent!], false, true);
@@ -953,7 +983,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     context.font = `500 ${width < 350 ? 10 : 11}px system-ui, sans-serif`;
     context.textAlign = 'left';
     const footerY = height + footerHeight - 31;
-    context.fillText(currentView.mode === 'model' ? 'HeatSim · 1:65 scale model' : 'HeatSim · SIMULATED', 20, footerY, Math.max(1, width - 40));
+    context.fillText(currentView.mode === 'model' ? 'HeatSim · SIMULATED · 1:65 model' : 'HeatSim · SIMULATED', 20, footerY, Math.max(1, width - 40));
     const detail = currentView.mode === 'model' ? 'Footprint 187.69 × 118.46 mm · walls 40 mm' : currentView.mode === 'pressure' ? 'Normalised within this layout · not Pa' : 'Qualitative toy CFD · not calibrated';
     context.fillText(detail, 20, footerY + 16, Math.max(1, width - 40));
     return canvas.toDataURL('image/png');

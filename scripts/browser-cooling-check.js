@@ -19,16 +19,30 @@ window.heatSimCoolingCheck = { status: 'running' };
       await wait(25);
     }
   };
-  const click = selector => element(selector).click();
+  const reveal = node => {
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+    }
+    return node;
+  };
+  const click = selector => {
+    const node = element(selector);
+    if (node.dataset.mode === 'pressure' && node.hidden) {
+      const science = reveal(element('#science-views'));
+      science.checked = true; science.dispatchEvent(new Event('change', { bubbles: true }));
+      element('#more-menu').open = false;
+    }
+    reveal(node).click();
+  };
   const key = (target, value, code) => target.dispatchEvent(new KeyboardEvent('keydown', { key: value, code, bubbles: true }));
   const change = (selector, value) => {
-    const node = element(selector);
+    const node = reveal(element(selector));
     node.value = String(value);
     node.dispatchEvent(new Event('input', { bubbles: true }));
     node.dispatchEvent(new Event('change', { bubbles: true }));
   };
   const check = (selector, checked) => {
-    const node = element(selector);
+    const node = reveal(element(selector));
     if (node.disabled) throw new Error(`Cannot change disabled ${selector}`);
     node.checked = checked;
     node.dispatchEvent(new Event('change', { bubbles: true }));
@@ -74,7 +88,7 @@ window.heatSimCoolingCheck = { status: 'running' };
     assert(element('#elapsed-time').textContent === heldClock && element('#play-status').textContent.includes('running'), 'Lab suspends the apartment clock while preserving its playback setting');
     const controlsBefore = controlEvents;
     for (const [value, code] of [['f', 'KeyF'], ['q', 'KeyQ'], ['1', 'Digit1'], [' ', 'Space']]) key(document.body, value, code);
-    element('#cl-flow').focus();
+    reveal(element('#cl-flow')).focus();
     key(element('#cl-flow'), '1', 'Digit1');
     assert(controlEvents === controlsBefore, 'Lab and form focus suppress apartment shortcuts');
 

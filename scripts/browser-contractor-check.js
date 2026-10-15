@@ -16,9 +16,23 @@ window.heatSimContractorCheck = { status: 'running' };
       await wait(25);
     }
   };
-  const click = selector => element(selector).click();
+  const reveal = node => {
+    for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+      if (parent instanceof HTMLDetailsElement) parent.open = true;
+    }
+    return node;
+  };
+  const click = selector => {
+    const node = element(selector);
+    if (node.dataset.mode === 'pressure' && node.hidden) {
+      const science = reveal(element('#science-views'));
+      science.checked = true; science.dispatchEvent(new Event('change', { bubbles: true }));
+      element('#more-menu').open = false;
+    }
+    reveal(node).click();
+  };
   const change = (selector, value) => {
-    const node = element(selector); node.value = String(value);
+    const node = reveal(element(selector)); node.value = String(value);
     node.dispatchEvent(new Event('input', { bubbles: true }));
     node.dispatchEvent(new Event('change', { bubbles: true }));
   };
@@ -94,7 +108,7 @@ window.heatSimContractorCheck = { status: 'running' };
     assert(element('#elapsed-time').textContent === heldClock && hiddenReadoutMutations === 0, 'Study pauses the flat clock and periodic hidden readout writes');
     assert(element('#play-status').textContent.includes('running'), 'Study preserves the flat playback preference');
     for (const [key, code] of [['f', 'KeyF'], ['1', 'Digit1'], ['q', 'KeyQ'], [' ', 'Space']]) document.body.dispatchEvent(new KeyboardEvent('keydown', { key, code, bubbles: true }));
-    element('#cs-project').focus();
+    reveal(element('#cs-project')).focus();
     element('#cs-project').dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', bubbles: true }));
     assert(JSON.stringify(app.readConditions()) === flatConditions, 'Study body and form keyboard input leave flat controls unchanged');
     assert(element('#cs-run').disabled && element('#cs-export-html').disabled && element('#cs-export-json').disabled, 'Study requires valid plans before running or exporting');

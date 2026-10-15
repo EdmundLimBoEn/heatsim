@@ -1,16 +1,16 @@
 # HeatSim
 
-**Run the complete presentation demo with a keyboard and on-screen controls. No SSTuino, electronics, account or server backend is required.** HeatSim explores heat, ventilation and haze in an approximate 4-room HDB flat, with a printable cardboard model for the team to build.
+**Run the complete presentation demo with a keyboard and on-screen controls. No SSTuino, electronics, account or server backend is required.** HeatSim helps homeowners explore window, fan and purifier choices in an approximate 4-room HDB flat, with a printable cardboard model for the team to build. Results are simulated comparisons, not measurements or personalised health advice.
 
 The app has three workspaces, using a planar model and a separate room/layer thermal model:
 
 | Workspace | What it illustrates | What it does not claim |
 |---|---|---|
-| **3D apartment** | A 3D scene around a qualitative 2D plan-view airflow, heat, haze and relative-pressure field. | Full 3D airflow, turbulence or measured pressure. |
-| **Cooling Lab** | A separate whole-flat model with lower/upper air layers and a surface temperature per room; matched opening, purifier, high-level fan and envelope experiments, with an ideal-expansion calculator. | Calibrated building performance, a resolved 3D plume, or cooling produced by ideal expansion in the room solver. |
-| **Contractor Study** | Three validated JSON floor plans, shared manual conditions, plan-specific room-network calculations and a reviewable client handoff. | Automatic image/PDF interpretation, surveyed dimensions, professional CFD or compliance certification. |
+| **My flat** | A 3D scene around a qualitative 2D plan-view airflow, heat, haze and relative-pressure field. | Full 3D airflow, turbulence or measured pressure. |
+| **Window fan test** | A separate whole-flat model with lower/upper air layers and a surface temperature per room; matched opening, purifier, high-level fan and envelope experiments, with an ideal-expansion calculator. | Calibrated building performance, a resolved 3D plume, or cooling produced by ideal expansion in the room solver. |
+| **Compare floor plans** | Three validated JSON floor plans, shared manual conditions, plan-specific room-network calculations and a reviewable client handoff. | Automatic image/PDF interpretation, surveyed dimensions, professional CFD or compliance certification. |
 
-The user has a SSTuino and one limit switch; the physical USB round trip is not yet verified. USB control remains optional. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
+The supplied SSTuino is optional. The current demo uses a D4 button for both Bedroom 3 windows and a D5 held switch for its purifier; the physical USB round trip remains unverified. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
 
 ## Run it
 
@@ -21,7 +21,7 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-Open **http://localhost:5173** in desktop Chrome or Edge. Keep the terminal running. If Vite reports another port because 5173 is occupied, use the address it prints. Internet is needed to install dependencies. Simulation calculations and plan imports use local code/assets; weather remains manual. The optional Windy reference display/link needs internet and does not supply values to the simulation.
+Open **http://localhost:5173** in desktop Chrome or Edge. Keep the terminal running. **How to use HeatSim** opens a short guide when needed; it does not interrupt startup. If Vite reports another port because 5173 is occupied, use the address it prints. Internet is needed to install dependencies. Simulation calculations and plan imports use local code/assets; weather remains manual. The optional Windy reference display/link needs internet and does not supply values to the simulation.
 
 npm also works:
 
@@ -58,19 +58,19 @@ The nine new wall reference pages are paper instructions, not additional cardboa
 
 Print at **100% / Actual size**, turn off “Fit to page”, and measure the **50 mm calibration bar** before cutting. The handoff accounts for 3 mm butt joints and one narrowed doorway. Dry-fit actual stock before gluing; no real switch or servo mounting dimensions are assumed.
 
-## Contractor Study
+## Compare floor plans
 
-For the **noncommercial hackathon demo**, open **Contractor Study**, load the three example plans or import your own supported JSON, enter one shared weather/starting-condition brief, and compare. Each plan supplies its actual room sizes, openings, orientation and declared devices to the model. This is a separate study; imported plans do not change the original HDB workspaces or cardboard cut geometry.
+For the **noncommercial hackathon demo**, open **Compare floor plans**, click **Try the 3 example plans** or import your own supported JSON, enter one shared weather/starting-condition brief, and compare. Each plan supplies its actual room sizes, openings, orientation and declared devices to the model. This is a separate study; imported plans do not change the original HDB workspaces or cardboard cut geometry.
 
 Drag study appliances into another room, or use their room selectors; movement updates the room assignment used by the model and report. In the original Flat view, only the portable fan/purifier drag to existing marked slots; fixed AC units stay fixed.
 
 Use the [floor-plan JSON and study guide](docs/contractor-study.md) for the three examples, complete input sample, validation rules, weather provenance and report workflow. Images/PDFs are not automatically interpreted. Windy is a reference display; model conditions must be entered manually.
 
-The future B2B pitch is a repeatable pre-design option comparison and client report, between informal placement ideas and site-specific professional assessment. Contractor/team licensing is a **future hypothesis**; this local MVP has no billing, accounts or commercial entitlement system. Its uncalibrated results are not compliance or equipment-sizing evidence.
+The launch workflow is for homeowners comparing ideas before renovating or moving. It sits between informal placement ideas and a site-specific professional assessment. This local, noncommercial demo has no billing, accounts or saved cloud projects; earlier contractor licensing ideas remain future hypotheses. Its uncalibrated results are not compliance or equipment-sizing evidence.
 
-## Cooling Lab
+## Window fan test
 
-Cooling Lab studies the **full-size flat**, independently of the running 3D apartment's readings. It uses two air layers and a lumped surface temperature in each room to illustrate heat storage, conduction, surface-to-air exchange, solar gains and ventilation. It is a reduced-order teaching model, not 3D CFD.
+**Window fan test** (the Cooling Lab model) studies the **full-size flat**, independently of the running 3D apartment's readings. It uses two air layers and a lumped surface temperature in each room to illustrate heat storage, conduction, surface-to-air exchange, solar gains and ventilation. It is a reduced-order teaching model, not 3D CFD.
 
 Use **Quick fan off / on** to isolate the selected high-level fan, or **Captured baseline / candidate** to save a setup and compare changed openings, purification, fan settings or envelope properties. Both arms use the **current shared weather, corridor boundary, initial state and duration**; saving a baseline does not freeze old weather. Read the listed changed settings and compare temperature, haze, air exchange, heat removed and electricity together. An exhaust needs a connected make-up-air route. Hotter or hazier replacement air can make an outcome worse. A circulating fan mixes air and adds energy rather than manufacturing cold air.
 
@@ -80,30 +80,35 @@ Envelope properties and fan flows describe assumptions about the **full-size fla
 
 ## Set outdoor conditions manually
 
-In **Environment → Outside the home**, enter outdoor temperature, PM2.5 and wind speed; **Wind from North** means air arriving from the north towards the south. Numeric inputs and sliders stay synchronized. **Reset outdoor conditions to scenario** restores weather while retaining openings, devices and current readings; selecting another scenario also resets the indoor fields.
+In **My flat → Weather → Set my own weather**, enter outdoor temperature, PM2.5 and wind speed; **Wind from North** means air arriving from the north towards the south. Numeric inputs and sliders stay synchronized. **Reset outdoor conditions to scenario** restores weather while retaining openings, devices and current readings; selecting another scenario also resets the indoor fields.
 
 The optional **US EPA PM2.5 index equivalent (24-hour scale)** converts a scenario concentration to an index, or an entered integer index back to a representative concentration. It is **not Singapore PSI, live AQI or a health forecast**, and does not imply a 24-hour measurement. PM2.5 in **µg/m³** remains the model input; values beyond the index's supported range remain usable as raw concentrations. No API is called. [Method and limits](docs/02-simulation.md) follow the EPA breakpoint table.
 
-Cooling Lab has its own shared outdoor controls. Its optional **Separate conditions at the main door** supplies a fixed sheltered temperature/PM2.5 boundary at the exterior main entrance only. Windows still use outdoor air. This boundary does not simulate a corridor volume or respond to heat/pollution leaving the flat; the internal corridor rooms are unchanged.
+Window fan test has its own shared outdoor controls. Its optional **Separate conditions at the main door** supplies a fixed sheltered temperature/PM2.5 boundary at the exterior main entrance only. Windows still use outdoor air. This boundary does not simulate a corridor volume or respond to heat/pollution leaving the flat; the internal corridor rooms are unchanged.
 
 ## A short standalone apartment demo
 
 Use the [presentation walkthrough](docs/presentation-demo.md) for the final rehearsal and recovery steps.
 
-1. In **Environment**, close all windows and doors. Press **Y** for **Validation case**; it opens the internal doors while leaving exterior openings as they are. Select the **Airflow** overlay.
-2. Press **1** to open the bedroom 3 north window and **Shift+1** to open the main door. The connected route through bedroom 3, the corridor and living/dining now carries air. Select **Air quality** to see the outdoor tracer move indoors.
+1. In **My flat → Windows & doors**, close all windows and doors. Open **More → Science views** and enable **Show pressure and validation**. Press **Y** for **Validation case**; it opens the internal doors while leaving exterior openings as they are. Select **Air movement**.
+2. Press **1** to open the bedroom 3 north window and **Shift+1** to open the main door. The connected route through bedroom 3, the corridor and living/dining now carries air. Select **Haze** to see the outdoor tracer move indoors.
 3. Press **E** for **Haze outside**. Openings and devices are retained when changing scenarios. Close the window and main door, choose the purifier's **Bedroom 3** slot in **Devices**, then press **P**. Compare the room's PM2.5 before and after simulated time passes.
 4. Press **W** for **Hot afternoon**. Use **F** for the portable fan, and compare comfort with the fan off/on. Choose an AC unit and use **A** to compare cooling and the illustrative power reading. A fan moves air; it does not refrigerate the room.
-5. Press **O** to compare layouts in a background worker. Review the suggestion and **click Apply layout**. Enter is also available when focus is outside a button or form control. Applying starts a fresh simulation, so comparisons share the scenario's initial conditions.
-6. Use **All room readings** to inspect all rooms and export CSV; use the camera button to download the view. Open **Build the physical model** for the printable pack.
+5. Click **Suggest changes** in **What to try** (or press **O**). Read the concrete changes and their simulated heat, haze and device-power trade-offs, then click **Apply these changes**. **Undo** restores the prior setup while it is still applicable. Comparisons start fresh under the same scenario; selecting a room does not make this a room-only optimisation.
+6. Open **More** for **All room readings**, **Export readings (CSV)**, **Download map image** and **Build the cardboard model**.
 
-Playback starts at **30×**. **Space** pauses/resumes, **Backspace** resets fields and the simulation clock while keeping controls, and **H** shows the shortcuts. Keyboard shortcuts pause while typing in a form control or using a dialog. Everything needed for this demo is also on screen.
+Playback starts at a **30× target speed**; busy devices may advance more slowly. The clock and energy reflect simulated time actually completed. **Space** pauses/resumes, **Backspace** resets fields and the simulation clock while keeping controls, and **H** shows the shortcuts. Keyboard shortcuts pause while typing in a form control or using a dialog. Everything needed for this demo is also on screen.
 
-## Optional electronics: Bedroom 3 purifier switch
+## Optional electronics: D4 windows and D5 purifier
 
-Follow [the wiring and firmware guide](docs/hardware.md) and [protocol v1](docs/04-hardware-protocol.md). The default sketch has **one physical input**: COM→GND and NO→D5, with NC unconnected and `INPUT_PULLUP`. Hold the switch pressed to turn the simulated purifier ON in the **Bedroom 3 corner**; release turns it OFF after 30 ms debounce. Startup and reconnect apply the actual switch state at that same corner. The fan is unaffected. Set `SINGLE_PURIFIER_SWITCH` to `0` only for the alternative WIN1/D5 and DOOR1/D6 opening demonstration.
+Follow [the wiring and firmware guide](docs/hardware.md) and [protocol v1](docs/04-hardware-protocol.md). The default `SINGLE_PURIFIER_SWITCH = 1` now enables both Bedroom 3 controls, with **30 ms debounce**:
 
-USB uses **115200 baud, ASCII `KEY:VALUE` lines**, specifically `PUR:ON` and `PUR:OFF` for this switch. There are no temperature, humidity or PM sensors. **Servos are disabled by default; no physical purifier or fan is powered.** Board selection, firmware upload, switch wiring and USB round trips remain unverified on the supplied board. The standalone demo requires none of those physical checks.
+- **D4 button → GND:** each stable press toggles both Bedroom 3 windows. If both are open, it closes both; otherwise it opens both. Holding or releasing does not toggle again. The two messages are `WIN1` (north) and `WIN4` (east); `WIN2`/`WIN3` still refer to the living-room windows.
+- **D5 limit switch: COM → GND, NO → D5, NC unused:** hold to enable the **Bedroom 3 corner purifier**; release to disable it. This sends `PUR:ON` / `PUR:OFF`. Both inputs use `INPUT_PULLUP`; see the guide's SSTuino II versus classic-board D4 check before wiring.
+
+On boot, both logical window states start closed and the purifier samples its physical switch. `GET:ALL` reports those three states; it does not reset fan, weather or unrelated openings. On screen, select **Bedroom 3 → Open both windows / Close both windows** for the same group action. Individual controls and keyboard **1** (north) / **4** (east) remain independent; keyboard 4 is not the physical D4 group button. Set `SINGLE_PURIFIER_SWITCH = 0` only for the alternative WIN1/D5 and DOOR1/D6 demonstration.
+
+USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, humidity or PM sensors. **Servos are disabled by default; no physical purifier or fan is powered.** The SSTuino II Rev A target compiles with core 1.1.3; firmware upload, switch wiring and USB round trips remain unverified on the supplied board. The standalone demo requires none of those physical checks.
 
 ## What the simulation means
 
@@ -113,7 +118,7 @@ In the main apartment, six scenarios supply initial fields and default outdoor c
 
 Cooling Lab is a different reduced-order calculation. Its layer and surface temperatures, exchange rates and envelope coefficients are assumptions, not measurements. It does not transport humidity, model condensation/dehumidification, or establish a health-safe ventilation strategy. Neither model validates the other.
 
-When WebGPU is available, the apartment can run **heat and haze transport on the GPU while airflow stays on the CPU**. It automatically continues on CPU if the GPU path is unavailable or fails. Check the visible engine badge; neither mode changes the planar physics. Cooling Lab runs separately in its CPU worker. Actual GPU verification is recorded in the checklist, independently of mocked tests.
+When WebGPU is available, the apartment can run **heat and haze transport on the GPU while airflow stays on the CPU**. It automatically continues on CPU if the GPU path is unavailable or fails. Check the visible engine badge; neither mode changes the planar physics. Cooling Lab runs separately in its CPU worker. If WebGL cannot create the 3D scene, a labelled 2D plan shows room values and arrows from the current planar solver; it does not claim successful 3D rendering. Actual GPU verification is recorded in the checklist, independently of mocked tests.
 
 **No 3D LBM engine or SimScale/OpenFOAM validation has been completed.** The original plans for those remain in `docs/` as a clearly marked roadmap. Do not say that the model has been validated against professional CFD or real hardware.
 

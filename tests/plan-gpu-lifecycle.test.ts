@@ -139,6 +139,30 @@ describe('WebGPU lifecycle and asynchronous readback', () => {
     backend.dispose();
   });
 
+  it.each([
+    ['NaN temperature', 0, NaN],
+    ['out-of-range temperature', 0, 1e30],
+    ['negative particle concentration', 1, -1],
+  ])('rejects %s readback and retains the last valid CPU state', async (_label, component, corrupted) => {
+    const gate = deferred<void>(), fake = installGpu({ pendingMap: gate.promise });
+    const backend = await createPlanGpu(), config = settings(), initial = createSimulation(config);
+    const before = structuredClone(initial), loss = vi.fn(); backend.onLost = loss;
+    const pending = backend.step(initial, config, 1);
+    const rejected = expect(pending).rejects.toThrow('invalid scalar field');
+    const readback = fake.buffers.find(buffer => buffer.label.includes('readback'))!;
+    new Float32Array(readback.bytes.buffer)[Number(component)] = Number(corrupted);
+    gate.resolve(); await rejected;
+    expect(loss).toHaveBeenCalledTimes(1);
+    expect(readback.mapState).toBe('unmapped');
+    expect(initial).toEqual(before);
+    await expect(backend.step(initial, config, 1)).rejects.toThrow('invalid scalar field');
+    const recovered = stepSimulation(initial, config, 1);
+    expect(recovered.elapsedSeconds).toBe(initial.elapsedSeconds + 1);
+    expect(recovered.field!.temperature.every(value => Number.isFinite(value) && value >= 10 && value <= 60)).toBe(true);
+    expect(recovered.field!.pm25.every(value => Number.isFinite(value) && value >= 0 && value <= 1000)).toBe(true);
+    backend.dispose();
+  });
+
   it('bounds a stalled GPU readback and releases its pending map', async () => {
     vi.useFakeTimers();
     const gate = deferred<void>(), fake = installGpu({ pendingMap: gate.promise });

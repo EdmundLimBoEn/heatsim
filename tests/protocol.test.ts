@@ -84,7 +84,7 @@ describe('protocol v1 outgoing lines', () => {
 describe('physical model mapping', () => {
   test('matches doc 04 and round-trips each mapped opening', () => {
     expect(HARDWARE_OPENINGS).toEqual({
-      WIN1: 'window_bedroom3_1', WIN2: 'window_living_1', WIN3: 'window_living_3',
+      WIN1: 'window_bedroom3_1', WIN2: 'window_living_1', WIN3: 'window_living_3', WIN4: 'window_bedroom3_2',
       DOOR1: 'main_door', DOOR2: 'door_bedroom3',
     });
     for (const [key, id] of Object.entries(HARDWARE_OPENINGS)) {
@@ -94,7 +94,7 @@ describe('physical model mapping', () => {
   });
 
   test('unmapped or inherited keys never control another opening', () => {
-    for (const key of ['WIN4', 'WIN9', 'DOOR3', 'WIN0', '__proto__', 'constructor', 'toString', 'win1', '']) {
+    for (const key of ['WIN5', 'WIN9', 'DOOR3', 'WIN0', '__proto__', 'constructor', 'toString', 'win1', '']) {
       expect(openingForKey(key)).toBeUndefined();
     }
     for (const id of ['window_master_1', 'door_bedroom2', 'WIN1', '__proto__', '']) {

@@ -127,7 +127,9 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
 
   const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 120);
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+  const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+  let reducedMotion = motionPreference.matches;
+  controls.enableDamping = !reducedMotion;
   controls.dampingFactor = 0.085;
   controls.minDistance = 9;
   controls.maxDistance = 38;
@@ -226,6 +228,13 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   box(12.2, 0.06, 7.7, 6, -0.025, 3.75, palette.wall);
 
   const fieldView = createPlanFieldView(scene);
+  fieldView.setMotionEnabled(!reducedMotion);
+  function onMotionPreferenceChange(): void {
+    reducedMotion = motionPreference.matches;
+    controls.enableDamping = !reducedMotion;
+    fieldView.setMotionEnabled(!reducedMotion);
+  }
+  motionPreference.addEventListener('change', onMotionPreferenceChange);
   const overlays = new Map<string, THREE.Mesh>();
   const selectionLines = new Map<string, THREE.Line>();
   for (const room of model.rooms) {
@@ -608,6 +617,9 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   let portableDraggingEnabled = Boolean(onMovePortableDevice);
   let drag: { kind: PortableDeviceKind; pointerId: number; startX: number; startY: number; startSlot: number; slot: number | null; moved: boolean; controlsEnabled: boolean } | null = null;
   let pendingUpdate: { conditions: Conditions; result: SimulationResult; view: ViewOptions } | null = null;
+  const labelObstacles = container.parentElement?.querySelectorAll<HTMLElement>('.model-legend, .view-tools, .view-disclosure');
+  let labelLayoutDirty = true;
+  let maxLabelY = Infinity;
   function sceneVisible(): boolean {
     return !document.hidden && container.getClientRects().length > 0 && container.clientWidth > 0 && container.clientHeight > 0;
   }
@@ -705,7 +717,10 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   }
   function cancelDrag(): void { endDrag(false); }
   function onDragKey(event: KeyboardEvent): void { if (drag && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endDrag(false); } }
-  function onVisibilityChange(): void { if (document.hidden) cancelDrag(); }
+  function onVisibilityChange(): void {
+    if (document.hidden) cancelDrag();
+    else resize();
+  }
   renderer.domElement.addEventListener('pointerdown', onPointerDown, true);
   renderer.domElement.addEventListener('pointermove', onPointerMove, true);
   renderer.domElement.addEventListener('pointerup', onPointerUp, true);
@@ -724,18 +739,20 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     camera.lookAt(controls.target);
     controls.update();
   }
-  const resizeObserver = new ResizeObserver(() => {
+  function resize(): void {
     if (!sceneVisible()) return;
     const newWidth = Math.max(container.clientWidth, 1);
     const newHeight = Math.max(container.clientHeight, 1);
     const aspectChanged = Math.abs(newWidth / newHeight - width / height) > 0.4;
     width = newWidth;
     height = newHeight;
+    labelLayoutDirty = true;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     if (aspectChanged) cameraPosition(cameraMode);
-  });
+  }
+  const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
   renderer.setSize(width, height, false);
   camera.aspect = width / height;
@@ -786,8 +803,9 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     currentView = view;
     if (!sceneVisible()) { pendingUpdate = { conditions, result, view }; return; }
     pendingUpdate = null;
+    labelLayoutDirty = true;
     if (drag && (drag.kind === 'fan' ? conditions.portableFan?.slot : conditions.purifier?.slot) !== drag.startSlot) endDrag(false);
-    fieldView.update(result.field, view.mode);
+    fieldView.update(thermalVentConfig ? undefined : result.field, view.mode);
     const shadowSignature = JSON.stringify([conditions.doors, conditions.windows, conditions.portableFan?.slot, conditions.portableFan?.angleDeg, conditions.purifier?.slot, view.cutaway]);
     if (shadowSignature !== lastShadowSignature) { renderer.shadowMap.needsUpdate = true; lastShadowSignature = shadowSignature; }
     const signature = JSON.stringify([view.cutaway, view.roofOpacity, view.dimensions, view.selectedRoom]);
@@ -883,23 +901,39 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     if (pendingUpdate) update(pendingUpdate.conditions, pendingUpdate.result, pendingUpdate.view);
     const dt = Math.min((now - lastTime) / 1000, 0.05);
     lastTime = now;
-    if (thermalVentConfig?.on) ventRotor.rotation.z += dt * 10;
-    if (currentConditions.portableFan?.on) fanRotor.rotation.z += dt * 8 * currentConditions.portableFan.speed;
-    for (const [name, rotor] of fans) if (currentConditions.devices[name]) rotor.rotation.y += dt * 12;
+    if (!reducedMotion) {
+      if (thermalVentConfig?.on) ventRotor.rotation.z += dt * 10;
+      if (currentConditions.portableFan?.on) fanRotor.rotation.z += dt * 8 * currentConditions.portableFan.speed;
+      for (const [name, rotor] of fans) if (currentConditions.devices[name]) rotor.rotation.y += dt * 12;
+    }
     for (const opening of openings) {
       if (Math.abs(opening.group.rotation.y - opening.targetRotation) > 0.005 || opening.slider && Math.abs(opening.slider.position.x - opening.targetSlide) > 0.005) renderer.shadowMap.needsUpdate = true;
-      opening.group.rotation.y = THREE.MathUtils.damp(opening.group.rotation.y, opening.targetRotation, 9, dt);
-      if (opening.slider) opening.slider.position.x = THREE.MathUtils.damp(opening.slider.position.x, opening.targetSlide, 9, dt);
+      opening.group.rotation.y = reducedMotion ? opening.targetRotation : THREE.MathUtils.damp(opening.group.rotation.y, opening.targetRotation, 9, dt);
+      if (opening.slider) opening.slider.position.x = reducedMotion ? opening.targetSlide : THREE.MathUtils.damp(opening.slider.position.x, opening.targetSlide, 9, dt);
     }
     fieldView.animate(dt);
     if (!drag) controls.update();
     camera.updateMatrixWorld();
+    if (labelLayoutDirty) {
+      labelLayoutDirty = false;
+      maxLabelY = Infinity;
+      const selected = width < 520 && currentView.labels ? labels.find(label => label.room === currentView.selectedRoom) : undefined;
+      if (selected) {
+        selected.element.style.display = 'block';
+        const sceneTop = container.getBoundingClientRect().top;
+        const halfLabelHeight = selected.element.offsetHeight / 2;
+        for (const obstacle of labelObstacles ?? []) {
+          const rect = obstacle.getBoundingClientRect();
+          if (rect.height > 0) maxLabelY = Math.min(maxLabelY, rect.top - sceneTop - halfLabelHeight - 8);
+        }
+      }
+    }
     for (const label of labels) {
       projected.copy(label.anchor).project(camera);
       const show = currentView.labels && (width >= 520 || label.room === currentView.selectedRoom) && currentView.roofOpacity < 0.65 && projected.z < 1 && projected.z > -1 && Math.abs(projected.x) < 1 && Math.abs(projected.y) < 1;
       label.element.style.display = show ? 'block' : 'none';
       label.element.style.left = `${(projected.x + 1) / 2 * width}px`;
-      label.element.style.top = `${(1 - projected.y) / 2 * height}px`;
+      label.element.style.top = `${Math.min((1 - projected.y) / 2 * height, maxLabelY)}px`;
       label.element.style.zIndex = String(Math.round((1 - projected.z) * 1000));
     }
     projected.copy(ventLabelAnchor).project(camera);
@@ -920,7 +954,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     renderer.render(scene, camera);
     const canvas = document.createElement('canvas');
     const pixelRatio = renderer.domElement.width / width;
-    const footerHeight = currentView.mode === 'model' ? 52 : 104;
+    const footerHeight = currentView.mode === 'model' ? 68 : 120;
     canvas.width = renderer.domElement.width;
     canvas.height = renderer.domElement.height + Math.ceil(footerHeight * pixelRatio);
     const context = canvas.getContext('2d');
@@ -982,10 +1016,11 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     context.fillStyle = '#486354';
     context.font = `500 ${width < 350 ? 10 : 11}px system-ui, sans-serif`;
     context.textAlign = 'left';
-    const footerY = height + footerHeight - 31;
+    const footerY = height + footerHeight - 47;
     context.fillText(currentView.mode === 'model' ? 'HeatSim · SIMULATED · 1:65 model' : 'HeatSim · SIMULATED', 20, footerY, Math.max(1, width - 40));
     const detail = currentView.mode === 'model' ? 'Footprint 187.69 × 118.46 mm · walls 40 mm' : currentView.mode === 'pressure' ? 'Normalised within this layout · not Pa' : 'Qualitative toy CFD · not calibrated';
     context.fillText(detail, 20, footerY + 16, Math.max(1, width - 40));
+    context.fillText(thermalVentConfig ? 'Cooling Lab position preview · no CFD flow overlay' : 'Arrows: simulated direction · none in still air', 20, footerY + 32, Math.max(1, width - 40));
     return canvas.toDataURL('image/png');
   }
   return {
@@ -1008,6 +1043,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       controls.dispose();
+      motionPreference.removeEventListener('change', onMotionPreferenceChange);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown, true);
       renderer.domElement.removeEventListener('pointermove', onPointerMove, true);
       renderer.domElement.removeEventListener('pointerup', onPointerUp, true);
@@ -1019,6 +1055,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       fieldView.dispose();
       geometries.forEach(g => g.dispose());
       materials.forEach(m => m.dispose());
+      sunlight.shadow.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       labelLayer.remove();

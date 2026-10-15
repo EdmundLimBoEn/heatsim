@@ -23,6 +23,16 @@ const budgetLabels: [keyof ThermalHeatBudget, string][] = [
   ['ventilation', 'Outdoor air exchange'], ['people', 'People'], ['fan', 'Fan heat'], ['appliances', 'Other appliances'], ['ac', 'Air conditioning'],
 ];
 
+export function coolingLabScenarioBase(captured: Conditions, scenario: string): Conditions {
+  const base = structuredClone(captured), preset = PRESETS.find(preset => preset.id === scenario);
+  if (preset) {
+    Object.assign(base, structuredClone(preset.conditions), { doors: base.doors, windows: base.windows, devices: base.devices,
+      portableFan: base.portableFan, standingFans: base.standingFans, purifier: base.purifier, acSetpoint: base.acSetpoint });
+    if (!preset.conditions.windFrom) delete base.windFrom;
+  }
+  return base;
+}
+
 export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptions): { dispose(): void; refreshCaptureStatus(): void; readPreviewConditions(): Conditions } {
   const runner = createThermalComparisonRunner();
   const events = new AbortController();
@@ -159,12 +169,7 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   }
   function buildBase(): Conditions {
     const scenario = $<HTMLSelectElement>('#cl-scenario').value;
-    const preset = PRESETS.find(preset => preset.id === scenario);
-    const base = structuredClone(capturedBase);
-    if (preset) {
-      Object.assign(base, structuredClone(preset.conditions), { doors: base.doors, windows: base.windows, devices: base.devices, portableFan: base.portableFan, purifier: base.purifier, acSetpoint: base.acSetpoint });
-      if (!preset.conditions.windFrom) delete base.windFrom;
-    }
+    const base = coolingLabScenarioBase(capturedBase, scenario);
     const route = $<HTMLSelectElement>('#cl-route').value;
     if (route === 'custom' && openingOverrides) {
       base.windows = { ...openingOverrides.windows }; base.doors = { ...openingOverrides.doors };

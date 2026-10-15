@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { checkSceneModel } from './scene';
 import { buildFlowArrows, createPlanFieldView, fieldColor, roomPressure } from './scene-field';
+import { createStandingFanVisuals } from './scene-fans';
+import type { ResolvedStandingFan } from './standing-fans';
 import type { PlanField, ViewMode } from './domain';
 
 function assert(condition: boolean, message: string): void {
@@ -90,4 +92,39 @@ renderer.update(undefined, 'airflow');
 assert(!slice.visible && !particles.visible && arrowMeshes.every(mesh => !mesh.visible), 'Missing field must hide all spatial rendering.');
 renderer.dispose();
 assert(scene.children.length === 0, 'Field renderer must dispose its objects.');
-console.info('PASS: scene bounds, opening/device mappings, furniture bounds, masked field texture, tracer wall rejection, pressure masking/means, actual velocity arrows in all five modes, reduced motion, hidden texture skip/resume, legend limits and disposal.');
+const fanTemplate = new THREE.Group();
+const fanGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+const fanMaterial = new THREE.MeshBasicMaterial();
+const testRotor = new THREE.Mesh(fanGeometry, fanMaterial);
+testRotor.name = 'standing-fan-rotor';
+const testDirection = new THREE.Mesh(fanGeometry, fanMaterial);
+testDirection.name = 'standing-fan-direction';
+fanTemplate.add(testRotor, testDirection);
+const fanView = createStandingFanVisuals(scene, fanTemplate);
+const fanStates: ResolvedStandingFan[] = Array.from({ length: 8 }, (_, index) => ({ id: index ? `fan-${index}` : 'primary', x: index + 0.5, z: 1.5, angleDeg: index % 4 * 90, speed: 2, on: index !== 3, room: 'living', isPrimary: index === 0 }));
+fanView.sync(fanStates);
+assert(fanView.groups().length === 8, 'All eight resolved standing fans must render separately.');
+const facing = new THREE.Vector3();
+for (const state of fanStates) {
+  const visual = fanView.get(state.id)!;
+  assert(visual.group.position.x === state.x && visual.group.position.z === state.z, 'Fan visuals must use their own resolved continuous position.');
+  facing.set(0, 0, 1).applyQuaternion(visual.group.quaternion);
+  const heading = state.angleDeg * Math.PI / 180;
+  assert(Math.abs(facing.x - Math.sin(heading)) < 1e-6 && Math.abs(facing.z + Math.cos(heading)) < 1e-6, 'Fan heading must match simulation coordinates for all four cardinal directions.');
+  const rotorMesh = visual.rotor as THREE.Mesh;
+  assert(rotorMesh.geometry === fanGeometry && rotorMesh.material === fanMaterial, 'Fan clones must share GPU geometry and materials.');
+}
+fanView.animate(0.1);
+assert(Math.abs(fanView.get('fan-1')!.rotor.rotation.z - 1.6) < 1e-6 && fanView.get('fan-3')!.rotor.rotation.z === 0, 'Only switched-on fan rotors may animate.');
+const removedGroup = fanView.get('fan-1')!.group;
+let sharedGeometryDisposed = false;
+fanGeometry.addEventListener('dispose', () => { sharedGeometryDisposed = true; });
+fanView.sync([fanStates[0]]);
+assert(fanView.groups().length === 1 && !fanView.get('fan-1') && !removedGroup.parent && removedGroup.children.length === 0, 'Removing extra fans must release scene objects and references.');
+assert(!sharedGeometryDisposed, 'Removing a fan must not dispose geometry shared by remaining fans.');
+fanView.sync([fanStates[1]]);
+assert(fanView.groups().length === 1 && !fanView.get('primary')!.group.visible, 'A missing primary fan must stay hidden while extras still render.');
+fanView.dispose();
+assert(scene.children.length === 0, 'Standing-fan renderer must remove all objects on disposal.');
+fanGeometry.dispose(); fanMaterial.dispose();
+console.info('PASS: scene bounds/mappings, masked fields, wall-respecting tracers, all-mode arrows, reduced motion, hidden texture skip/resume, eight independent fan visuals, cardinal headings, shared resources, removal and disposal.');

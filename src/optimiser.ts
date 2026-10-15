@@ -1,6 +1,7 @@
 import { model, type Conditions, type SimulationResult } from './domain';
 import { HARDWARE_OPENINGS } from './config/mapping';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
+import { resolveStandingFans, validateStandingFanPosition, STANDING_FAN_CLEARANCE_M, PORTABLE_PURIFIER_CLEARANCE_M } from './standing-fans';
 
 export type OptimiserBudget = 'fan' | 'fan+purifier' | 'fan+purifier+ac';
 export interface ScoreBreakdown { heat: number; haze: number; energy: number }
@@ -72,6 +73,9 @@ export async function optimiseLayouts(
   options: SearchOptions = {},
 ): Promise<OptimiserReport> {
   if (!['fan', 'fan+purifier', 'fan+purifier+ac'].includes(budget)) throw new Error('Unknown optimiser budget.');
+  const captured = structuredClone(conditions);
+  const extraFanKey = (value: Conditions) => JSON.stringify(resolveStandingFans(value).filter(fan => !fan.isPrimary));
+  const fixedExtraFans = extraFanKey(captured);
   const now = options.now ?? (() => performance.now());
   const started = now(), limit = options.timeBudgetMs ?? 25_000;
   const cache = new Map<string, OptimisedLayout>();
@@ -95,13 +99,13 @@ export async function optimiseLayouts(
     options.onProgress?.({ done: cache.size, total, bestJ });
     return scored;
   };
-  const you = await evaluateLayout(conditions, true);
+  const you = await evaluateLayout(captured, true);
   let partial = false;
   try {
-    const empty = structuredClone(conditions);
+    const empty = structuredClone(captured);
     for (const name of Object.keys(empty.devices)) empty.devices[name] = false;
-    empty.portableFan = { on: false, slot: 0, angleDeg: 90, speed: 2 };
-    empty.purifier = { on: false, slot: 0 };
+    if (empty.portableFan) empty.portableFan.on = false;
+    if (empty.purifier) empty.purifier.on = false;
     let current = await evaluateLayout(empty);
     if (suggestOpenings) {
       for (const [key, name] of Object.entries(HARDWARE_OPENINGS)) {
@@ -112,9 +116,18 @@ export async function optimiseLayouts(
         if (scored.J < current.J * 0.98) current = scored;
       }
     }
-    const choose = async (candidates: Conditions[]) => {
+    const choose = async (candidates: Conditions[], movedDevice?: 'primary' | 'purifier') => {
       let best = current;
       for (const candidate of candidates) {
+        if (extraFanKey(candidate) !== fixedExtraFans) continue;
+        if (movedDevice === 'primary') {
+          const slot = FAN_SLOTS[candidate.portableFan!.slot];
+          if (!validateStandingFanPosition(slot.x, slot.z, candidate, 'primary').valid) continue;
+        } else if (movedDevice === 'purifier') {
+          const slot = PURIFIER_SLOTS[candidate.purifier!.slot];
+          if (resolveStandingFans(candidate).some(fan => Math.hypot(fan.x - slot.x, fan.z - slot.z)
+            < STANDING_FAN_CLEARANCE_M + PORTABLE_PURIFIER_CLEARANCE_M - 1e-8)) continue;
+        }
         const scored = await evaluateLayout(candidate);
         if (scored.J < best.J) best = scored;
       }
@@ -129,12 +142,12 @@ export async function optimiseLayouts(
       }));
     }
     if (budget.includes('purifier')) {
-      await choose(PURIFIER_SLOTS.map((_, slot) => ({ ...structuredClone(current.conditions), purifier: { on: true, slot } })));
+      await choose(PURIFIER_SLOTS.map((_, slot) => ({ ...structuredClone(current.conditions), purifier: { on: true, slot } })), 'purifier');
     }
-    // shortcut: three fan angles keep the demo search bounded; expand the sweep after the live demo.
+    // Slot proposals replace only the primary fan's manual placement; additional fans stay fixed.
     await choose(FAN_SLOTS.flatMap((_, slot) => [45, 90, 135].map(angleDeg => ({
       ...structuredClone(current.conditions), portableFan: { on: true, slot, angleDeg, speed: 2 },
-    }))));
+    }))), 'primary');
   } catch (error) {
     if (error !== deadline) throw error;
     partial = true;

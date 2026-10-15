@@ -1,5 +1,6 @@
 import { defaultConditions, deviceRoom, model, type Conditions, type ModelBox, type RoomReading, type SimulationResult } from './domain';
-import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
+import { PURIFIER_SLOTS } from './config/slots';
+import { resolveStandingFans } from './standing-fans';
 
 export const SIMULATION_NOTE = 'HeatSim is a qualitative toy CFD demonstration. This emergency room-model mode uses well-mixed rooms, not CFD, and is not calibrated. Outdoor conditions come from scenarios; no sensors or live weather data are used. Fans move air without refrigerating it. Comfort and energy are illustrative estimates.';
 
@@ -112,16 +113,15 @@ function climate(conditions: Conditions) {
 }
 
 function equipment(conditions: Conditions) {
+  const standingFans = resolveStandingFans(conditions).filter(fan => fan.on && fan.speed > 0);
   return model.rooms.map(room => {
     const enabled = Object.entries(deviceRoom).filter(([name, target]) => target === room.name && conditions.devices[name] === true).map(([name]) => name);
-    const portableFan = conditions.portableFan;
-    const fanSpeed = clamp(finite(portableFan?.speed ?? 0, 0), 0, 3);
-    const fanHere = portableFan?.on === true && fanSpeed > 0 && FAN_SLOTS[portableFan.slot]?.room === room.name;
+    const fansHere = standingFans.filter(fan => fan.room === room.name);
     const purifierHere = conditions.purifier?.on === true && PURIFIER_SLOTS[conditions.purifier.slot]?.room === room.name;
     const ceilingFan = enabled.some(name => name.startsWith('fan_'));
     return {
-      fanSpeed: (ceilingFan ? 1 : 0) + (fanHere ? fanSpeed / 2 : 0),
-      fanCount: Number(ceilingFan) + Number(fanHere),
+      fanSpeed: (ceilingFan ? 1 : 0) + fansHere.reduce((sum, fan) => sum + fan.speed / 2, 0),
+      fanCount: Number(ceilingFan) + fansHere.length,
       ac: enabled.some(name => name.startsWith('ac_')),
       purifierCount: Number(enabled.some(name => name.startsWith('purifier_'))) + Number(purifierHere),
       coolingWatts: room.name === 'living' ? 3_500 : 2_500,

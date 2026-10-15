@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { findStandingFanPosition } from '../src/standing-fans';
 import { defaultConditions, type SimulationResult } from '../src/domain';
 import { describeAdviceChanges, describeAdviceOutcome, purifierMatches, hardwareOwnedControlsMatch } from '../src/homeowner-advice';
 
@@ -9,7 +10,38 @@ describe('homeowner advice from actual control differences', () => {
     const after = structuredClone(before);
     after.portableFan!.slot = 0;
     after.windows.window_bedroom3_1 = true;
-    expect(describeAdviceChanges(before, after)).toEqual(['Move the fan to Bedroom 3 (medium)', 'Point the fan at 90° on its direction control', 'Open the Bedroom 3 north window 1']);
+    expect(describeAdviceChanges(before, after)).toEqual(['Move the main fan to Bedroom 3 (medium)', 'Point the main fan towards 0° (0° north, 90° east)', 'Open the Bedroom 3 north window 1']);
+  });
+  it('describes free position and absolute direction changes from the actual current placement', () => {
+    const before = defaultConditions();
+    before.portableFan!.on = true;
+    const point = findStandingFanPosition('living', before, 'primary')!;
+    expect(point).not.toBeNull();
+    before.portableFan!.position = point;
+    before.portableFan!.headingDeg = 75;
+    const after = structuredClone(before);
+    delete after.portableFan!.position;
+    delete after.portableFan!.headingDeg;
+    after.portableFan!.slot = 0;
+    expect(describeAdviceChanges(before, after)).toEqual([
+      'Move the main fan to Bedroom 3 (medium)',
+      'Point the main fan towards 0° (0° north, 90° east)',
+    ]);
+    const back = describeAdviceChanges(after, before);
+    expect(back[0]).toBe(`Move the main fan to Living at X ${point.x.toFixed(2)} m, Z ${point.z.toFixed(2)} m (medium)`);
+    expect(back[1]).toContain('75°');
+  });
+  it('keeps unchanged extra fans out of the advice and identifies changed ones', () => {
+    const before = defaultConditions();
+    const point = findStandingFanPosition('living', before)!;
+    before.standingFans = [{ id: 'fan-2', ...point, on: true, speed: 2, angleDeg: 90 }];
+    const after = structuredClone(before);
+    after.portableFan!.on = true;
+    expect(describeAdviceChanges(before, after).some(text => text.includes('fan 2'))).toBe(false);
+    after.standingFans![0].angleDeg = 270;
+    expect(describeAdviceChanges(before, after)).toContain('Point the fan 2 towards 270° (0° north, 90° east)');
+    after.standingFans = [];
+    expect(describeAdviceChanges(before, after)).toContain('Remove fan 2');
   });
   it('does not suggest moving inactive devices', () => {
     const before = defaultConditions(), after = structuredClone(before);
@@ -32,9 +64,9 @@ describe('homeowner advice from actual control differences', () => {
     const before = defaultConditions();
     const after = structuredClone(before);
     after.portableFan = { on: true, slot: 0, speed: 2, angleDeg: 45 };
-    expect(describeAdviceChanges(before, after)).toContain('Point the fan at 45° on its direction control');
+    expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 45° (0° north, 90° east)');
     after.portableFan.angleDeg = 135;
-    expect(describeAdviceChanges(before, after)).toContain('Point the fan at 135° on its direction control');
+    expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 315° (0° north, 90° east)');
   });
   it('guards both absolute D4 window states and D5 purifier state', () => {
     const before = defaultConditions();

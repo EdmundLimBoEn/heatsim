@@ -3,6 +3,7 @@ import { defaultConditions } from '../src/domain';
 import * as thermalModel from '../src/thermal-model';
 import { compareThermalCases, createThermalComparisonRunner, type ThermalComparisonProgress, type ThermalWorkerResponse } from '../src/thermal-comparison';
 import type { ThermalConfig, ThermalState } from '../src/thermal-types';
+import { findStandingFanPosition } from '../src/standing-fans';
 
 function config(durationSeconds = 25.5): ThermalConfig {
   const value = thermalModel.createThermalConfig(defaultConditions());
@@ -122,6 +123,45 @@ describe('matched thermal comparison', () => {
     expect(report.off).toEqual(report.on);
     expect(report.variedSettings).toEqual([]);
     expect(report.comparisonMode).toBe('configuration');
+  });
+
+  test('captures independent standing fan arrays and primary overrides and identifies added, removed and moved fans', () => {
+    const baseline = config(1200);
+    baseline.base.portableFan = { on: true, slot: 0, angleDeg: 90, speed: 1,
+      position: findStandingFanPosition('living', baseline.base, 'primary')!, headingDeg: 25 };
+    baseline.base.standingFans = [];
+    for (const [id, room, speed] of [['moved', 'bedroom3', 2], ['removed', 'dining', 1]] as const) {
+      const position = findStandingFanPosition(room, baseline.base)!;
+      expect(position).not.toBeNull();
+      baseline.base.standingFans.push({ id, ...position, angleDeg: 90, speed, on: true });
+    }
+    const candidate = structuredClone(baseline);
+    candidate.durationSeconds = 25.5;
+    candidate.base.outdoorTemperature = 27;
+    candidate.base.portableFan!.position = findStandingFanPosition('master_bedroom', candidate.base, 'primary')!;
+    candidate.base.portableFan!.headingDeg = 230;
+    candidate.base.standingFans = [{ id: 'moved', ...findStandingFanPosition('bedroom2', candidate.base, 'moved')!, angleDeg: 180, speed: 3, on: true }];
+    candidate.base.standingFans.push({ id: 'added', ...findStandingFanPosition('dining', candidate.base)!, angleDeg: 270, speed: 1, on: true });
+    const original = structuredClone({ baseline, candidate });
+    const report = compareThermalCases(candidate, { baselineConfig: baseline });
+    expect(report.baselineConfig.base.standingFans).toEqual(original.baseline.base.standingFans);
+    expect(report.baselineConfig.base.portableFan).toEqual(original.baseline.base.portableFan);
+    expect(report.candidateConfig.base.standingFans).toEqual(original.candidate.base.standingFans);
+    expect(report.candidateConfig.base.portableFan).toEqual(original.candidate.base.portableFan);
+    expect(report.baselineConfig.base.outdoorTemperature).toBe(27);
+    const changes = new Map(report.variedSettings.map(change => [change.label, change]));
+    expect(changes.get('Portable fan resolved placement')?.baseline).toContain('Living');
+    expect(changes.get('Portable fan resolved placement')?.candidate).toContain('230°');
+    expect(changes.get('Standing fan moved')?.baseline).toContain('Bedroom 3');
+    expect(changes.get('Standing fan moved')?.candidate).toContain('Bedroom 2');
+    expect(changes.get('Standing fan removed')?.candidate).toBe('Not present');
+    expect(changes.get('Standing fan added')?.baseline).toBe('Not present');
+    expect(report.difference.energyWh).toBeCloseTo(25 * 25.5 / 3600, 10);
+    expect({ baseline, candidate }).toEqual(original);
+    baseline.base.standingFans[0].x += 1;
+    candidate.base.portableFan!.position!.x += 1;
+    expect(report.baselineConfig.base.standingFans).toEqual(original.baseline.base.standingFans);
+    expect(report.candidateConfig.base.portableFan).toEqual(original.candidate.base.portableFan);
   });
 
   test('integrates PM exposure over the real final partial interval and reports signed deltas', () => {

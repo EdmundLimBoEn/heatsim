@@ -47,7 +47,7 @@ describe('three-plan contractor comparison', () => {
       expect(option.initialState.elapsedSeconds).toBe(0);
       expect(option.config.base).toEqual({ ...original.weather,
         doors: {}, windows: { north_window: true, south_window: true }, devices: { fan: option.plan.id === 'a' },
-        portableFan: undefined, purifier: undefined,
+        portableFan: undefined, standingFans: undefined, purifier: undefined,
       });
       expect(option.config.vent).toEqual({ opening: '', on: false, ratedM3h: 0, mode: 'exhaust' });
       expect(option.config.initialTemperature).toBe(31);

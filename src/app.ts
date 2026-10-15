@@ -8,6 +8,7 @@ import { mountCoolingLab } from './cooling-lab';
 import { mountContractorStudy } from './contractor-study';
 import './theme.css';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
+import { PRIMARY_STANDING_FAN_ID, MAX_STANDING_FANS, STANDING_FAN_CLEARANCE_M, PORTABLE_PURIFIER_CLEARANCE_M, resolveStandingFans, validateStandingFanPosition, findStandingFanPosition } from './standing-fans';
 import { openingForKey } from './config/mapping';
 import { createOptimiser, type OptimiserReport, type OptimiserBudget } from './optimiser';
 import { describeAdviceChanges, describeAdviceOutcome, hardwareOwnedControlsMatch } from './homeowner-advice';
@@ -45,6 +46,7 @@ let result = createSimulation(conditions);
 let view = { ...defaultView, selectedRoom: 'living' as string | null };
 let scene: SceneController | null = null;
 let fallbackPlan = false;
+let selectedStandingFan = PRIMARY_STANDING_FAN_ID;
 type Workspace = 'flat' | 'lab' | 'study';
 let workspace: Workspace = 'flat';
 let coolingLab: ReturnType<typeof mountCoolingLab> | null = null;
@@ -130,12 +132,26 @@ $('#app').innerHTML = `
             <div id="room-detail"></div>
           </section>
           <section id="panel-devices" role="tabpanel" aria-labelledby="tab-devices" hidden>
-            <h2 class="section-title">Place your devices</h2><p class="section-note">Move a portable device between the marked positions. Explore comfort, haze and power together.</p>
-            <h3 class="control-group-title">Portable fan <kbd>F</kbd></h3>
-            <label class="toggle-control"><span>Fan power<small id="fan-state">Off</small></span><input type="checkbox" data-device-key="fanOn" aria-label="Portable fan power"><span class="switch-track" aria-hidden="true"></span></label>
-            <label class="field-label spaced" for="fan-slot">Position</label><select id="fan-slot" class="device-select" data-device-key="fanSlot">${FAN_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}</option>`).join('')}</select>
-            <label class="range-control spaced" for="fan-angle"><span>Fan direction<output id="fan-angle-value">90°</output></span><input id="fan-angle" type="range" min="0" max="180" step="15" value="90" data-device-key="fanAngle"><span class="range-limits"><span>0°</span><span>180°</span></span></label>
-            <label class="field-label" for="fan-speed">Fan speed</label><select id="fan-speed" class="device-select" data-device-key="fanSpeed"><option value="0">Stopped</option><option value="1">Low</option><option value="2" selected>Medium</option><option value="3">High</option></select>
+            <h2 class="section-title">Place your devices</h2><p class="section-note">Drag standing fans onto clear floor space, or use the position controls. Each powered fan contributes to simulated airflow and electricity.</p>
+            <h3 class="control-group-title">Standing fans <span id="standing-fan-count">1 / 8</span></h3>
+            <div class="standing-fan-editor">
+              <label class="field-label" for="standing-fan-select">Fan to adjust</label><select id="standing-fan-select" class="device-select"><option value="primary">Main fan</option></select>
+              <div class="button-pair standing-fan-actions"><button id="standing-fan-add" class="button secondary" data-action="add-standing-fan">Add fan</button><button id="standing-fan-remove" class="button text-button" data-action="remove-standing-fan" disabled>Remove fan</button></div>
+              <div id="primary-fan-controls">
+                <label class="toggle-control"><span>Main fan power <kbd>F</kbd><small id="fan-state">Off</small></span><input type="checkbox" data-device-key="fanOn" aria-label="Portable fan power"><span class="switch-track" aria-hidden="true"></span></label>
+                <label class="field-label" for="fan-speed">Fan speed</label><select id="fan-speed" class="device-select" data-device-key="fanSpeed"><option value="0">Stopped</option><option value="1">Low</option><option value="2" selected>Medium</option><option value="3">High</option></select>
+              </div>
+              <div id="additional-fan-controls" hidden>
+                <label class="toggle-control"><span>Selected fan power<small id="standing-fan-power-state">Off</small></span><input id="standing-fan-on" type="checkbox"><span class="switch-track" aria-hidden="true"></span></label>
+                <label class="field-label" for="standing-fan-speed">Fan speed</label><select id="standing-fan-speed" class="device-select"><option value="0">Stopped</option><option value="1">Low</option><option value="2">Medium</option><option value="3">High</option></select>
+              </div>
+              <div class="standing-fan-heading-row"><label class="field-label" for="standing-fan-heading">Direction (degrees)</label><input id="standing-fan-heading" class="device-select" type="number" min="0" max="359" step="1" aria-describedby="standing-fan-direction-note"></div>
+              <p class="section-note" id="standing-fan-direction-note">Air blows towards 0° north, 90° east, 180° south or 270° west.</p>
+              <label class="field-label spaced" for="standing-fan-room">Move to a room</label><select id="standing-fan-room" class="device-select">${model.rooms.map(room => `<option value="${room.name}">${roomLabel(room.name)}</option>`).join('')}</select>
+              <details id="standing-fan-position" class="standing-fan-detail"><summary>Exact floor position</summary><p class="section-note">Metres from the plan’s northwest origin: X east, Z south.</p><div class="standing-fan-coordinates"><label for="standing-fan-x">X (m)<input id="standing-fan-x" class="device-select" type="number" step="0.01" min="${model.bounds.min[0]}" max="${model.bounds.max[0]}"></label><label for="standing-fan-z">Z (m)<input id="standing-fan-z" class="device-select" type="number" step="0.01" min="${model.bounds.min[2]}" max="${model.bounds.max[2]}"></label></div><button id="standing-fan-place" class="button secondary full-width" data-action="place-standing-fan">Set position</button></details>
+              <details id="fan-presets" class="standing-fan-detail"><summary>Main fan presets & shortcuts</summary><p class="section-note">Presets replace the main fan’s free position and direction. Keyboard F, position and angle shortcuts always adjust the main fan.</p><label class="field-label spaced" for="fan-slot">Preset position</label><select id="fan-slot" class="device-select" data-device-key="fanSlot">${FAN_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}</option>`).join('')}</select><label class="range-control spaced" for="fan-angle"><span>Direction within preset<output id="fan-angle-value">90°</output></span><input id="fan-angle" type="range" min="0" max="180" step="15" value="90" data-device-key="fanAngle"><span class="range-limits"><span>0°</span><span>180°</span></span></label></details>
+              <p id="standing-fan-status" class="section-note" role="status" aria-live="polite">Up to 8 standing fans. Keep walls, furniture and doorways clear.</p>
+            </div>
             <h3 class="control-group-title">Air purifier <kbd>P</kbd></h3>
             <label class="toggle-control"><span>Purifier power<small id="purifier-state">Off</small></span><input type="checkbox" data-device-key="purifierOn" aria-label="Portable purifier power"><span class="switch-track" aria-hidden="true"></span></label>
             <label class="field-label spaced" for="purifier-slot">Position</label><select id="purifier-slot" class="device-select" data-device-key="purifierSlot">${PURIFIER_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}${index === 4 || index === bedroom3PurifierSlot ? ' corner' : ''}</option>`).join('')}</select><p class="section-note">The physical D5 switch controls the Bedroom 3 corner purifier: held down is on; released is off. You can also use these controls without a board.</p>
@@ -143,7 +159,7 @@ $('#app').innerHTML = `
             <label class="toggle-control"><span>AC power<small id="ac-state">Off</small></span><input type="checkbox" data-device-key="acOn" aria-label="Air conditioning power"><span class="switch-track" aria-hidden="true"></span></label>
             <label class="field-label spaced" for="ac-unit">Room to cool</label><select id="ac-unit" class="device-select" data-device-key="acUnit">${Object.keys(deviceRoom).filter(id => id.startsWith('ac_')).map(id => `<option value="${id}">${roomLabel(deviceRoom[id])}</option>`).join('')}</select>
             <div class="spaced">${range('acSetpoint', 'Set temperature', 18, 30, 0.5, '°C')}</div>
-            <section id="optimiser-panel" aria-label="What to try"><div class="advice-heading"><h2>What to try</h2><span class="simulated-tag">SIMULATED</span></div><p id="advice-room-context" class="advice-context">Explore a change for your home.</p><details id="advice-settings"><summary>Devices to test</summary><label class="field-label" for="optimiser-budget">Available devices</label><select id="optimiser-budget" class="device-select"><option value="fan">Fan only</option><option value="fan+purifier" selected>Fan + purifier</option><option value="fan+purifier+ac">Fan + purifier + AC</option></select><label class="option-check"><input id="optimiser-openings" type="checkbox" checked>Also suggest windows and doors</label></details><button class="button primary full-width" id="run-optimiser" data-action="optimise" aria-keyshortcuts="O" title="Suggest changes (O)">Suggest changes</button><div id="optimiser-result" aria-live="polite"><p class="section-note">Pick a day, then suggest changes. We’ll test fan, purifier and opening combinations and show what helped most.</p></div><p class="advice-honesty">A rough simulation to compare ideas, not a measurement or health advice.</p></section>
+            <section id="optimiser-panel" aria-label="What to try"><div class="advice-heading"><h2>What to try</h2><span class="simulated-tag">SIMULATED</span></div><p id="advice-room-context" class="advice-context">Explore a change for your home.</p><details id="advice-settings"><summary>Devices to test</summary><label class="field-label" for="optimiser-budget">Available devices</label><select id="optimiser-budget" class="device-select"><option value="fan">Fan only</option><option value="fan+purifier" selected>Fan + purifier</option><option value="fan+purifier+ac">Fan + purifier + AC</option></select><label class="option-check"><input id="optimiser-openings" type="checkbox" checked>Also suggest windows and doors</label><p class="section-note">Added fans stay fixed. Suggestions test preset positions for the main fan.</p></details><button class="button primary full-width" id="run-optimiser" data-action="optimise" aria-keyshortcuts="O" title="Suggest changes (O)">Suggest changes</button><div id="optimiser-result" aria-live="polite"><p class="section-note">Pick a day, then suggest changes. We’ll test fan, purifier and opening combinations and show what helped most.</p></div><p class="advice-honesty">A rough simulation to compare ideas, not a measurement or health advice.</p></section>
           </section>
           <details class="hardware-section"><summary>${icon('usb')}Connect physical model (USB)<span class="details-plus">+</span></summary><div id="hardware-controls"><p class="hardware-state"><span class="status-dot"></span><strong>SSTuino not connected</strong></p><p class="section-note">Everything works with the on-screen controls and keyboard. When your model is ready, connect USB to use its switches and buttons.</p><button class="button secondary full-width" id="connect-hardware" type="button">Connect SSTuino</button><p class="hardware-help" id="hardware-status" role="status">USB serial works in desktop Chrome or Edge.</p></div></details>
         </div>
@@ -313,6 +329,114 @@ function syncControls(): void {
   $<HTMLInputElement>('[data-device-key="acOn"]').checked = Boolean(activeAc);
   $('#ac-state').textContent = activeAc ? 'On' : 'Off';
   if (activeAc) $<HTMLSelectElement>('#ac-unit').value = activeAc;
+  syncStandingFanControls();
+}
+function standingFanName(id: string): string {
+  return id === PRIMARY_STANDING_FAN_ID ? 'Main fan' : /^fan-\d+$/.test(id) ? `Fan ${id.slice(4)}` : id;
+}
+function standingFanStatus(message: string): void {
+  $('#standing-fan-status').textContent = message;
+}
+function syncStandingFanControls(): void {
+  const fans = resolveStandingFans(conditions);
+  if (!fans.some(fan => fan.id === selectedStandingFan)) selectedStandingFan = fans[0]?.id ?? PRIMARY_STANDING_FAN_ID;
+  const selected = fans.find(fan => fan.id === selectedStandingFan);
+  const select = $<HTMLSelectElement>('#standing-fan-select');
+  const options = fans.map(fan => `<option value="${escape(fan.id)}">${escape(standingFanName(fan.id))} · ${escape(roomLabel(fan.room))}${fan.on && fan.speed > 0 ? '' : ' · off'}</option>`).join('');
+  if (select.innerHTML !== options) select.innerHTML = options;
+  select.value = selectedStandingFan;
+  $('#standing-fan-count').textContent = `${fans.length} / ${MAX_STANDING_FANS}`;
+  $<HTMLButtonElement>('#standing-fan-add').disabled = fans.length >= MAX_STANDING_FANS;
+  $<HTMLButtonElement>('#standing-fan-remove').disabled = !selected || selected.isPrimary;
+  $('#primary-fan-controls').hidden = !selected?.isPrimary;
+  $('#additional-fan-controls').hidden = Boolean(selected?.isPrimary);
+  $('#fan-presets').hidden = !selected?.isPrimary;
+  if (!selected) return;
+  $<HTMLInputElement>('#standing-fan-on').checked = selected.on;
+  $('#standing-fan-power-state').textContent = selected.on ? (selected.speed > 0 ? 'On' : 'On · speed stopped') : 'Off';
+  $<HTMLSelectElement>('#standing-fan-speed').value = String(selected.speed);
+  $<HTMLInputElement>('#standing-fan-heading').value = String(Math.round(selected.angleDeg));
+  $<HTMLSelectElement>('#standing-fan-room').value = selected.room;
+  $<HTMLInputElement>('#standing-fan-x').value = selected.x.toFixed(2);
+  $<HTMLInputElement>('#standing-fan-z').value = selected.z.toFixed(2);
+  scene?.setSelectedStandingFan(selectedStandingFan);
+  const overlap = fans.some((fan, index) => fans.slice(index + 1).some(other => Math.hypot(fan.x - other.x, fan.z - other.z) < 2 * STANDING_FAN_CLEARANCE_M - 1e-8));
+  const purifier = conditions.purifier && PURIFIER_SLOTS[conditions.purifier.slot];
+  const purifierOverlap = purifier && fans.some(fan => Math.hypot(fan.x - purifier.x, fan.z - purifier.z) < STANDING_FAN_CLEARANCE_M + PORTABLE_PURIFIER_CLEARANCE_M - 1e-8);
+  if (overlap || purifierOverlap) standingFanStatus('A physical preset overlaps another device. Both stay in the simulation; move a fan to clear space.');
+  else if ($('#standing-fan-status').textContent?.startsWith('A physical preset overlaps')) standingFanStatus('The devices are clear of one another.');
+}
+function selectStandingFan(id: string): void {
+  if (!resolveStandingFans(conditions).some(fan => fan.id === id)) return;
+  selectedStandingFan = id;
+  syncStandingFanControls();
+}
+function addStandingFan(): void {
+  if (resolveStandingFans(conditions).length >= MAX_STANDING_FANS) return;
+  conditions.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
+  const preferred = view.selectedRoom ?? 'living';
+  let position = findStandingFanPosition(preferred, conditions);
+  if (!position) for (const room of model.rooms) {
+    position = findStandingFanPosition(room.name, conditions);
+    if (position) break;
+  }
+  if (!position) { standingFanStatus('There is no clear floor space for another fan. Move or remove a fan first.'); return; }
+  const occupied = new Set((conditions.standingFans ?? []).map(fan => fan.id));
+  let number = 2;
+  while (occupied.has(`fan-${number}`)) number++;
+  const id = `fan-${number}`;
+  conditions.standingFans = [...(conditions.standingFans ?? []), { id, ...position, on: true, speed: 2, angleDeg: 0 }];
+  selectedStandingFan = id;
+  markCustom(true); renderReadings();
+  standingFanStatus(`${standingFanName(id)} added and on. Adjust its direction or drag it to clear floor space.`);
+  $('#standing-fan-select').focus();
+}
+function removeStandingFan(): void {
+  if (selectedStandingFan === PRIMARY_STANDING_FAN_ID) return;
+  const id = selectedStandingFan;
+  conditions.standingFans = (conditions.standingFans ?? []).filter(fan => fan.id !== id);
+  selectedStandingFan = PRIMARY_STANDING_FAN_ID;
+  markCustom(true); renderReadings();
+  standingFanStatus(`${standingFanName(id)} removed.`);
+  $('#standing-fan-select').focus();
+}
+function moveStandingFan(id: string, x: number, z: number): void {
+  const fan = resolveStandingFans(conditions).find(item => item.id === id);
+  if (!fan) return;
+  const placement = validateStandingFanPosition(x, z, conditions, id);
+  if (!placement.valid) { standingFanStatus(placement.reason); return; }
+  if (Math.hypot(fan.x - x, fan.z - z) < 1e-8) return;
+  if (id === PRIMARY_STANDING_FAN_ID) conditions.portableFan!.position = { x, z };
+  else conditions.standingFans = conditions.standingFans?.map(item => item.id === id ? { ...item, x, z } : item);
+  selectedStandingFan = id;
+  markCustom(true); renderReadings();
+  standingFanStatus(`${standingFanName(id)} moved to ${roomLabel(placement.room!)}. Current heat and haze readings continue.`);
+}
+function editStandingFan(control: string, value: number | boolean): void {
+  const fan = resolveStandingFans(conditions).find(item => item.id === selectedStandingFan);
+  if (!fan) return;
+  const numeric = Number(value);
+  if (control !== 'standing-fan-on' && (!Number.isFinite(numeric) || (control === 'standing-fan-heading' ? numeric < 0 || numeric > 359 : numeric < 0 || numeric > 3))) {
+    syncStandingFanControls(); standingFanStatus('Enter a direction from 0 to 359°, or a speed from 0 to 3.'); return;
+  }
+  if (fan.isPrimary) {
+    if (control === 'standing-fan-heading') conditions.portableFan!.headingDeg = numeric;
+    else if (control === 'standing-fan-on') conditions.portableFan!.on = Boolean(value);
+    else conditions.portableFan!.speed = numeric;
+  } else conditions.standingFans = conditions.standingFans?.map(item => item.id !== fan.id ? item : { ...item,
+    ...(control === 'standing-fan-on' ? { on: Boolean(value) } : control === 'standing-fan-heading' ? { angleDeg: numeric } : { speed: numeric }) });
+  markCustom(true); renderReadings();
+  standingFanStatus(`${standingFanName(fan.id)} updated.`);
+}
+function placementDisplacesFan(before: Conditions, after: Conditions, movedId?: string): boolean {
+  const next = resolveStandingFans(after);
+  if (resolveStandingFans(before).some(fan => fan.id !== movedId && !next.some(item => item.id === fan.id && item.x === fan.x && item.z === fan.z))) return true;
+  if (movedId) {
+    const moved = next.find(fan => fan.id === movedId);
+    return Boolean(moved && next.some(fan => fan.id !== movedId && Math.hypot(fan.x - moved.x, fan.z - moved.z) < 2 * STANDING_FAN_CLEARANCE_M - 1e-8));
+  }
+  const purifier = after.purifier && PURIFIER_SLOTS[after.purifier.slot];
+  return Boolean(purifier && next.some(fan => Math.hypot(fan.x - purifier.x, fan.z - purifier.z) < STANDING_FAN_CLEARANCE_M + PORTABLE_PURIFIER_CLEARANCE_M - 1e-8));
 }
 function updateScene(): void {
   if (workspace === 'study') return;
@@ -397,6 +521,7 @@ function emitControl(): void {
 }
 function markCustom(emit = false): void {
   invalidateGpuStep();
+  if (!playing) result = stepSimulation(result, conditions, 0);
   coolingLab?.refreshCaptureStatus();
   invalidateOptimiser();
   activePreset = '';
@@ -438,7 +563,7 @@ export function loadScenario(id: string, source: 'user' | 'hardware' = 'user'): 
   if (!preset) return false;
   invalidateGpuStep();
   invalidateOptimiser();
-  conditions = { ...structuredClone(preset.conditions), doors: conditions.doors, windows: conditions.windows, devices: conditions.devices, portableFan: conditions.portableFan, purifier: conditions.purifier, acSetpoint: conditions.acSetpoint };
+  conditions = { ...structuredClone(preset.conditions), doors: conditions.doors, windows: conditions.windows, devices: conditions.devices, portableFan: conditions.portableFan, standingFans: conditions.standingFans, purifier: conditions.purifier, acSetpoint: conditions.acSetpoint };
   if (id === 'validation' && source === 'user') {
     for (const box of model.boxes) if (box.type === 'door' && !box.exterior) conditions.doors[box.name] = true;
   }
@@ -454,12 +579,13 @@ export function loadScenario(id: string, source: 'user' | 'hardware' = 'user'): 
   return true;
 }
 function editDevice(key: string, value: number | boolean | string): void {
+  const previous = structuredClone(conditions);
   const fan = conditions.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
   const purifier = conditions.purifier ??= { on: false, slot: 0 };
   switch (key) {
     case 'fanOn': fan.on = Boolean(value); break;
-    case 'fanSlot': fan.slot = Math.max(0, Math.min(FAN_SLOTS.length - 1, Number(value))); break;
-    case 'fanAngle': fan.angleDeg = Math.max(0, Math.min(180, Number(value))); break;
+    case 'fanSlot': fan.slot = Math.max(0, Math.min(FAN_SLOTS.length - 1, Number(value))); delete fan.position; delete fan.headingDeg; break;
+    case 'fanAngle': fan.angleDeg = Math.max(0, Math.min(180, Number(value))); delete fan.headingDeg; break;
     case 'fanSpeed': fan.speed = Math.max(0, Math.min(3, Number(value))); break;
     case 'purifierOn': purifier.on = Boolean(value); break;
     case 'purifierSlot': purifier.slot = Math.max(0, Math.min(PURIFIER_SLOTS.length - 1, Number(value))); break;
@@ -474,6 +600,9 @@ function editDevice(key: string, value: number | boolean | string): void {
       break;
     }
     default: return;
+  }
+  if ((key === 'fanSlot' || key === 'purifierSlot') && placementDisplacesFan(previous, conditions, key === 'fanSlot' ? PRIMARY_STANDING_FAN_ID : undefined)) {
+    conditions = previous; syncControls(); standingFanStatus('That position is occupied by a standing fan. Move it first.'); return;
   }
   markCustom(true);
 }
@@ -659,12 +788,14 @@ function exportCsv(): void {
     ['AC setpoint C', String(conditions.acSetpoint)],
     ['Portable fan on', String(conditions.portableFan?.on ?? false)],
     ['Portable fan slot (zero-based)', String(conditions.portableFan?.slot ?? 0)],
-    ['Portable fan angle degrees', String(conditions.portableFan?.angleDeg ?? 90)],
+    ['Portable fan preset angle degrees', String(conditions.portableFan?.angleDeg ?? 90)],
     ['Portable fan speed', String(conditions.portableFan?.speed ?? 2)],
     ['Portable purifier on', String(conditions.purifier?.on ?? false)],
     ['Portable purifier slot (zero-based)', String(conditions.purifier?.slot ?? 0)],
     ['Device power W', result.powerWatts.toFixed(1)],
     ['Energy kWh', result.energyKwh.toFixed(4)],
+    [], ['Standing fan', 'Room', 'X m', 'Z m', 'World heading degrees clockwise from north', 'On', 'Speed 0-3'],
+    ...resolveStandingFans(conditions).map(fan => [fan.id, roomLabel(fan.room), String(fan.x), String(fan.z), String(fan.angleDeg), String(fan.on), String(fan.speed)]),
     [], ['Room', 'Temperature C', 'Feels like C', 'Air speed m/s', 'PM2.5 ug/m3'],
     ...result.rooms.map(room => [roomLabel(room.room), room.temperature.toFixed(2), room.feelsLike.toFixed(2), room.airflow.toFixed(3), room.pm25.toFixed(2)]),
     [], ['Control', 'State'],
@@ -700,6 +831,9 @@ document.addEventListener('click', event => {
     markCustom(true);
   }
   switch (target.dataset.action) {
+    case 'add-standing-fan': addStandingFan(); break;
+    case 'remove-standing-fan': removeStandingFan(); break;
+    case 'place-standing-fan': moveStandingFan(selectedStandingFan, $<HTMLInputElement>('#standing-fan-x').valueAsNumber, $<HTMLInputElement>('#standing-fan-z').valueAsNumber); break;
     case 'guide': openDialog('#guide-dialog', target); break;
     case 'build': openDialog('#build-dialog', target); break;
     case 'about': openDialog('#about-dialog', target); break;
@@ -749,6 +883,7 @@ document.addEventListener('click', event => {
       target.innerHTML = `${icon(playing ? 'pause' : 'play')}<span>${playing ? 'Pause' : 'Resume'}</span>`;
       $('#play-status').textContent = playing ? 'Simulation running' : 'Simulation paused';
       $('.running-dot').classList.toggle('paused', !playing);
+      renderReadings();
       break;
     case 'reset':
       invalidateGpuStep();
@@ -792,6 +927,14 @@ document.addEventListener('input', event => {
 document.addEventListener('change', event => {
   const input = event.target as HTMLInputElement;
   if (isSeparateWorkspaceControl(input)) return;
+  if (input.id === 'standing-fan-select') { selectStandingFan(input.value); return; }
+  if (input.id === 'standing-fan-room') {
+    const position = findStandingFanPosition(input.value, conditions, selectedStandingFan);
+    if (position) moveStandingFan(selectedStandingFan, position.x, position.z);
+    else { syncStandingFanControls(); standingFanStatus('No clear position is available in that room. Try another room or move a fan first.'); }
+    return;
+  }
+  if (['standing-fan-on', 'standing-fan-speed', 'standing-fan-heading'].includes(input.id)) { editStandingFan(input.id, input.type === 'checkbox' ? input.checked : input.id === 'standing-fan-heading' ? input.valueAsNumber : Number(input.value)); return; }
   if (input.id === 'day-select') { loadScenario(input.value); return; }
   if (input.id === 'science-views') {
     document.querySelectorAll<HTMLElement>('[data-mode="pressure"], [data-preset="validation"], #day-select option[value="validation"]').forEach(element => { element.hidden = !input.checked; });
@@ -919,6 +1062,9 @@ $('#more-menu').addEventListener('keydown', event => {
 checkControlMappings(); renderRoomControls(); syncControls(); renderReadings();
 createScene($('#scene'), selectRoom, (kind, slotId) => {
   if (workspace === 'flat') editDevice(kind === 'fan' ? 'fanSlot' : 'purifierSlot', slotId);
+}, {
+  onMove: (id, x, z) => { if (workspace === 'flat') moveStandingFan(id, x, z); },
+  onSelect: id => { if (workspace === 'flat') { selectStandingFan(id); selectTab('devices'); } },
 }).then(controller => {
   scene = controller;
   $('#scene-loading').remove();

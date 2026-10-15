@@ -1,5 +1,6 @@
 import { deviceRoom, model, roomLabel, type Conditions, type SimulationResult } from './domain';
-import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
+import { PURIFIER_SLOTS } from './config/slots';
+import { resolveStandingFans } from './standing-fans';
 
 function openingName(id: string): string {
   if (id === 'main_door') return 'the main entrance door';
@@ -13,16 +14,25 @@ function openingName(id: string): string {
 /** Describe only meaningful control changes; inactive device positions are not actions. */
 export function describeAdviceChanges(before: Conditions, after: Conditions): string[] {
   const actions: string[] = [];
-  const fan = after.portableFan;
-  const previousFan = before.portableFan;
-  if (fan?.on) {
-    const place = roomLabel(FAN_SLOTS[fan.slot]?.room ?? 'living');
-    const speed = ['stopped', 'low', 'medium', 'high'][fan.speed] ?? String(fan.speed);
-    if (!previousFan?.on) actions.push(`Turn on the fan in ${place} (${speed})`);
-    else if (previousFan.slot !== fan.slot) actions.push(`Move the fan to ${place} (${speed})`);
-    else if (previousFan.speed !== fan.speed) actions.push(`Set the fan in ${place} to ${speed}`);
-    if (!previousFan?.on || previousFan.slot !== fan.slot || previousFan.angleDeg !== fan.angleDeg) actions.push(`Point the fan at ${fan.angleDeg}° on its direction control`);
-  } else if (previousFan?.on) actions.push('Turn off the portable fan');
+  const previousFans = resolveStandingFans(before);
+  const nextFans = resolveStandingFans(after);
+  for (const fan of nextFans) {
+    const previous = previousFans.find(item => item.id === fan.id);
+    const name = fan.isPrimary ? 'main fan' : /^fan-\d+$/.test(fan.id) ? `fan ${fan.id.slice(4)}` : `fan ${fan.id}`;
+    if (fan.on) {
+      const custom = !fan.isPrimary || Boolean(after.portableFan?.position);
+      const place = `${roomLabel(fan.room)}${custom ? ` at X ${fan.x.toFixed(2)} m, Z ${fan.z.toFixed(2)} m` : ''}`;
+      const speed = ['stopped', 'low', 'medium', 'high'][fan.speed] ?? String(fan.speed);
+      const moved = !previous || Math.hypot(previous.x - fan.x, previous.z - fan.z) > 1e-8;
+      if (!previous?.on) actions.push(`Turn on the ${name} in ${place} (${speed})`);
+      else if (moved) actions.push(`Move the ${name} to ${place} (${speed})`);
+      else if (previous.speed !== fan.speed) actions.push(`Set the ${name} in ${place} to ${speed}`);
+      if (!previous?.on || moved || previous.angleDeg !== fan.angleDeg) actions.push(`Point the ${name} towards ${Number(fan.angleDeg.toFixed(1))}° (0° north, 90° east)`);
+    } else if (previous?.on) actions.push(`Turn off the ${name}`);
+  }
+  for (const previous of previousFans) if (!nextFans.some(fan => fan.id === previous.id)) {
+    actions.push(`Remove ${previous.isPrimary ? 'the main fan' : /^fan-\d+$/.test(previous.id) ? `fan ${previous.id.slice(4)}` : `fan ${previous.id}`}`);
+  }
   const purifier = after.purifier;
   if (purifier?.on) {
     const place = `${roomLabel(PURIFIER_SLOTS[purifier.slot]?.room ?? 'living')}${purifier.slot === 4 || purifier.slot === 2 ? ' corner' : ''}`;

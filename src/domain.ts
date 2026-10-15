@@ -12,9 +12,13 @@ export const model = rawModel as unknown as Model;
 export const MODEL_SCALE = 65;
 export const roomLabel = (id: string): string => ({ bedroom2: 'Bedroom 2', bedroom3: 'Bedroom 3', corridor_lobby: 'Entrance lobby' }[id] ?? id.replaceAll('_', ' ').replace(/^./, c => c.toUpperCase()));
 
+export interface StandingFan {
+  id: string; x: number; z: number; angleDeg: number; speed: number; on: boolean;
+}
 export interface Conditions {
   scenarioId?: string;
-  portableFan?: { on: boolean; slot: number; angleDeg: number; speed: number };
+  portableFan?: { on: boolean; slot: number; angleDeg: number; speed: number; position?: { x: number; z: number }; headingDeg?: number };
+  standingFans?: StandingFan[];
   purifier?: { on: boolean; slot: number };
   outdoorTemperature: number;
   outdoorPm25: number;
@@ -69,6 +73,7 @@ export function defaultConditions(): Conditions {
   return {
     scenarioId: 'baseline',
     portableFan: { on: false, slot: 0, angleDeg: 90, speed: 2 },
+    standingFans: [],
     purifier: { on: false, slot: 0 },
     outdoorTemperature: 30, outdoorPm25: 20, humidity: 70, windSpeed: 1.8, timeOfDay: 12, acSetpoint: 25,
     doors: Object.fromEntries(model.boxes.filter(b => b.type === 'door').map(b => [b.name, false])),

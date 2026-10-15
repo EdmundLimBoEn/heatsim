@@ -7,6 +7,9 @@ import { createScene, type SceneController, type ThermalVentConfig } from './sce
 import { mountCoolingLab } from './cooling-lab';
 import { mountContractorStudy } from './contractor-study';
 import './theme.css';
+import { changeDevice, setBulkControls, type DeviceTarget, type BulkGroup } from './device-actions';
+import { createDeviceMenu } from './device-menu';
+import { mountWeatherControls } from './weather-ui';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { PRIMARY_STANDING_FAN_ID, MAX_STANDING_FANS, STANDING_FAN_CLEARANCE_M, PORTABLE_PURIFIER_CLEARANCE_M, resolveStandingFans, validateStandingFanPosition, findStandingFanPosition } from './standing-fans';
 import { openingForKey } from './config/mapping';
@@ -83,7 +86,7 @@ $('#app').innerHTML = `
   <a class="skip-link" href="#controls">Skip to controls</a>
   <header class="app-header">
     <a class="brand" href="/" aria-label="HeatSim home"><span class="brand-mark">${icon('house')}</span><span>heatsim<span class="brand-dot">.</span></span></a>
-    <span class="brand-description">Home airflow simulator</span>
+    <span class="brand-description">Small changes. Cooler homes.</span>
     <div class="header-actions"><button class="simulation-status" data-action="about">Simulated, not measured</button><span id="model-connection-chip" hidden>Model connected</span><details id="more-menu" class="more-menu"><summary>More ${icon('chevron')}</summary><div class="more-content"><button class="button text-button" data-action="guide">How to use HeatSim</button><button class="button text-button" data-action="build">Build the cardboard model</button><button class="button text-button" data-action="readings">All room readings</button><button class="button text-button" data-action="export">Export readings (CSV)</button><button class="button text-button" data-action="screenshot">Download map image</button><details id="science-settings"><summary>Science views</summary><label class="option-check"><input id="science-views" type="checkbox">Show pressure and validation</label><div id="science-status"></div></details><div id="hardware-menu-slot"></div><button class="button text-button" data-action="about">How this model works</button><button class="button text-button" data-action="help">Keyboard shortcuts</button></div></details></div>
   </header>
   <main>
@@ -96,7 +99,7 @@ $('#app').innerHTML = `
           ${(['model', 'temperature', 'airflow', 'pressure', 'pm25'] as ViewMode[]).map(mode => `<button data-mode="${mode}" ${mode === 'pressure' ? 'hidden' : ''} aria-pressed="${mode === 'model'}">${({ model: 'Model', temperature: 'Heat', airflow: 'Air movement', pressure: 'Pressure', pm25: 'Haze' })[mode]}</button>`).join('')}
         </div></div>
         <div id="scene" class="scene" aria-label="3D apartment. Drag to orbit, scroll to zoom. Use room selector for keyboard access."><div id="scene-loading" class="scene-message" role="status"><span class="loading-mark">${icon('cube')}</span><strong>Setting up your home</strong><span>Preparing the 3D floor plan…</span></div></div>
-        <div class="model-title"><span id="view-label">Your home, in perspective</span><p id="view-description">Select a room to explore its controls. Arrows show airflow; none appear in still air.</p></div>
+        <div class="model-title"><span id="view-label">Your home, in perspective</span><small id="home-bearing">Plan top faces north</small><p id="view-description">Right-click a fan or purifier for quick controls. Drag to move; select a room for its openings.</p></div>
         <div class="view-tools"><div class="segmented camera-modes" role="group" aria-label="Camera view"><button data-camera="perspective" aria-pressed="true">${icon('cube')}<span>Isometric</span></button><button data-camera="top" aria-pressed="false">${icon('plan')}<span>Floor plan</span></button></div><button class="icon-button" data-action="reset-camera" title="Reset view" aria-label="Reset camera view">${icon('reset')}</button></div>
         <details class="view-disclosure"><summary>View</summary><div class="view-options" aria-label="Model display options"><label><input type="checkbox" data-view="cutaway" checked>Cutaway</label><label><input type="checkbox" data-view="labels" checked>Room labels</label><label><input type="checkbox" data-view="dimensions">Dimensions</label></div></details>
         <div class="model-legend" id="model-legend" hidden></div>
@@ -106,7 +109,7 @@ $('#app').innerHTML = `
         <div class="control-tabs" role="tablist" aria-label="Control section"><button role="tab" id="tab-room" aria-controls="panel-room" aria-selected="true" data-tab="room">Windows & doors</button><button role="tab" id="tab-devices" aria-controls="panel-devices" aria-selected="false" tabindex="-1" data-tab="devices">Devices</button><button role="tab" id="tab-environment" aria-controls="panel-environment" aria-selected="false" tabindex="-1" data-tab="environment">Weather</button></div>
         <div class="control-scroll">
           <section id="panel-environment" role="tabpanel" aria-labelledby="tab-environment" hidden>
-            <div class="section-heading"><h2>Try a scenario</h2><span id="scenario-label">Normal day</span></div>
+            <div id="weather-loader" class="weather-loader"></div><label class="field-label" for="house-orientation">Direction the top of your floor plan faces</label><select id="house-orientation" class="device-select"><option value="0">North</option><option value="90">East</option><option value="180">South</option><option value="270">West</option></select><p class="section-note">Rotates the home relative to geographic wind and sun; camera orbit only changes your view.</p><div class="section-heading"><h2>Try a scenario</h2><span id="scenario-label">Normal day</span></div>
             <div class="scenario-grid">${PRESETS.map((preset, index) => `<button class="scenario-button" data-preset="${escape(preset.id)}" ${preset.id === 'validation' ? 'hidden' : ''} aria-pressed="false"><span class="scenario-symbol">${icon(index === 1 ? 'wind' : index === 2 ? 'house' : index === 3 ? 'info' : 'sun')}</span><span>${escape(preset.name)}</span></button>`).join('')}</div>
             <p class="section-note" id="scenario-description">Change the conditions, then watch the rooms respond over time.</p>
             <details id="manual-weather" class="manual-disclosure"><summary>Set my own weather</summary><div class="disclosure-body">
@@ -120,13 +123,13 @@ $('#app').innerHTML = `
             <div class="outdoor-entry"><label class="field-label" for="outdoor-aqi">${escape(US_PM25_AQI_EQUIVALENT_LABEL)}</label><input class="device-select" id="outdoor-aqi" type="number" min="0" max="500" step="1" aria-describedby="outdoor-aqi-note outdoor-aqi-range"></div>
             <p class="section-note" id="outdoor-aqi-range" hidden>PM2.5 is above the supported 0–500 index scale. Its concentration remains unchanged.</p><p class="section-note" id="outdoor-aqi-note">${escape(US_PM25_AQI_EQUIVALENT_NOTE)} <a href="${US_PM25_AQI_SOURCE}" target="_blank" rel="noopener">EPA scale</a></p>
             <p class="section-note" id="outdoor-source"></p><button class="button secondary full-width spaced" data-action="reset-weather">Reset outdoor conditions to scenario</button>
-            <p class="section-note">Outdoor values are what you set here. No sensors or live weather. Choosing another day clears weather overrides.</p></div></details>
+            <p class="section-note">Set conditions manually or load a regional forecast above. Choosing another day clears weather overrides.</p></div></details>
 
           </section>
           <section id="panel-room" role="tabpanel" aria-labelledby="tab-room">
             <div class="section-divider"></div><div class="section-heading"><h2>Whole-home openings</h2><span id="window-count"></span></div>
             <div class="button-pair"><button class="button secondary" data-bulk="windows" data-value="true">Open windows</button><button class="button secondary" data-bulk="windows" data-value="false">Close windows</button></div>
-            <div class="button-pair"><button class="button text-button" data-bulk="doors" data-value="true">Open all doors</button><button class="button text-button" data-bulk="doors" data-value="false">Close all doors</button></div>
+            <div class="button-pair"><button class="button text-button" data-quick-group="internal" data-value="true">Open internal doors</button><button class="button text-button" data-quick-group="internal" data-value="false">Close internal doors</button></div>
             <p class="section-note">Opening windows exchanges indoor air with outdoors. On hazy days, this can bring particles inside.</p>
             <label class="field-label" for="room-select">Select a room</label><select id="room-select">${model.rooms.map(room => `<option value="${room.name}" ${room.name === 'living' ? 'selected' : ''}>${roomLabel(room.name)}</option>`).join('')}</select>
             <div id="room-detail"></div>
@@ -136,7 +139,7 @@ $('#app').innerHTML = `
             <h3 class="control-group-title">Standing fans <span id="standing-fan-count">1 / 8</span></h3>
             <div class="standing-fan-editor">
               <label class="field-label" for="standing-fan-select">Fan to adjust</label><select id="standing-fan-select" class="device-select"><option value="primary">Main fan</option></select>
-              <div class="button-pair standing-fan-actions"><button id="standing-fan-add" class="button secondary" data-action="add-standing-fan">Add fan</button><button id="standing-fan-remove" class="button text-button" data-action="remove-standing-fan" disabled>Remove fan</button></div>
+              <button class="button secondary full-width" data-action="fan-menu">Selected fan quick controls</button><div class="button-pair standing-fan-actions"><button id="standing-fan-add" class="button secondary" data-action="add-standing-fan">Add fan</button><button id="standing-fan-remove" class="button text-button" data-action="remove-standing-fan" disabled>Remove fan</button></div>
               <div id="primary-fan-controls">
                 <label class="toggle-control"><span>Main fan power <kbd>F</kbd><small id="fan-state">Off</small></span><input type="checkbox" data-device-key="fanOn" aria-label="Portable fan power"><span class="switch-track" aria-hidden="true"></span></label>
                 <label class="field-label" for="fan-speed">Fan speed</label><select id="fan-speed" class="device-select" data-device-key="fanSpeed"><option value="0">Stopped</option><option value="1">Low</option><option value="2" selected>Medium</option><option value="3">High</option></select>
@@ -146,13 +149,13 @@ $('#app').innerHTML = `
                 <label class="field-label" for="standing-fan-speed">Fan speed</label><select id="standing-fan-speed" class="device-select"><option value="0">Stopped</option><option value="1">Low</option><option value="2">Medium</option><option value="3">High</option></select>
               </div>
               <div class="standing-fan-heading-row"><label class="field-label" for="standing-fan-heading">Direction (degrees)</label><input id="standing-fan-heading" class="device-select" type="number" min="0" max="359" step="1" aria-describedby="standing-fan-direction-note"></div>
-              <p class="section-note" id="standing-fan-direction-note">Air blows towards 0° north, 90° east, 180° south or 270° west.</p>
+              <p class="section-note" id="standing-fan-direction-note">Direction on the plan: 0° top, 90° right, 180° bottom, 270° left.</p>
               <label class="field-label spaced" for="standing-fan-room">Move to a room</label><select id="standing-fan-room" class="device-select">${model.rooms.map(room => `<option value="${room.name}">${roomLabel(room.name)}</option>`).join('')}</select>
               <details id="standing-fan-position" class="standing-fan-detail"><summary>Exact floor position</summary><p class="section-note">Metres from the plan’s northwest origin: X east, Z south.</p><div class="standing-fan-coordinates"><label for="standing-fan-x">X (m)<input id="standing-fan-x" class="device-select" type="number" step="0.01" min="${model.bounds.min[0]}" max="${model.bounds.max[0]}"></label><label for="standing-fan-z">Z (m)<input id="standing-fan-z" class="device-select" type="number" step="0.01" min="${model.bounds.min[2]}" max="${model.bounds.max[2]}"></label></div><button id="standing-fan-place" class="button secondary full-width" data-action="place-standing-fan">Set position</button></details>
               <details id="fan-presets" class="standing-fan-detail"><summary>Main fan presets & shortcuts</summary><p class="section-note">Presets replace the main fan’s free position and direction. Keyboard F, position and angle shortcuts always adjust the main fan.</p><label class="field-label spaced" for="fan-slot">Preset position</label><select id="fan-slot" class="device-select" data-device-key="fanSlot">${FAN_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}</option>`).join('')}</select><label class="range-control spaced" for="fan-angle"><span>Direction within preset<output id="fan-angle-value">90°</output></span><input id="fan-angle" type="range" min="0" max="180" step="15" value="90" data-device-key="fanAngle"><span class="range-limits"><span>0°</span><span>180°</span></span></label></details>
               <p id="standing-fan-status" class="section-note" role="status" aria-live="polite">Up to 8 standing fans. Keep walls, furniture and doorways clear.</p>
             </div>
-            <h3 class="control-group-title">Air purifier <kbd>P</kbd></h3>
+            <h3 class="control-group-title">Air purifier <kbd>P</kbd></h3><button class="button secondary full-width" data-action="purifier-menu">Purifier quick controls</button>
             <label class="toggle-control"><span>Purifier power<small id="purifier-state">Off</small></span><input type="checkbox" data-device-key="purifierOn" aria-label="Portable purifier power"><span class="switch-track" aria-hidden="true"></span></label>
             <label class="field-label spaced" for="purifier-slot">Position</label><select id="purifier-slot" class="device-select" data-device-key="purifierSlot">${PURIFIER_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}${index === 4 || index === bedroom3PurifierSlot ? ' corner' : ''}</option>`).join('')}</select><p class="section-note">The physical D5 switch controls the Bedroom 3 corner purifier: held down is on; released is off. You can also use these controls without a board.</p>
             <h3 class="control-group-title">Air conditioning <kbd>A</kbd></h3>
@@ -188,13 +191,18 @@ $('#app').innerHTML = `
   <dialog id="readings-dialog" class="readings-dialog" aria-labelledby="readings-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">Every room, at a glance</span><h2 id="readings-dialog-title">Room readings</h2></div><button class="icon-button" data-close aria-label="Close room readings">${icon('close')}</button></div><p class="dialog-note">Illustrative values at <span id="readings-time"></span>. These are not sensor measurements.</p><div class="readings-table-wrap"><table><thead><tr><th>Room</th><th>Temperature</th><th>Feels like</th><th>Air speed</th><th>PM2.5</th></tr></thead><tbody id="readings-table"></tbody></table></div><button class="button secondary" data-action="export">${icon('download')}Export this snapshot</button></dialog>
   <dialog id="about-dialog" class="about-dialog" aria-labelledby="about-dialog-title"><div class="dialog-heading"><h2 id="about-dialog-title">A model for asking “what if?”</h2><button class="icon-button" data-close aria-label="Close explanation">${icon('close')}</button></div><p>${escape(SIMULATION_NOTE)}</p><p>Change a scenario or a control, then let simulated time pass. Temperature and particles respond gradually. Fans move air and change perceived comfort; air conditioning cools rooms and uses electricity.</p><p>The pressure view shows the 2D solver’s relative pressure potential, normalised from −1 to +1 within the current layout. It is a dimensionless simulated index, not pressure in pascals (Pa). Colours show relative differences within one arrangement; airflow arrows show the solved direction of travel.</p><p>The 3D view and cardboard plans use the same floor-plan geometry. Cutaway walls, overlays and camera changes only change the view.</p><p>Use this to compare ideas for your presentation. It is not a building assessment or a source of measured indoor air quality.</p></dialog>
   <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-dialog-title"><div class="dialog-heading"><div><span class="dialog-kicker">Presentation controls</span><h2 id="help-dialog-title">Keep the demo in your hands</h2></div><button class="icon-button" data-close aria-label="Close keyboard help">${icon('close')}</button></div><div class="keyboard-help"><p><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><span>Bedroom 3 north / living south / living east / Bedroom 3 east window</span></p><p><kbd>Shift</kbd> + <kbd>1</kbd><kbd>2</kbd><span>Main door / Bedroom 3 door</span></p><p><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>T</kbd><kbd>Y</kbd><span>The six scenarios, in order</span></p><p><kbd>F</kbd><kbd>A</kbd><kbd>P</kbd><span>Fan / AC / purifier power</span></p><p><kbd>[</kbd><kbd>]</kbd><span>Fan direction ±15°</span></p><p><kbd>,</kbd><kbd>.</kbd><span>Previous / next fan position</span></p><p><kbd>−</kbd><kbd>=</kbd><span>Decrease / increase fan speed</span></p><p><kbd>Shift</kbd> + <kbd>P</kbd><span>Next purifier position</span></p><p><kbd>O</kbd><kbd>Enter</kbd><span>Compare layouts / apply suggestion</span></p><p><kbd>Space</kbd><kbd>Backspace</kbd><span>Pause / reset simulation</span></p><p><kbd>C</kbd><kbd>H</kbd><span>Connect SSTuino / show this help</span></p></div><p class="section-note">Tab moves between accessible controls. Shortcuts pause while you use a form field or dialog. D4 on the physical model toggles both Bedroom 3 windows; D5 controls its purifier. Unmapped keys do nothing.</p></dialog>
-  <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><h2 id="guide-title">Try one change at a time</h2><button class="icon-button" data-close aria-label="Close getting started">${icon('close')}</button></div><ol class="getting-started"><li><strong>Choose the day.</strong><p>Pick heat, haze or a cooler evening. Weather is a scenario you set, not a live feed.</p></li><li><strong>Explore your rooms.</strong><p>Select a room on the map or in the room list. Openings and devices are below the map.</p></li><li><strong>Compare an idea.</strong><p>Suggest changes tests arrangements from the same starting conditions. Review the trade-offs, then Apply. Undo is available until another setting changes.</p></li></ol><p class="section-note">Qualitative toy CFD. Use the simulation to compare ideas, not as a measurement or building assessment.</p><button class="button primary" data-close>Explore my flat</button></dialog>
+  <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><h2 id="guide-title">Try one change at a time</h2><button class="icon-button" data-close aria-label="Close getting started">${icon('close')}</button></div><ol class="getting-started"><li><strong>Choose the day.</strong><p>Pick heat, haze or a cooler evening. Use a scenario or explicitly load a regional forecast in Weather.</p></li><li><strong>Explore your rooms.</strong><p>Select a room on the map or in the room list. Openings and devices are below the map.</p></li><li><strong>Compare an idea.</strong><p>Suggest changes tests arrangements from the same starting conditions. Review the trade-offs, then Apply. Undo is available until another setting changes.</p></li></ol><p class="section-note">Qualitative toy CFD. Use the simulation to compare ideas, not as a measurement or building assessment.</p><button class="button primary" data-close>Explore my flat</button></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>`;
 
 const adviceRail = document.createElement('aside');
 adviceRail.className = 'advice-rail';
 adviceRail.setAttribute('aria-label', 'Suggestions and room readings');
-adviceRail.append($('#optimiser-panel'), $('.results-panel'));
+const quick = document.createElement('section');
+quick.className = 'quick-controls'; quick.setAttribute('aria-label', 'Quick home controls');
+quick.innerHTML = `<h2>Try a change</h2><p>Start with a route for air, then add a fan.</p>${[['internal', 'Internal doors'], ['external', 'All exterior openings'], ['ceiling', 'Ceiling fans'], ['standing', 'Standing fans']].map(([group, label]) => `<div class="quick-row"><span>${label}<small data-quick-status="${group}"></small></span><button class="button secondary" data-quick-toggle="${group}"></button></div>`).join('')}<div class="button-pair"><button class="button secondary" data-action="add-standing-fan">Add fan</button><button class="button secondary" data-action="purifier-menu">Purifier controls</button></div><button class="text-link" data-action="weather-controls">Choose area & weather</button>`;
+const adviceDisclosure = document.createElement('details'); adviceDisclosure.id = 'suggestion-disclosure';
+adviceDisclosure.innerHTML = '<summary>Suggest a setup for me</summary>'; adviceDisclosure.append($('#optimiser-panel'));
+adviceRail.append(quick, $('.results-panel'), adviceDisclosure);
 const manualLink = document.createElement('a');
 manualLink.className = 'manual-controls-link';
 manualLink.href = '#controls';
@@ -280,6 +288,18 @@ function selectRoom(id: string | null): void {
 }
 
 function syncControls(): void {
+  $<HTMLSelectElement>('#house-orientation').value = String(conditions.houseOrientationDeg ?? 0);
+  $('#home-bearing').textContent = `Plan top faces ${['north', 'east', 'south', 'west'][(conditions.houseOrientationDeg ?? 0) / 90]}`;
+  for (const group of ['internal', 'external', 'ceiling', 'standing'] as BulkGroup[]) {
+    const states = group === 'standing' ? resolveStandingFans(conditions).map(fan => fan.on && fan.speed > 0)
+      : group === 'ceiling' ? Object.entries(conditions.devices).filter(([id]) => id.startsWith('fan_')).map(([, on]) => on)
+      : model.boxes.filter(box => group === 'internal' ? box.type === 'door' && !box.exterior : (box.type === 'door' || box.type === 'window') && box.exterior).map(box => conditions[box.type === 'door' ? 'doors' : 'windows'][box.name]);
+    const all = states.length > 0 && states.every(Boolean);
+    const button = $<HTMLButtonElement>(`[data-quick-toggle="${group}"]`);
+    button.textContent = group === 'internal' || group === 'external' ? all ? 'Close all' : 'Open all' : all ? 'All off' : 'All on';
+    button.dataset.value = String(!all); button.disabled = !states.length;
+    $(`[data-quick-status="${group}"]`).textContent = `${states.filter(Boolean).length} of ${states.length} ${group === 'internal' || group === 'external' ? 'open' : 'on'}`;
+  }
   $<HTMLSelectElement>('#day-select').value = conditions.scenarioId ?? 'baseline';
   $('#custom-day-note').hidden = activePreset !== '';
   if (conditions.scenarioId === 'validation') {
@@ -300,7 +320,7 @@ function syncControls(): void {
   const scenario = SCENARIOS.find(item => item.id === conditions.scenarioId) ?? SCENARIOS[0];
   direction.value = conditions.windFrom ?? '';
   direction.options[0].textContent = `Scenario direction (${scenario.windward === 'N' ? 'north' : 'south'})`;
-  $('#outdoor-source').textContent = `Base scenario: ${scenario.name}. Outdoor edits keep your current openings and devices.`;
+  $('#outdoor-source').textContent = conditions.weatherProvenance ? `Open-Meteo forecast for ${conditions.weatherProvenance.area}, ${conditions.weatherProvenance.forecastTime}. Haze remains manual.` : `Base scenario: ${scenario.name}. Outdoor edits keep your current openings and devices.`;
   const aqi = pm25ToUsAqiEquivalent(conditions.outdoorPm25);
   const aqiInput = $<HTMLInputElement>('#outdoor-aqi');
   aqiInput.value = aqi === null ? '' : String(aqi);
@@ -347,11 +367,13 @@ function syncStandingFanControls(): void {
   select.value = selectedStandingFan;
   $('#standing-fan-count').textContent = `${fans.length} / ${MAX_STANDING_FANS}`;
   $<HTMLButtonElement>('#standing-fan-add').disabled = fans.length >= MAX_STANDING_FANS;
-  $<HTMLButtonElement>('#standing-fan-remove').disabled = !selected || selected.isPrimary;
+  $<HTMLButtonElement>('#standing-fan-remove').disabled = !selected;
+  $<HTMLButtonElement>('[data-action="fan-menu"]').disabled = !selected;
   $('#primary-fan-controls').hidden = !selected?.isPrimary;
-  $('#additional-fan-controls').hidden = Boolean(selected?.isPrimary);
+  $('#additional-fan-controls').hidden = !selected || selected.isPrimary;
   $('#fan-presets').hidden = !selected?.isPrimary;
-  if (!selected) return;
+  for (const id of ['standing-fan-select', 'standing-fan-heading', 'standing-fan-room', 'standing-fan-x', 'standing-fan-z', 'standing-fan-place']) $<HTMLInputElement>(`#${id}`).disabled = !selected;
+  if (!selected) { standingFanStatus('No standing fans. Choose Add fan to place one.'); return; }
   $<HTMLInputElement>('#standing-fan-on').checked = selected.on;
   $('#standing-fan-power-state').textContent = selected.on ? (selected.speed > 0 ? 'On' : 'On · speed stopped') : 'Off';
   $<HTMLSelectElement>('#standing-fan-speed').value = String(selected.speed);
@@ -371,9 +393,9 @@ function selectStandingFan(id: string): void {
   selectedStandingFan = id;
   syncStandingFanControls();
 }
-function addStandingFan(): void {
+function addStandingFan(focusEditor = true): void {
   if (resolveStandingFans(conditions).length >= MAX_STANDING_FANS) return;
-  conditions.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
+  conditions.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2, removed: true };
   const preferred = view.selectedRoom ?? 'living';
   let position = findStandingFanPosition(preferred, conditions);
   if (!position) for (const room of model.rooms) {
@@ -381,6 +403,13 @@ function addStandingFan(): void {
     if (position) break;
   }
   if (!position) { standingFanStatus('There is no clear floor space for another fan. Move or remove a fan first.'); return; }
+  if (conditions.portableFan.removed) {
+    conditions.portableFan.position = position;
+    conditions.portableFan.removed = false; conditions.portableFan.on = true; conditions.portableFan.speed ||= 2;
+    selectedStandingFan = PRIMARY_STANDING_FAN_ID; markCustom(true); renderReadings();
+    if (focusEditor) $('#standing-fan-select').focus();
+    return;
+  }
   const occupied = new Set((conditions.standingFans ?? []).map(fan => fan.id));
   let number = 2;
   while (occupied.has(`fan-${number}`)) number++;
@@ -389,12 +418,11 @@ function addStandingFan(): void {
   selectedStandingFan = id;
   markCustom(true); renderReadings();
   standingFanStatus(`${standingFanName(id)} added and on. Adjust its direction or drag it to clear floor space.`);
-  $('#standing-fan-select').focus();
+  if (focusEditor) $('#standing-fan-select').focus();
 }
 function removeStandingFan(): void {
-  if (selectedStandingFan === PRIMARY_STANDING_FAN_ID) return;
   const id = selectedStandingFan;
-  conditions.standingFans = (conditions.standingFans ?? []).filter(fan => fan.id !== id);
+  changeDevice(conditions, { kind: 'fan', id }, 'remove');
   selectedStandingFan = PRIMARY_STANDING_FAN_ID;
   markCustom(true); renderReadings();
   standingFanStatus(`${standingFanName(id)} removed.`);
@@ -445,6 +473,8 @@ function updateScene(): void {
   if (fallbackPlan) updateFallbackPlan();
 }
 function selectWorkspace(next: Workspace): void {
+  deviceMenu.close();
+  weatherControls.cancelPending();
   if (next === workspace) return;
   const lab = next === 'lab';
   const study = next === 'study';
@@ -546,7 +576,7 @@ export function applyHardwareControl(kind: 'window' | 'door' | 'device', id: str
 export function applyHardwarePurifier(active: boolean): boolean {
   if (typeof active !== 'boolean' || bedroom3PurifierSlot < 0) return false;
   if (conditions.purifier?.on === active && conditions.purifier.slot === bedroom3PurifierSlot) return true;
-  conditions.purifier = { on: active, slot: bedroom3PurifierSlot };
+  conditions.purifier = { ...conditions.purifier, on: active, slot: bedroom3PurifierSlot };
   markCustom();
   renderReadings();
   return true;
@@ -561,9 +591,10 @@ export function replaceConditions(next: Conditions, resetSimulation = false): vo
 export function loadScenario(id: string, source: 'user' | 'hardware' = 'user'): boolean {
   const preset = PRESETS.find(preset => preset.id === id);
   if (!preset) return false;
+  clearForecast();
   invalidateGpuStep();
   invalidateOptimiser();
-  conditions = { ...structuredClone(preset.conditions), doors: conditions.doors, windows: conditions.windows, devices: conditions.devices, portableFan: conditions.portableFan, standingFans: conditions.standingFans, purifier: conditions.purifier, acSetpoint: conditions.acSetpoint };
+  conditions = { ...structuredClone(preset.conditions), houseOrientationDeg: conditions.houseOrientationDeg, doors: conditions.doors, windows: conditions.windows, devices: conditions.devices, portableFan: conditions.portableFan, standingFans: conditions.standingFans, purifier: conditions.purifier, acSetpoint: conditions.acSetpoint };
   if (id === 'validation' && source === 'user') {
     for (const box of model.boxes) if (box.type === 'door' && !box.exterior) conditions.doors[box.name] = true;
   }
@@ -581,6 +612,7 @@ export function loadScenario(id: string, source: 'user' | 'hardware' = 'user'): 
 function editDevice(key: string, value: number | boolean | string): void {
   const previous = structuredClone(conditions);
   const fan = conditions.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
+  if (key.startsWith('fan')) delete fan.removed;
   const purifier = conditions.purifier ??= { on: false, slot: 0 };
   switch (key) {
     case 'fanOn': fan.on = Boolean(value); break;
@@ -784,7 +816,9 @@ function exportCsv(): void {
     ['Time of day', formatTime(conditions.timeOfDay)],
     ['Wind speed m/s', String(conditions.windSpeed)],
     ['Wind from', conditions.windFrom ?? (SCENARIOS.find(item => item.id === conditions.scenarioId) ?? SCENARIOS[0]).windward],
-    ['Wind direction source', conditions.windFrom ? 'Manual override' : 'Scenario'],
+    ['Wind direction source', conditions.weatherProvenance ? 'Open-Meteo forecast (rounded)' : conditions.windFrom ? 'Manual override' : 'Scenario'],
+    ['House orientation degrees clockwise', String(conditions.houseOrientationDeg ?? 0)],
+    ['Weather provenance', conditions.weatherProvenance ? JSON.stringify(conditions.weatherProvenance) : 'Manual/scenario'],
     ['AC setpoint C', String(conditions.acSetpoint)],
     ['Portable fan on', String(conditions.portableFan?.on ?? false)],
     ['Portable fan slot (zero-based)', String(conditions.portableFan?.slot ?? 0)],
@@ -794,7 +828,7 @@ function exportCsv(): void {
     ['Portable purifier slot (zero-based)', String(conditions.purifier?.slot ?? 0)],
     ['Device power W', result.powerWatts.toFixed(1)],
     ['Energy kWh', result.energyKwh.toFixed(4)],
-    [], ['Standing fan', 'Room', 'X m', 'Z m', 'World heading degrees clockwise from north', 'On', 'Speed 0-3'],
+    [], ['Standing fan', 'Room', 'X m', 'Z m', 'Heading degrees clockwise from plan top', 'On', 'Speed 0-3'],
     ...resolveStandingFans(conditions).map(fan => [fan.id, roomLabel(fan.room), String(fan.x), String(fan.z), String(fan.angleDeg), String(fan.on), String(fan.speed)]),
     [], ['Room', 'Temperature C', 'Feels like C', 'Air speed m/s', 'PM2.5 ug/m3'],
     ...result.rooms.map(room => [roomLabel(room.room), room.temperature.toFixed(2), room.feelsLike.toFixed(2), room.airflow.toFixed(3), room.pm25.toFixed(2)]),
@@ -825,13 +859,20 @@ document.addEventListener('click', event => {
   if (target.dataset.preset) {
     loadScenario(target.dataset.preset);
   }
+  if (target.dataset.quickGroup || target.dataset.quickToggle) {
+    setBulkControls(conditions, (target.dataset.quickGroup ?? target.dataset.quickToggle) as BulkGroup, target.dataset.value === 'true');
+    markCustom(true); renderReadings();
+  }
   if (target.dataset.bulk) {
     const group = target.dataset.bulk as 'windows' | 'doors';
     for (const id of Object.keys(conditions[group])) conditions[group][id] = target.dataset.value === 'true';
     markCustom(true);
   }
   switch (target.dataset.action) {
-    case 'add-standing-fan': addStandingFan(); break;
+    case 'add-standing-fan': addStandingFan(!target.closest('.quick-controls')); break;
+    case 'fan-menu': { const rect = target.getBoundingClientRect(); openDeviceMenu({ kind: 'fan', id: selectedStandingFan }, rect.left, rect.top); break; }
+    case 'purifier-menu': { const rect = target.getBoundingClientRect(); openDeviceMenu({ kind: 'purifier' }, rect.left, rect.top); break; }
+    case 'weather-controls': selectTab('environment'); $('#controls').scrollIntoView({ block: 'start' }); $('#house-orientation').focus({ preventScroll: true }); break;
     case 'remove-standing-fan': removeStandingFan(); break;
     case 'place-standing-fan': moveStandingFan(selectedStandingFan, $<HTMLInputElement>('#standing-fan-x').valueAsNumber, $<HTMLInputElement>('#standing-fan-z').valueAsNumber); break;
     case 'guide': openDialog('#guide-dialog', target); break;
@@ -898,6 +939,7 @@ document.addEventListener('click', event => {
       break;
     }
     case 'reset-weather': {
+      clearForecast();
       const preset = PRESETS.find(item => item.id === conditions.scenarioId) ?? PRESETS[0];
       for (const field of ['outdoorTemperature', 'outdoorPm25', 'windSpeed', 'humidity', 'timeOfDay'] as const) conditions[field] = preset.conditions[field];
       delete conditions.windFrom;
@@ -921,12 +963,17 @@ document.addEventListener('input', event => {
   const value = Number(input.value);
   if (!Number.isFinite(value)) return;
   const field = input.dataset.field as 'outdoorTemperature' | 'outdoorPm25' | 'humidity' | 'windSpeed' | 'timeOfDay' | 'acSetpoint';
+  if (field !== 'acSetpoint') clearForecast();
   conditions[field] = Math.min(Number(input.max), Math.max(Number(input.min), value));
   markCustom(true);
 });
 document.addEventListener('change', event => {
   const input = event.target as HTMLInputElement;
   if (isSeparateWorkspaceControl(input)) return;
+  if (input.id === 'house-orientation') {
+    if ([0, 90, 180, 270].includes(Number(input.value))) { conditions.houseOrientationDeg = Number(input.value) as Conditions['houseOrientationDeg']; markCustom(true); renderReadings(); }
+    return;
+  }
   if (input.id === 'standing-fan-select') { selectStandingFan(input.value); return; }
   if (input.id === 'standing-fan-room') {
     const position = findStandingFanPosition(input.value, conditions, selectedStandingFan);
@@ -945,6 +992,7 @@ document.addEventListener('change', event => {
     return;
   }
   if (input.id === 'outdoor-aqi') {
+    weatherControls.cancelPending();
     const concentration = usAqiEquivalentToPm25(input.valueAsNumber);
     if (concentration === null) { syncControls(); notify('Enter a whole-number US EPA PM2.5 index equivalent from 0 to 500.'); return; }
     if (conditions.outdoorPm25 !== concentration) { conditions.outdoorPm25 = concentration; markCustom(true); }
@@ -956,11 +1004,13 @@ document.addEventListener('change', event => {
     const value = input.valueAsNumber;
     if (!Number.isFinite(value)) { syncControls(); notify(`Enter a number between ${input.min} and ${input.max}.`); return; }
     const bounded = Number(Math.min(Number(input.max), Math.max(Number(input.min), value)).toFixed(1));
+    if (field !== 'outdoorPm25') clearForecast(); else weatherControls.cancelPending();
     if (conditions[field] !== bounded) { conditions[field] = bounded; markCustom(true); }
     else syncControls();
     return;
   }
   if (input.id === 'windFrom') {
+    clearForecast();
     if (input.value === '') delete conditions.windFrom;
     else if (['N', 'E', 'S', 'W'].includes(input.value)) conditions.windFrom = input.value as Conditions['windFrom'];
     else return;
@@ -982,6 +1032,7 @@ document.addEventListener('change', event => {
 });
 const dialogLaunchers = new WeakMap<HTMLDialogElement, HTMLElement>();
 function openDialog(selector: string, launcher: HTMLElement): void {
+  deviceMenu.close();
   const dialog = $<HTMLDialogElement>(selector);
   dialogLaunchers.set(dialog, launcher.closest('#more-menu') ? $('#more-menu > summary') : launcher);
   $<HTMLDetailsElement>('#more-menu').open = false;
@@ -1009,7 +1060,7 @@ $('.control-tabs').addEventListener('keydown', event => {
 document.addEventListener('keydown', event => {
   if (event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
   const target = event.target as HTMLElement;
-  if (target.matches('input, select, textarea, [contenteditable="true"]')) return;
+  if (target.matches('input, select, textarea, [contenteditable="true"]') || target.closest('.device-context-menu')) return;
   if (document.querySelector('dialog[open]')) {
     if (event.key.toLowerCase() === 'h' && $<HTMLDialogElement>('#help-dialog').open) $<HTMLDialogElement>('#help-dialog').close();
     return;
@@ -1059,11 +1110,25 @@ document.addEventListener('click', event => {
 $('#more-menu').addEventListener('keydown', event => {
   if ((event as KeyboardEvent).key === 'Escape') { $<HTMLDetailsElement>('#more-menu').open = false; $('#more-menu > summary').focus(); }
 });
+const deviceMenu = createDeviceMenu((target, action) => {
+  changeDevice(conditions, target, action); markCustom(true); renderReadings();
+});
+function openDeviceMenu(target: DeviceTarget, x: number, y: number): void {
+  const fan = target.kind === 'fan' ? resolveStandingFans(conditions).find(item => item.id === target.id) : undefined;
+  if (target.kind === 'fan' && !fan) return;
+  deviceMenu.open(target, fan ? standingFanName(fan.id) : 'Air purifier', fan?.on ?? conditions.purifier?.on ?? false, x, y);
+}
+const weatherControls = mountWeatherControls($('#weather-loader'), sample => {
+  Object.assign(conditions, { outdoorTemperature: sample.outdoorTemperature, humidity: sample.humidity, windSpeed: sample.windSpeed, windFrom: sample.windFrom, timeOfDay: sample.timeOfDay, weatherProvenance: sample.provenance });
+  markCustom(true); renderReadings();
+});
+function clearForecast(): void { weatherControls.cancelPending(); delete conditions.weatherProvenance; }
 checkControlMappings(); renderRoomControls(); syncControls(); renderReadings();
 createScene($('#scene'), selectRoom, (kind, slotId) => {
   if (workspace === 'flat') editDevice(kind === 'fan' ? 'fanSlot' : 'purifierSlot', slotId);
 }, {
   onMove: (id, x, z) => { if (workspace === 'flat') moveStandingFan(id, x, z); },
+  onContext: (target, x, y) => { if (workspace === 'flat') openDeviceMenu(target, x, y); },
   onSelect: id => { if (workspace === 'flat') { selectStandingFan(id); selectTab('devices'); } },
 }).then(controller => {
   scene = controller;
@@ -1205,6 +1270,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) inval
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
   disposed = true;
+  weatherControls.dispose(); deviceMenu.close();
   invalidateGpuStep();
   gpu?.dispose();
   gpu = null;

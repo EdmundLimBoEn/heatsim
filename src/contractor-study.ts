@@ -24,6 +24,7 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   const objectUrls = new Set<string>();
   let examplesAbort: AbortController | null = null;
   let report: ContractorComparisonResult | null = null;
+  let focusedPlan: number | null = null;
   let generation = 0;
   let running = false;
   let runFailed = false;
@@ -84,6 +85,51 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
   const formatNote = $('.cs-format-note'), formatCopy = $('.cs-format-copy');
   formatNote.before(format); format.append(formatNote, formatCopy);
 
+  const planNavigation = document.createElement('div');
+  planNavigation.className = 'cs-plan-navigation'; planNavigation.hidden = true;
+  planNavigation.innerHTML = `<button id="cs-all-plans" class="cs-button cs-secondary" type="button">← All three plans</button><span>Inspect plan</span>${plans.map((_, index) => `<button class="cs-button cs-secondary" data-study-focus="${index}" type="button" aria-pressed="false">${String.fromCharCode(65 + index)}</button>`).join('')}`;
+  $('.cs-plan-cards').before(planNavigation);
+  plans.forEach((_, index) => {
+    const card = $(`[data-study-plan="${index}"]`);
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'cs-button cs-secondary cs-open-plan';
+    button.dataset.studyFocus = String(index); button.disabled = true; button.textContent = 'Open plan';
+    card.querySelector('header')!.append(button);
+    const readings = document.createElement('div'); readings.id = `cs-plan-reading-${index}`; readings.className = 'cs-plan-reading'; readings.hidden = true;
+    $(`#cs-preview-${index}`).after(readings);
+  });
+  function focusPlan(index: number | null): void {
+    if (index !== null && !plans[index]) return;
+    const previous = focusedPlan;
+    focusedPlan = index;
+    report?.cases.forEach((option, slot) => { $(`#cs-preview-${slot}`).innerHTML = preview(option.plan, slot, option.final); });
+    $('.cs-plan-cards').classList.toggle('cs-plan-focused', index !== null);
+    planNavigation.hidden = index === null;
+    plans.forEach((plan, slot) => {
+      $(`[data-study-plan="${slot}"]`).hidden = index !== null && slot !== index;
+      $(`#cs-plan-reading-${slot}`).hidden = slot !== index;
+      const switcher = planNavigation.querySelector<HTMLButtonElement>(`[data-study-focus="${slot}"]`)!;
+      switcher.disabled = !plan; switcher.setAttribute('aria-pressed', String(slot === index));
+    });
+    if (index !== null) {
+      renderPlanReading(index);
+      const title = $(`#cs-plan-name-${index}`); title.tabIndex = -1; title.focus({ preventScroll: true });
+      planNavigation.scrollIntoView({ block: 'start' });
+    } else if (previous !== null) {
+      $<HTMLButtonElement>(`[data-study-plan="${previous}"] [data-study-focus]`).focus({ preventScroll: true });
+    }
+  }
+  function renderPlanReading(index: number, sampleIndex?: number): void {
+    const option = report?.cases[index];
+    const reading = $(`#cs-plan-reading-${index}`);
+    if (!option) { reading.innerHTML = '<p class="cs-help">Explore this plan’s openings and equipment below. Compare all three plans to see its simulated room temperatures and airflow.</p>'; return; }
+    const selected = sampleIndex ?? option.samples.length - 1;
+    const snapshot = option.samples[selected];
+    if (!snapshot) return;
+    if (sampleIndex === undefined) reading.innerHTML = `<label class="cs-field" for="cs-plan-time-${index}"><span>Explore this run · simulated time</span><input id="cs-plan-time-${index}" data-study-sample="${index}" type="range" min="0" max="${option.samples.length - 1}" step="1" value="${selected}"></label><div class="cs-plan-snapshot"></div>`;
+    $(`#cs-preview-${index}`).innerHTML = preview(option.plan, index, snapshot);
+    reading.querySelector('.cs-plan-snapshot')!.innerHTML = `<p class="cs-plan-totals"><strong>${display(snapshot.elapsedSeconds / 60, 1)} min</strong> · Mean air ${display(snapshot.averageTemperature, 2)}°C · PM2.5 ${display(snapshot.averagePm25, 1)} µg/m³ · Electricity ${display(snapshot.energyWh, 2)} Wh</p><p class="cs-help">Actual recorded room-model samples. Solid arrows: lower-layer exchange; dashed: upper layer. Arrows indicate direction, not a resolved air jet.</p><div class="cs-comparison-scroll" tabindex="0" aria-label="Individual plan room readings"><table class="cs-room-table"><thead><tr><th>Room</th><th>Lower °C</th><th>Upper °C</th><th>PM2.5 µg/m³</th><th>Direct boundary ACH</th></tr></thead><tbody>${snapshot.rooms.map(room => `<tr><th scope="row">${escape(option.plan.rooms.find(item => item.id === room.room)?.label ?? room.room)}</th><td>${display(room.lowerTemperature, 2)}</td><td>${display(room.upperTemperature, 2)}</td><td>${display(room.pm25, 2)}</td><td>${display(room.boundaryAirChangesPerHour, 2)}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+
   const input = (id: string) => $<HTMLInputElement>(`#${id}`).value;
   function setStatus(message: string, state: 'idle' | 'working' | 'error' | 'success' = 'idle'): void {
     $('#cs-status').textContent = message; $('#cs-status').dataset.state = state;
@@ -137,6 +183,7 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
     setStatus(message); ready();
     $('#cs-preview-key').textContent = 'Geometry view · blue windows, amber doors. F = fan, P = purifier, A = air conditioning. Appliance moves snap to a room.';
     plans.forEach((plan, index) => { if (plan) $(`#cs-preview-${index}`).innerHTML = preview(plan, index); });
+    if (focusedPlan !== null) renderPlanReading(focusedPlan);
   }
   function download(text: string, filename: string, type: string): void {
     const url = URL.createObjectURL(new Blob([text], { type })); objectUrls.add(url);
@@ -154,6 +201,7 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
     const plan = plans[index]; if (!plan) return;
     const settingsOpen = container.querySelector<HTMLDetailsElement>(`#cs-plan-controls-${index} details`)?.open ?? false;
     $(`#cs-plan-name-${index}`).textContent = plan.name;
+    $<HTMLButtonElement>(`[data-study-plan="${index}"] [data-study-focus]`).disabled = false;
     $(`#cs-preview-${index}`).innerHTML = preview(plan, index);
     renderPlanMeta(index);
     $(`#cs-plan-controls-${index}`).innerHTML = `<details class="cs-details cs-plan-settings"><summary>Openings, equipment & room placement</summary><p class="cs-help">Drag appliance markers to another room, or use the room selectors below. Positions snap to rooms; within-room coordinates are not solved.</p>${plan.openings.map(opening => `<label class="cs-check"><input type="checkbox" data-study-opening="${escape(opening.id)}" data-study-index="${index}" ${opening.open ? 'checked' : ''} ${opening.kind === 'passage' ? 'disabled' : ''}><span>${escape(opening.id)}<small>${opening.kind === 'passage' ? 'passage · always open' : opening.kind} · ${opening.roomB === null ? 'exterior' : 'internal'}</small></span></label>`).join('')}${plan.devices.map(device => `<label class="cs-check"><input type="checkbox" data-study-device="${escape(device.id)}" data-study-index="${index}" ${device.on ? 'checked' : ''}><span>${escape(device.id)}<small>${device.kind}</small></span></label><label class="cs-placement-label">Room for ${escape(device.id)}<select data-study-device-room="${escape(device.id)}" data-study-index="${index}">${plan.rooms.map(room => `<option value="${escape(room.id)}" ${room.id === device.roomId ? 'selected' : ''}>${escape(room.label)}</option>`).join('')}</select></label>`).join('') || '<p class="cs-help">No powered equipment declared.</p>'}</details>`;
@@ -200,11 +248,12 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
       <div class="cs-recommendations">${result.recommendations.map(recommendation => `<article><span>${escape(recommendation.label)}</span><h4>${escape(names(recommendation.planIds))}</h4><strong>${display(recommendation.value, 2)} <small>${escape(recommendation.unit)}</small></strong><p>${recommendation.planIds.length > 1 ? 'Tied options. ' : ''}${escape(recommendation.reason)}</p></article>`).join('')}</div>
       <div class="cs-shortlist"><strong>Plans worth a closer look: ${escape(names(result.shortlistPlanIds))}</strong><p>${result.shortlistPlanIds.length === result.cases.length ? 'Every tested plan retains a trade-off; none clearly dominates all three screening metrics.' : 'These options are not clearly worse across all three screening metrics: mean temperature, final mean PM2.5 and total electricity.'} This is a shortlist under the stated assumptions, not a universal best layout or installation instruction.</p></div>
       ${result.warnings.length ? `<ul class="cs-warnings">${result.warnings.map(warning => `<li>${escape(warning)}</li>`).join('')}</ul>` : ''}
-      <div class="cs-comparison-scroll" tabindex="0" aria-label="Results table; scroll horizontally for more columns"><table class="cs-comparison-table"><caption>Three plans under the same weather, starting concentrations, total occupancy and duration</caption><thead><tr><th scope="col">Model output</th>${result.cases.map((option, index) => `<th scope="col"><span class="cs-table-plan" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span>${escape(option.plan.name)}</th>`).join('')}</tr></thead><tbody>${rows.map(([label, unit, value, decimals]) => `<tr><th scope="row">${label}<small>${unit}</small></th>${result.cases.map(option => `<td>${display(value(option), decimals)}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Active equipment<small>Declared states, not an equal equipment budget</small></th>${result.cases.map(option => `<td>${option.enabledEquipment.fans} fans<br>${option.enabledEquipment.purifiers} purifiers<br>${option.enabledEquipment.ac} AC</td>`).join('')}</tr></tbody></table></div>
+      <div class="cs-comparison-scroll" tabindex="0" aria-label="Results table; scroll horizontally for more columns"><table class="cs-comparison-table"><caption>Three plans under the same weather, starting concentrations, total occupancy and duration</caption><thead><tr><th scope="col">Model output</th>${result.cases.map((option, index) => `<th scope="col"><span class="cs-table-plan" style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)}</span><button class="cs-text-button" data-study-focus="${index}" type="button">${escape(option.plan.name)} ↗</button></th>`).join('')}</tr></thead><tbody>${rows.map(([label, unit, value, decimals]) => `<tr><th scope="row">${label}<small>${unit}</small></th>${result.cases.map(option => `<td>${display(value(option), decimals)}</td>`).join('')}</tr>`).join('')}<tr><th scope="row">Active equipment<small>Declared states, not an equal equipment budget</small></th>${result.cases.map(option => `<td>${option.enabledEquipment.fans} fans<br>${option.enabledEquipment.purifiers} purifiers<br>${option.enabledEquipment.ac} AC</td>`).join('')}</tr></tbody></table></div>
       <section class="cs-result-chart"><h4>Mean air temperature over time</h4><div class="cs-chart-legend">${result.cases.map((option, index) => `<span style="--plan-color:${palette[index]}">${String.fromCharCode(65 + index)} · ${escape(option.plan.name)}</span>`).join('')}</div>${chart}<p class="cs-help">Means include both room air layers. Floor area, room connectivity and equipment differ between plans; per-area electricity is context, not a substitute for the absolute energy demand.</p></section>
       <div class="cs-room-results">${result.cases.map(option => `<details class="cs-details"><summary>${escape(option.plan.name)} · room readings</summary><div class="cs-comparison-scroll" tabindex="0" aria-label="Results table; scroll horizontally for more columns"><table class="cs-room-table"><thead><tr><th scope="col">Room</th><th scope="col">Lower °C</th><th scope="col">Upper °C</th><th scope="col">PM2.5 µg/m³</th><th scope="col">Direct boundary ACH</th></tr></thead><tbody>${option.final.rooms.map(room => `<tr><th scope="row">${escape(option.plan.rooms.find(item => item.id === room.room)?.label ?? room.room)}</th><td>${display(room.lowerTemperature, 2)}</td><td>${display(room.upperTemperature, 2)}</td><td>${display(room.pm25, 2)}</td><td>${display(room.boundaryAirChangesPerHour, 2)}</td></tr>`).join('')}</tbody></table></div></details>`).join('')}</div>
       <div class="cs-site-checks"><h4>Before making changes at home</h4><p>Check the real dimensions, window sizes and orientation, nearby obstructions, and equipment ratings before acting on a result. Ask a qualified installer about noise, safe mounting and installation constraints. This room-by-room model does not resolve furniture, air jets or three-dimensional turbulence.</p><p>To test weather sensitivity, change the shared conditions and rerun all three plans. Export each captured report before replacing the result.</p></div>`;
     result.cases.forEach((option, index) => { $(`#cs-preview-${index}`).innerHTML = preview(option.plan, index, option.final); });
+    if (focusedPlan !== null) renderPlanReading(focusedPlan);
     $('#cs-preview-key').textContent = 'Solved opening exchange · solid arrows: lower layer; dashed: upper layer. Opposing arrows show counterflow. Room-network illustration, not resolved 3D airflow.';
   }
   async function run(): Promise<void> {
@@ -239,7 +288,7 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
       finally { if (token === generation && !disposed) { running = false; $('#cs-cancel').hidden = true; $('#cs-progress').hidden = true; ready(); } }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Check the study inputs.', 'error'); }
   }
-  container.addEventListener('input', event => { const target = event.target as HTMLElement; if (target.matches('[data-study-field]') && target.id !== 'cs-scenario') { windLink(); weatherSummary(); validateBrief(); invalidate('Settings changed. Compare again to update the results.'); } }, { signal: events.signal });
+  container.addEventListener('input', event => { const target = event.target as HTMLInputElement; if (target.dataset.studySample !== undefined) { renderPlanReading(Number(target.dataset.studySample), Number(target.value)); return; } if (target.matches('[data-study-field]') && target.id !== 'cs-scenario') { windLink(); weatherSummary(); validateBrief(); invalidate('Settings changed. Compare again to update the results.'); } }, { signal: events.signal });
   container.addEventListener('change', async event => {
     const target = event.target as HTMLInputElement;
     if (target.id === 'cs-scenario') {
@@ -301,7 +350,10 @@ export function mountContractorStudy(container: HTMLElement, options: { readCond
     } catch (error) { if (!controller.signal.aborted && !disposed) setStatus(`${error instanceof Error ? error.message : 'The example plans could not load.'} Existing plans are retained. Try loading the examples again or import a JSON plan.`, 'error'); }
     finally { if (examplesAbort === controller) examplesAbort = null; if (!disposed) { $<HTMLButtonElement>('#cs-load-examples').disabled = false; ready(); } }
   }, { signal: events.signal });
+  $('#cs-all-plans').addEventListener('click', () => focusPlan(null), { signal: events.signal });
   container.addEventListener('click', event => {
+    const focus = (event.target as HTMLElement).closest<HTMLElement>('[data-study-focus]');
+    if (focus) { focusPlan(Number(focus.dataset.studyFocus)); return; }
     const target = (event.target as HTMLElement).closest<HTMLElement>('[data-study-download-plan]');
     if (!target) return; const index = Number(target.dataset.studyDownloadPlan), plan = plans[index];
     if (plan) download(JSON.stringify(plan, null, 2), `heatsim-plan-${String.fromCharCode(65 + index)}.json`, 'application/json');

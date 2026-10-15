@@ -27,7 +27,7 @@ export function describeAdviceChanges(before: Conditions, after: Conditions): st
       if (!previous?.on) actions.push(`Turn on the ${name} in ${place} (${speed})`);
       else if (moved) actions.push(`Move the ${name} to ${place} (${speed})`);
       else if (previous.speed !== fan.speed) actions.push(`Set the ${name} in ${place} to ${speed}`);
-      if (!previous?.on || moved || previous.angleDeg !== fan.angleDeg) actions.push(`Point the ${name} towards ${Number(fan.angleDeg.toFixed(1))}° (0° north, 90° east)`);
+      if (!previous?.on || moved || previous.angleDeg !== fan.angleDeg) actions.push(`Point the ${name} towards ${Number(fan.angleDeg.toFixed(1))}° (0° plan top, 90° plan right)`);
     } else if (previous?.on) actions.push(`Turn off the ${name}`);
   }
   for (const previous of previousFans) if (!nextFans.some(fan => fan.id === previous.id)) {

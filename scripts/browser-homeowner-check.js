@@ -39,10 +39,10 @@ window.heatSimHomeownerCheck = { status: 'running' };
   });
   try {
     metrics.mapTop = element('.model-panel').getBoundingClientRect().top;
-    metrics.suggestTop = element('#run-optimiser').getBoundingClientRect().top;
-    assert(innerWidth === 1280 && metrics.mapTop <= 150 && metrics.suggestTop < innerHeight - 44, 'Desktop map and Suggest changes are visible immediately');
+    metrics.suggestTop = element('.quick-controls').getBoundingClientRect().top;
+    assert(innerWidth === 1280 && metrics.mapTop <= 150 && metrics.suggestTop < innerHeight - 44, 'Desktop map and quick controls are visible immediately');
     const primaries = [...document.querySelectorAll('.button.primary')].filter(node => node.getClientRects().length && node.getBoundingClientRect().top < innerHeight);
-    assert(primaries.length === 1 && primaries[0].id === 'run-optimiser', 'Suggest changes is the single initial primary action above the fold');
+    assert(primaries.length === 0 && !element('#suggestion-disclosure').open, 'Optional suggestions start collapsed so direct controls lead the demo');
     assert(!element('#more-menu').open && !element('#manual-weather').open && !element('#advice-settings').open, 'Expert and device-budget disclosures start closed');
     assert(element('[data-mode="pressure"]').hidden && element('[data-preset="validation"]').hidden, 'Pressure and validation remain behind Science views');
     const science = reveal(element('#science-views')); science.checked = true; science.dispatchEvent(new Event('change', { bubbles: true }));

@@ -45,7 +45,7 @@ function purifierCollision(x: number, z: number, conditions: Conditions): boolea
 export function resolveStandingFans(conditions: Conditions): ResolvedStandingFan[] {
   const fans: ResolvedStandingFan[] = [], used = new Set([PRIMARY_STANDING_FAN_ID]);
   const primary = conditions.portableFan;
-  if (primary) {
+  if (primary && !primary.removed) {
     const slot = FAN_SLOTS[clamp(Math.round(finite(primary.slot, 0)), 0, FAN_SLOTS.length - 1)];
     const position = primary.position;
     const placement = position ? geometryPlacement(position.x, position.z) : undefined;

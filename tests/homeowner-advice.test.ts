@@ -10,7 +10,7 @@ describe('homeowner advice from actual control differences', () => {
     const after = structuredClone(before);
     after.portableFan!.slot = 0;
     after.windows.window_bedroom3_1 = true;
-    expect(describeAdviceChanges(before, after)).toEqual(['Move the main fan to Bedroom 3 (medium)', 'Point the main fan towards 0° (0° north, 90° east)', 'Open the Bedroom 3 north window 1']);
+    expect(describeAdviceChanges(before, after)).toEqual(['Move the main fan to Bedroom 3 (medium)', 'Point the main fan towards 0° (0° plan top, 90° plan right)', 'Open the Bedroom 3 north window 1']);
   });
   it('describes free position and absolute direction changes from the actual current placement', () => {
     const before = defaultConditions();
@@ -25,7 +25,7 @@ describe('homeowner advice from actual control differences', () => {
     after.portableFan!.slot = 0;
     expect(describeAdviceChanges(before, after)).toEqual([
       'Move the main fan to Bedroom 3 (medium)',
-      'Point the main fan towards 0° (0° north, 90° east)',
+      'Point the main fan towards 0° (0° plan top, 90° plan right)',
     ]);
     const back = describeAdviceChanges(after, before);
     expect(back[0]).toBe(`Move the main fan to Living at X ${point.x.toFixed(2)} m, Z ${point.z.toFixed(2)} m (medium)`);
@@ -39,7 +39,7 @@ describe('homeowner advice from actual control differences', () => {
     after.portableFan!.on = true;
     expect(describeAdviceChanges(before, after).some(text => text.includes('fan 2'))).toBe(false);
     after.standingFans![0].angleDeg = 270;
-    expect(describeAdviceChanges(before, after)).toContain('Point the fan 2 towards 270° (0° north, 90° east)');
+    expect(describeAdviceChanges(before, after)).toContain('Point the fan 2 towards 270° (0° plan top, 90° plan right)');
     after.standingFans = [];
     expect(describeAdviceChanges(before, after)).toContain('Remove fan 2');
   });
@@ -64,9 +64,9 @@ describe('homeowner advice from actual control differences', () => {
     const before = defaultConditions();
     const after = structuredClone(before);
     after.portableFan = { on: true, slot: 0, speed: 2, angleDeg: 45 };
-    expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 45° (0° north, 90° east)');
+    expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 45° (0° plan top, 90° plan right)');
     after.portableFan.angleDeg = 135;
-    expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 315° (0° north, 90° east)');
+    expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 315° (0° plan top, 90° plan right)');
   });
   it('guards both absolute D4 window states and D5 purifier state', () => {
     const before = defaultConditions();

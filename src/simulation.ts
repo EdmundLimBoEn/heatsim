@@ -1,8 +1,9 @@
 import { defaultConditions, deviceRoom, model, type Conditions, type ModelBox, type RoomReading, type SimulationResult } from './domain';
 import { PURIFIER_SLOTS } from './config/slots';
 import { resolveStandingFans } from './standing-fans';
+import { windToPlanDirection } from './weather-orientation';
 
-export const SIMULATION_NOTE = 'HeatSim is a qualitative toy CFD demonstration. This emergency room-model mode uses well-mixed rooms, not CFD, and is not calibrated. Outdoor conditions come from scenarios; no sensors or live weather data are used. Fans move air without refrigerating it. Comfort and energy are illustrative estimates.';
+export const SIMULATION_NOTE = 'HeatSim is a qualitative toy CFD demonstration. This emergency room-model mode uses well-mixed rooms, not CFD, and is not calibrated. Outdoor conditions come from presets, manual input or an explicitly loaded regional forecast; no sensors are used. This emergency model uses wind speed only, without directional pressure. Fans move air without refrigerating it. Comfort and energy are illustrative estimates.';
 
 export interface ScenarioMetadata {
   id: string; name: string; description: string;
@@ -200,7 +201,8 @@ export function stepSimulation(previous: SimulationResult, conditions: Condition
   const solarGain = model.rooms.map((room, index) => {
     if (!scenario) return sunshine * (glazingAreas[index] * 110 + exteriorAreas[index] * 5);
     // shortcut: sunny façades heat their adjoining room uniformly; use the grid engine for spatial gradients.
-    return scenario.sunFacades.reduce((watts, facade) => {
+    return scenario.sunFacades.reduce((watts, geographicFacade) => {
+      const facade = windToPlanDirection(geographicFacade, conditions.houseOrientationDeg);
       const normal = facade === 'N' || facade === 'S' ? 2 : 0;
       const edge = facade === 'N' || facade === 'W' ? room.min[normal] : room.max[normal];
       const boundary = facade === 'N' || facade === 'W' ? 0 : normal === 0 ? 12 : 7.5;

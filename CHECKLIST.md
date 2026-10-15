@@ -152,3 +152,14 @@ The host C++ check exercises the sketch with mocked Arduino functions; the SSTui
 | AT-14 honesty | Mode/relative-pressure honesty labels observed in native WebGL and export checks. No sensor or reference-CFD validation claims are authorized. |
 
 Written by gpt-6-astra in Codex on behalf of Edmund
+
+## Demo interaction and weather update — 15 October 2026
+
+- PASS: 310 tests across 25 files, TypeScript/production build, scene self-check and whitespace check.
+- PASS: browser homeowner walkthrough (31 assertions), standing-fan editing (14), demo controls/weather/comparisons (17), Contractor Study including individual-plan playback (70 at 390×844).
+- PASS: native right-click opens Main fan and air-purifier menus. Keyboard-accessible quick controls cover power, rotation and fan removal/restoration.
+- PASS: explicit live Open-Meteo load in browser; mock failures preserve conditions. Forecast attribution and plan orientation survive comparison capture/export. Haze remains manual.
+- PASS: actual window-fan worker demos show cooler replacement air (Bedroom 3 −0.58°C), blocked route (+0.07°C, negligible flow), and hotter replacement air (+0.08°C). These are qualitative toy-model outputs, not measured savings.
+- Not checked: physical USB board and real airflow/temperature calibration. Regional forecasts do not resolve airflow at an individual window.
+
+Written by gpt-6-astra in Codex on behalf of Edmund

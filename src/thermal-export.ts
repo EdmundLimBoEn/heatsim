@@ -32,6 +32,7 @@ export function thermalComparisonCsv(report: ThermalComparisonResult): string {
     scenarioId: settings.base.scenarioId ?? 'baseline', outdoorTemperature: settings.base.outdoorTemperature,
     outdoorPm25: settings.base.outdoorPm25, humidity: settings.base.humidity,
     windSpeed: settings.base.windSpeed, windFrom: settings.base.windFrom ?? 'scenario default',
+    houseOrientationDeg: settings.base.houseOrientationDeg ?? 0, weatherProvenance: settings.base.weatherProvenance ?? null,
     timeOfDay: settings.base.timeOfDay, corridor: settings.corridor ?? { enabled: false },
   });
   if (json(environment(baselineConfig)) !== json(environment(config)) || baselineConfig.durationSeconds !== config.durationSeconds || report.durationSeconds !== config.durationSeconds) {
@@ -44,8 +45,8 @@ export function thermalComparisonCsv(report: ThermalComparisonResult): string {
   metadata('disclaimer', 'SIMULATED, uncalibrated educational comparison; not 3D CFD or measured performance. No latent moisture load, dehumidification or health prediction.');
   metadata('comparison_mode', report.comparisonMode);
   metadata('comparison', configurationMode
-    ? 'Captured baseline hardware/envelope versus candidate hardware/envelope. Both runs use current candidate outdoor weather, corridor boundary, time of day, identical initial state and duration; captured baseline weather is not reused.'
-    : 'Identical initial state, openings, envelope, outdoor conditions, corridor boundary and duration. Only the selected ventilation fan is switched off/on.');
+    ? 'Captured baseline hardware/envelope versus candidate hardware/envelope. Both runs use current candidate outdoor weather, house orientation, corridor boundary, time of day, identical initial state and duration; captured baseline weather is not reused.'
+    : 'Identical initial state, openings, envelope, outdoor conditions, house orientation, corridor boundary and duration. Only the selected ventilation fan is switched off/on.');
   metadata('fan_adapter', 'Each actual configuration identifies its fan-adapter opening. That opening has a sealed surround and passively open fan passage, including when the fan is off, regardless of its base window flag. Other openings retain that configuration\'s settings.');
   metadata('difference_sign', `${candidateId} minus ${baselineId}; a negative temperature difference means the ${candidateId} run is cooler.`);
   metadata('varied_settings_json', json(report.variedSettings), 'JSON');
@@ -64,7 +65,10 @@ export function thermalComparisonCsv(report: ThermalComparisonResult): string {
   metadata('outdoor_pm25', config.base.outdoorPm25, 'ug/m3');
   metadata('humidity', config.base.humidity, '% RH (fixed scenario value)');
   metadata('wind_speed', config.base.windSpeed, 'm/s');
-  metadata('wind_from', config.base.windFrom ?? 'scenario default', 'cardinal direction the wind comes FROM; N means north-to-south');
+  metadata('wind_from', config.base.windFrom ?? 'scenario default', 'geographic cardinal direction the wind comes FROM; house orientation determines the local facade');
+  metadata('house_orientation', config.base.houseOrientationDeg ?? 0, 'degrees clockwise: plan local north bearing from geographic north');
+  metadata('weather_source', config.base.weatherProvenance ? 'Open-Meteo regional forecast imported once; not measured window airflow or continuously refreshed weather' : 'Manual/scenario conditions');
+  if (config.base.weatherProvenance) metadata('weather_provenance_json', json(config.base.weatherProvenance), 'JSON; timestamps are ISO UTC; windDegrees is geographic FROM before cardinal rounding');
   metadata('time_of_day', config.base.timeOfDay, 'hour');
   metadata('corridor_boundary', config.corridor?.enabled
     ? 'Prescribed main-door reservoir temperature/PM2.5, shared by both runs; floor pressure is zero with hydrostatic layer offsets. Not measured data or a simulated corridor volume.'

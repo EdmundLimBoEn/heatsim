@@ -135,13 +135,11 @@ export function mountCoolingLab(container: HTMLElement, options: CoolingLabOptio
   };
   const form = $('#cl-form');
   const [comparison, setup, weather, openings, envelope] = [...form.querySelectorAll<HTMLElement>(':scope > section')];
-  const more = disclosure('cl-more-settings', 'Weather, openings & advanced comparisons', 'cl-more-settings');
+  const more = disclosure('cl-more-settings', 'Customize test', 'cl-more-settings');
   const fanSettings = document.createElement('section');
-  const fanHeading = document.createElement('h3'); fanHeading.textContent = 'Fan rating and test length';
-  fanSettings.append(fanHeading);
-  let fanControl: ChildNode | null = $('#cl-flow').closest('label');
+  let fanControl: ChildNode | null = setup.querySelectorAll('h3')[1];
   while (fanControl) {
-    const next = fanControl.nextSibling;
+    const next: ChildNode | null = fanControl.nextSibling;
     fanSettings.append(fanControl);
     fanControl = next;
   }

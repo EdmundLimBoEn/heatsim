@@ -11,7 +11,7 @@ Hard deadline: **code freeze Thu 15 Oct 2026, 16:00 SGT.** Prefer working and si
 4. Every hardware input is also reachable by keyboard and on-screen controls (doc 03 keyboard map).
 5. The live demo must never freeze: NaN watchdog, serial disconnect handling, worker errors caught.
 6. Don't change the protocol (doc 04) without updating the doc and the firmware outline.
-7. Don't add a backend, accounts, analytics or deployment. It runs on `localhost`.
+7. Don't add a backend, accounts or analytics. Local development runs on `localhost`. User-authorized hosting exception: deploy the static demo with `cf` to `https://heatsim.sillyapps.co`; preserve local/offline simulation support.
 
 ## Stack [D]
 - **Vite + TypeScript (strict)**, `npm` (Bun is fine for scripts).

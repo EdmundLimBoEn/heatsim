@@ -9,7 +9,9 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "build:pack": "python3 scripts/build-pack.py",
-    "check": "npm test && npm run build && python3 scripts/build-pack.py"
+    "check": "npm test && npm run build && python3 scripts/build-pack.py",
+    "build:cloudflare": "bun run build && node scripts/prepare-cloudflare.mjs",
+    "deploy": "bun run build:cloudflare && cf deploy --prebuilt"
   },
   "dependencies": {
     "three": "^0.180.0"

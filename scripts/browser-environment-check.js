@@ -70,7 +70,7 @@ window.heatSimEnvironmentCheck = { status: 'running' };
     assert(['outdoorTemperature', 'outdoorPm25', 'windSpeed', 'humidity', 'timeOfDay'].every(field => restored[field] === scenarioWeather[field]) && restored.windFrom === undefined, 'Weather reset restores scenario values and clears the wind override');
     assert(JSON.stringify(restored.windows) === JSON.stringify(beforeReset.windows) && JSON.stringify(restored.devices) === JSON.stringify(beforeReset.devices), 'Weather reset preserves hardware openings and devices');
     change('#windFrom', 'W');
-    reveal(element('[data-preset="haze_outside"]')).click();
+    change('#day-select', 'haze_outside');
     assert(app.readConditions().windFrom === undefined && element('#windFrom').value === '', 'Choosing a scenario clears the manual wind direction');
     return { checks, viewport: { width: innerWidth, height: innerHeight } };
   } finally {

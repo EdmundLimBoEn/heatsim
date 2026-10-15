@@ -163,3 +163,14 @@ Written by gpt-6-astra in Codex on behalf of Edmund
 - Not checked: physical USB board and real airflow/temperature calibration. Regional forecasts do not resolve airflow at an individual window.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
+
+## Simplified studio and public demo — 16 October 2026
+
+- PASS: 310 unit tests, strict production build, scene self-check and whitespace check.
+- PASS: 23 visible-control/focus/scroll checks at both 1280×800 and 390×844 with WebGL. The script checks obstruction before clicking; room rows do not overlap.
+- PASS: homeowner worker/Apply/Undo walkthrough (31 assertions), weather/device/fan-comparison walkthrough (17).
+- PASS: large borderless header QR with centered HeatSim mark decodes to https://heatsim.sillyapps.co at its rendered 112-pixel size using macOS Vision. Caption is one line. Header compacts after scrolling without changing page offset.
+- DEPLOYED: static assets through cf deploy --prebuilt, version 94c2ba98-49aa-4aa0-8c9d-4508c53dfa3f. Public DNS resolves and verified HTTPS serves the exact built JavaScript and QR asset using the resolved Cloudflare address.
+- LIMITATION: this Mac's normal resolver retained an initial negative lookup despite direct DNS resolving. Admin mDNSResponder cache reset requires the user's password; normal-address browser verification remained blocked locally. No physical hardware or real-world calibration checks were performed.
+
+Written by gpt-6-astra in Codex on behalf of Edmund

@@ -2,7 +2,7 @@
 
 **Current MVP:** the app works standalone with on-screen and keyboard controls. The SSTuino has not arrived, so board upload, USB wiring and servo operation are **not physically verified**. Optional hardware supplies button/limit-switch states; the default sketch drives no servos. **There are no environmental sensors** (no PSI, PM2.5, temperature or humidity). See [the practical wiring guide](hardware.md) for the implemented two-input baseline.
 
-The protocol below is implemented; sections explicitly marked planned or optional are not required to run the app.
+The protocol below is implemented; sections explicitly marked planned or optional are not required to run the app. Cooling Lab is also standalone. Its high-level exhaust/supply fan is a software experiment; no new serial command or physical ventilation actuator is added. Its envelope parameters describe the full-size flat, not the cardboard.
 
 ## 1. Planned board: SSTuino II (confirm the supplied revision)
 | Fact | Tag |

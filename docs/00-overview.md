@@ -4,13 +4,17 @@
 
 **This amendment describes the app that exists and takes precedence over the original roadmap below.** Use the [README](../README.md) for running and presenting it, and [CHECKLIST](../CHECKLIST.md) for verified versus pending work.
 
-HeatSim now runs as a standalone browser presentation: a refined 3D apartment view, a 2D plan-view heat/haze simulation, six scenarios, opening and device controls, and a background layout comparison. A keyboard and on-screen controls cover the demo. **The SSTuino has not arrived; physical electronics are optional future integration.** No sensor or live environmental API is used.
+HeatSim runs as a standalone browser presentation: a refined 3D apartment view, a 2D plan-view heat/haze simulation, six scenarios, opening and device controls, and a background layout comparison. Cooling Lab adds a separate full-flat, two-air-layer and surface-temperature model for matched high-level fan off/on experiments and envelope controls. A keyboard and on-screen controls cover the demo. **The SSTuino has not arrived; physical electronics are optional future integration.** No sensor or live environmental API is used.
 
 The cardboard handoff is ready to print: **1:65, 187.692 × 118.462 mm footprint, 40 mm walls**, inside a 200 × 150 mm area on A4. One A4 base plus one extra A4 sheet of 3 mm card supplies the roofless shell. See the [builder instructions](physical-model.md) and [complete pack](../public/build-pack/index.html).
 
 The honest pitch is: “Our qualitative toy CFD uses a coarse 2D floor-plan model to show possible heat, haze and airflow trends. The 3D apartment makes those trends visible. Its values are illustrative, and we have not validated it against measurements or professional CFD.” Pressure is a normalized relative index, not pascals.
 
-**Not completed:** 3D LBM, WebGPU compute, vertical buoyancy, SimScale/OpenFOAM reference runs, physical USB/switch tests or servo actuation. The historical NEA/event statements below come from the inherited brief; this build did not independently verify those external claims. Do not present a live data feed or a completed reference-validation study.
+Cooling Lab illustrates stratification using two fixed air layers per room, with heat exchange and surface storage. This is a reduced-order balance, not resolved 3D convection or a measured thermal model. Its ideal-expansion calculator is educational and does not cool either simulation. [Cooling science](cooling-science.md) and [fan thermodynamics](fan-thermodynamics.md) explain the mechanisms and limits. Thermal coefficients refer to the full-size flat, not the cardboard's material properties.
+
+The optional WebGPU path transports heat/haze on the planar grid while airflow remains CPU-computed; it is not the original 3D-LBM design. CPU fallback keeps the demo usable without WebGPU.
+
+**Not completed:** 3D LBM, resolved 3D buoyancy, SimScale/OpenFOAM reference runs, physical USB/switch tests or servo actuation. The historical NEA/event statements below come from the inherited brief; this build did not independently verify those external claims. Do not present a live data feed or a completed reference-validation study.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
 

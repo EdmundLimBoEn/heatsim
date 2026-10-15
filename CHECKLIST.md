@@ -1,8 +1,40 @@
 # MVP verification and handoff
 
-**Status recorded 15 October 2026, final software checkpoint at 10:09 SGT. The presentation runs standalone. The SSTuino has not arrived.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
+**Final software checkpoint: 15 October 2026, 10:45 SGT. The presentation runs standalone with Cooling Lab and optional WebGPU scalar transport. The SSTuino has not arrived.** Checked software does not imply checked physical hardware. The amended [simulation specification](docs/02-simulation.md) takes precedence over the original 3D roadmap.
 
-## Automated checks with recorded evidence
+## Final integration gate
+
+- [x] `bun run test`: **137 tests across 12 files passed** after the final envelope model and GPU additions.
+- [x] `bun run build`: strict TypeScript and Vite production build passed; build and `bun src/scene-check.ts` were rerun after the final scene-label polish at **10:45 SGT**.
+- [x] `python3 scripts/build-pack.py` assertions passed. The generated physical pack, its generator/guide and canonical geometry remain unchanged from the released two-A4-sheet handoff. `git diff --check` passed.
+- [x] Final Cooling Lab browser regression passed **40 persistent assertions**, plus the separate backflow fixture below. Native-device GPU checks passed in Zen; Chrome GPU execution was not verified.
+
+## Cooling Lab extension acceptance
+
+- [x] `tests/thermal-model.test.ts`: **10 tests passed**, including JSON-derived volumes, equilibrium, isolated energy/particle conservation, genuine make-up routes, blocked flow with motor heat, warm-below mixing, hotter-inlet warming and the final exterior-face/envelope balance.
+- [x] `tests/thermal-comparison.test.ts`: **10 tests passed** for cloned identical initial fields, only `vent.on` changing, exact final partial intervals, signed differences, bounded samples, cancellation/replacement, stale events, errors and timeout handling.
+- [x] Core tests and direct paired probes cover blocked make-up paths and supply/exhaust operation; the presentation probe shows cooler evening air, blocked motor heating and the haze trade-off. These are numerical examples, not measured outcomes.
+- [x] Motor heat is a positive model input. Browser calculator checks changed hypothetical pressure without invalidating the completed pair; its pressure is separate from the plan index and its static-temperature drop is not a room source.
+- [x] `bun run test -- tests/thermal-stress.test.ts`: **1 test passed**. A two-hour extreme-input run with open/blocked/reopened topology stayed finite; checkpoints met energy residual **<0.01 J**, mass residual **<10⁻⁹ m³/s** and blocked flow **<10⁻⁶ m³/h**.
+- [x] Post-envelope **actual Bun worker** pairs of **1200/1800/7200 seconds** completed in about **202/273/817 ms**, retaining **121/91/121 samples**. A 10 ms parent heartbeat had a maximum **12 ms** gap; cancellation rejected with `AbortError`, and an immediate 10-second retry passed. These are local timing examples, not browser guarantees.
+- [x] Thermal, calculator, export, comparison-worker and GPU tests are included in the final **137-test** suite; strict production build passed.
+- [x] `scripts/browser-cooling-check.js` via gstack: **40 browser assertions passed** at 1280 × 720, using the actual worker. Covers shared initial state, exact horizon, chart/CSV correspondence, settings invalidation, cancellation/re-run, startup-error retry, workspace isolation and clock/3D-panel restoration. Final additions cover stale-capture/explicit-refresh behavior, blocked-flow rendering, and real-app CPU continuation with rejected or pending GPU-adapter requests.
+- [x] The tested 1200-second browser pair completed in about **93 ms**, with 121 samples; six parent-heartbeat ticks had a maximum **25 ms** gap. This is one headless behavior run, not a full-GPU FPS benchmark.
+- [x] At **390 × 844**, document width remained 390 with no horizontal overflow. Native Tab moved Room → Opening; ArrowRight changed the calculator from 30 to 35 Pa and the ideal drop from 0.0256 to 0.0299°C while retaining the completed comparison.
+- [x] Final integrated browser workflow rerun after the GPU/app wiring freeze. A separate focused backflow fixture used the real lab component/worker with a core-valid 10 m/s opposing wind: **−10.0 m³/h** produced an inward arrow and an explicit backflow description. This is **40 script assertions plus one fixture**, not 41 assertions in the script.
+- [x] [Cooling Lab walkthrough](docs/presentation-demo.md) uses direct engine probes for 300 m³/h, 20-minute bedroom 3 evening open/blocked-route comparisons, with exact scopes and assumed fan power. Browser/spoken rehearsal remains separate.
+
+The final extension evidence above is separate from the earlier baseline record below. Physical cardboard dimensions and electronics status remain unchanged.
+
+## Optional WebGPU transport verification
+
+- [x] **29 focused plan/preparation/GPU/lifecycle tests passed**, including eight mocked lifecycle tests for cleanup/failure paths. Strict TypeScript also passed at this checkpoint.
+- [x] `gpu-check.html` passed on **native Zen / Firefox 157** with a real GPU device, WGSL compilation, scalar dispatch and readback. Over seeded **60.2-second** runs, worst CPU/GPU differences were **0.00002098°C** and **0.00007629 µg/m³**; sealed and open/wind/fan/purifier cases passed. Control snapshots, zero-time opening changes, reset, disposal and device recreation also passed. This is numerical backend agreement, not physical validation.
+- [x] GPU lifecycle and app integration reviewed for stale readbacks, reset, workspace switching and CPU fallback. The separate final browser regression above covers actual CPU fallback for rejected/pending adapters; the direct GPU page verifies compute behavior. **Chrome GPU launch timed out**, so Chrome GPU execution is not claimed.
+
+This path runs planar heat/haze transport only. Geometry and airflow stay on the CPU; Cooling Lab stays in its separate CPU worker. It does not satisfy the original 3D-LBM CPU/GPU acceptance test.
+
+## Baseline automated checks (10:09 SGT, retained for traceability)
 
 - [x] `bun run test`: **79 tests across 5 files passed**, including the final pressure-view additions. Covers protocol parsing, mocked USB lifecycle, room fallback, 2D geometry/transport and optimiser logic.
 - [x] Strict TypeScript and Vite production build passed after the final additions. The scene self-check passed, including pressure masking/room means and direction arrows. Generated build-pack assertions and the host C++ firmware mock also passed.
@@ -16,7 +48,7 @@
 - [x] TypeScript checks passed, including the production-build check.
 - [x] Final suite/build/scene checks after the pressure and flow-direction additions.
 
-## Browser checks and rehearsal
+## Baseline browser checks and remaining rehearsal
 
 - [x] Native Zen browser with actual GPU/WebGL: 3D apartment, floor-plan camera, dimensions, air-quality view, relative-pressure labels/colors and airflow colors/arrows observed.
 - [x] Model PNG downloaded and opened; labels and the separate legend footer display correctly.
@@ -58,7 +90,7 @@ The host C++ check exercises the sketch with mocked Arduino functions. No AVR up
 | AT-10 hardware loop / servo | Pending hardware; servos disabled by default. |
 | AT-11 disconnect | Mocked lifecycle/browser disconnect covered; physical unplug/reconnect pending. |
 | AT-12 optimiser | Automated scoring/search checks and actual browser worker/Apply PASS; physical servo application remains pending hardware. |
-| AT-13 fallback | The 2D plan engine is the only live backend; no WebGPU feature flag is required. |
+| AT-13 fallback | Both live paths use the 2D plan: optional WebGPU transports scalars, and CPU continues when it is unavailable/fails. New app-level fallback checks are recorded separately above. |
 | AT-14 honesty | Mode/relative-pressure honesty labels observed in native WebGL and export checks. No sensor or reference-CFD validation claims are authorized. |
 
 Written by gpt-6-astra in Codex on behalf of Edmund

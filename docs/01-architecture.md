@@ -2,7 +2,7 @@
 
 ## MVP amendment · implemented architecture
 
-**This section supersedes the original 3D/WebGPU architecture below.** The default and only live solver is the documented 2D fallback. See [simulation details](02-simulation.md), [run commands](../README.md) and [verification status](../CHECKLIST.md).
+**This section supersedes the original 3D/WebGPU architecture below.** The main apartment uses the documented 2D fallback. Cooling Lab is an independent two-layer/surface model and does not replace that field with a 3D solver. See [simulation details](02-simulation.md), [run commands](../README.md) and [verification status](../CHECKLIST.md).
 
 All runtime work stays in the browser. `src/domain.ts` imports the canonical `assets/hdb-3d/hdb_4room_boxes.json`; the renderer and simulation use that geometry. There is no backend, account system, deployment dependency, live weather request or sensor feed. The app works with no board attached.
 
@@ -10,7 +10,11 @@ All runtime work stays in the browser. `src/domain.ts` imports the canonical `as
 |---|---|
 | `src/app.ts` | DOM controls, current `Conditions`, scenarios, keyboard access, simulation clock, readings, exports and optimiser UI. |
 | `src/domain.ts` | Shared geometry, `Conditions`, room readings and `PlanField` contract. |
-| `src/plan-simulation.ts` | 64 × 48 floor-plan mask, steady pressure-flow approximation, heat/haze transport and room summaries. |
+| `src/plan-simulation.ts` | 64 × 48 floor-plan mask, CPU steady pressure/face-flow solution, scalar preparation/CPU transport and room summaries. |
+| `src/plan-gpu.ts` | Optional WGSL heat/PM2.5 transport using the same CPU face flow; async readback and failure cleanup. |
+| `src/thermal-types.ts`, `src/thermal-model.ts` | Independent full-flat two-layer/surface thermal and ventilation balance. |
+| `src/thermal-comparison.ts`, `src/thermal-worker.ts` | Matched fan-off/on experiments from one initial thermal state. |
+| `src/cooling-lab.ts`, `src/thermal-export.ts`, `src/fan-thermodynamics.ts` | Lab UI, reproducible CSV and separate educational ideal-expansion calculation. |
 | `src/scene.ts`, `src/scene-field.ts` | three.js WebGL scene built from JSON, opening/device animations, masked field texture and display tracers. |
 | `src/simulation.ts` | Six scenario records and presets; also contains a tested emergency well-mixed room model that the main app does not select. |
 | `src/config/slots.ts`, `src/config/mapping.ts` | Shared portable-device locations and exact hardware-to-opening names. |
@@ -18,9 +22,17 @@ All runtime work stays in the browser. `src/domain.ts` imports the canonical `as
 | `src/optimiser.ts`, `src/optimiser.worker.ts` | Same 2D engine in a dedicated worker; compares fresh scenarios and returns layouts for explicit Apply. |
 | `scripts/build-pack.py` | A4 templates, exact cut schedules, clearance checks and shareable ZIP. |
 
-The frame loop advances `stepSimulation(previous, conditions, deltaSeconds)` on the main thread and paints the HUD/scene data about four times per second. Rendering has its own animation loop. Playback offers 1×, 30× and 60×; elapsed simulation time and energy use the amount actually advanced. Hidden tabs do not advance. Frame delta is capped at 0.25 real seconds to avoid a large catch-up stall.
+The frame loop advances the CPU planar solver, or submits its prepared heat/haze step to WebGPU when available, and paints the HUD/scene data about four times per second. Rendering has its own animation loop. Playback offers 1×, 30× and 60×; elapsed simulation time and energy use the amount actually advanced. Hidden tabs and the flat while Cooling Lab is selected do not advance. Frame delta is capped at 0.25 real seconds to avoid a large catch-up stall.
 
-The solver retains cached flow/source data while controls are unchanged. Fields are ordinary typed arrays, with no GPU readback. Nonfinite field values are bounded/recovered; unexpected simulation errors pause the loop with a notice. Optimiser work is isolated in a cancellable worker and a failed comparison does not replace the current layout.
+The solver retains cached flow/source data while controls are unchanged. The CPU path uses typed arrays. The optional GPU scalar path performs nonblocking staging-buffer readback with at most one request in flight; CPU flow remains authoritative. Epoch checks reject stale results after controls/reset/workspace changes, and GPU loss or error resumes CPU processing from the last completed state. Nonfinite field values are bounded/recovered; unexpected simulation errors pause the loop with a notice. Optimiser work is isolated in a cancellable worker and a failed comparison does not replace the current layout.
+
+### Cooling Lab separation
+
+Cooling Lab uses its own `ThermalConfig`, `ThermalState` and `ThermalSnapshot` contract in `src/thermal-types.ts`. Its two air layers, interior surface state and massless exterior-face balance per room derive dimensions from the same canonical JSON. These are separate from the planar `PlanField`; no laboratory temperature or fan result silently overwrites the main scene.
+
+The paired comparison runs both high-level fan cases in a dedicated worker from clones of the same initial thermal state. Only `vent.on` changes. The selected exhaust/supply mode, openings, weather, envelope assumptions and duration stay matched. Cancelling terminates the worker; a partial or stale run must not be presented as a completed pair. This is a controlled comparison, not the existing layout optimiser.
+
+The educational ideal-expansion calculation is independent of both solvers. It uses explicitly entered absolute pressure/pressure drop; the main scene's dimensionless pressure index is not a pressure input.
 
 USB is optional. The default sketch defines two switch inputs and has servo outputs disabled. Actual board connection/upload remains pending board arrival; see [hardware guide](hardware.md). There is no WebSocket bridge or automatic 3D backend selection in this MVP.
 

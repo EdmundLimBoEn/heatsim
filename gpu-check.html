@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HeatSim WebGPU verification</title>
+    <style>
+      body { margin: 32px; max-width: 900px; background: #102025; color: #e4eff1; font: 16px/1.5 system-ui, sans-serif; }
+      h1 { font-size: 28px; } button { padding: 10px 18px; font: inherit; cursor: pointer; }
+      #status { font-size: 24px; font-weight: 700; } pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 20px; background: #091519; border-radius: 8px; }
+      .pass { color: #88e6ae; } .fail { color: #ffa5a5; }
+    </style>
+  </head>
+  <body>
+    <h1>HeatSim WebGPU verification</h1>
+    <p>Development check of real GPU heat and haze transport against the CPU reference. Airflow remains on the CPU. This checks numerical consistency, not physical accuracy.</p>
+    <p id="status" role="status">Starting…</p>
+    <button id="run" disabled>Run again</button>
+    <pre id="results" aria-live="polite"></pre>
+    <script type="module" src="/src/gpu-check.ts"></script>
+  </body>
+</html>

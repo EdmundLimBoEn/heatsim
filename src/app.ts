@@ -2,7 +2,9 @@ import './style.css';
 import { defaultConditions, defaultView, deviceRoom, model, roomLabel, type Conditions, type ModelBox, type ViewMode } from './domain';
 import { PRESETS } from './simulation';
 import { createSimulation, stepSimulation, PLAN_SIMULATION_NOTE as SIMULATION_NOTE } from './plan-simulation';
-import { createScene, type SceneController } from './scene';
+import { createPlanGpu, type PlanGpu } from './plan-gpu';
+import { createScene, type SceneController, type ThermalVentConfig } from './scene';
+import { mountCoolingLab } from './cooling-lab';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { openingForKey } from './config/mapping';
 import { createOptimiser, type OptimiserReport, type OptimiserBudget } from './optimiser';
@@ -35,6 +37,10 @@ let conditions: Conditions = structuredClone(PRESETS[0]?.conditions ?? defaultCo
 let result = createSimulation(conditions);
 let view = { ...defaultView, selectedRoom: 'living' as string | null };
 let scene: SceneController | null = null;
+let workspace: 'flat' | 'lab' = 'flat';
+let coolingLab: ReturnType<typeof mountCoolingLab> | null = null;
+let thermalVent: ThermalVentConfig | null = null;
+let flatViewMode: ViewMode = defaultView.mode;
 let playing = true;
 let speed = 30;
 let activePreset = conditions.scenarioId ?? 'baseline';
@@ -48,6 +54,11 @@ let optimiserInput: string | null = null;
 let optimising = false;
 let selectedLayout = 0;
 let appliedLayout: number | null = null;
+let gpu: PlanGpu | null = null;
+let gpuBusy = false;
+let gpuPendingSeconds = 0;
+let simulationRevision = 0;
+let disposed = false;
 
 const formatTime = (hour: number) => `${Math.floor(hour).toString().padStart(2, '0')}:${Math.round((hour % 1) * 60).toString().padStart(2, '0')}`;
 const elapsed = (seconds: number) => `${Math.floor(seconds / 3600).toString().padStart(2, '0')}:${Math.floor(seconds % 3600 / 60).toString().padStart(2, '0')}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
@@ -62,6 +73,8 @@ $('#app').innerHTML = `
     <div class="header-actions"><span class="demo-indicator"><i></i>Standalone ready</span><button class="button primary" data-action="build">${icon('plan')}<span>Build the physical model</span></button></div>
   </header>
   <main>
+    <div class="workspace-heading"><nav class="segmented" aria-label="HeatSim workspace"><button data-workspace="flat" aria-controls="flat-workspace" aria-pressed="true">${icon('house')}Flat simulation</button><button data-workspace="lab" aria-controls="cooling-lab-workspace" aria-pressed="false">${icon('wind')}Cooling Lab</button></nav></div>
+    <section id="flat-workspace" aria-label="Flat simulation">
     <div class="workspace-heading"><div><h1>A small home. A changing climate.</h1><p>Explore how openings and everyday devices shape the rooms around you.</p></div><span class="home-meta">4-room flat <span>90 m²</span></span></div>
     <div class="workspace">
       <section class="model-panel" aria-label="Interactive apartment model">
@@ -114,12 +127,17 @@ $('#app').innerHTML = `
           </section>
           <details class="hardware-section"><summary>${icon('usb')}Physical model (optional)<span class="details-plus">+</span></summary><div id="hardware-controls"><p class="hardware-state"><span class="status-dot"></span><strong>SSTuino not connected</strong></p><p class="section-note">Everything works with the on-screen controls and keyboard. When your model is ready, connect USB to use its switches and buttons.</p><button class="button secondary full-width" id="connect-hardware" type="button">Connect SSTuino</button><p class="hardware-help" id="hardware-status" role="status">USB serial works in desktop Chrome or Edge.</p></div></details>
         </div>
-        <div class="simulation-controls"><div class="simulation-clock"><span class="running-dot"></span><span id="play-status">Simulation running</span><output id="elapsed-time">00:00:00</output></div><div class="playback-row"><button class="button play-button" data-action="play">${icon('pause')}<span>Pause</span></button><select id="simulation-speed" aria-label="Simulation speed"><option value="1">1× speed</option><option value="30" selected>30× speed</option><option value="60">60× speed</option></select><button class="icon-button" data-action="reset" aria-label="Reset simulation time and readings" title="Reset readings">${icon('reset')}</button></div><p>1 real second = <span id="speed-description">30 simulated seconds</span></p></div>
+        <div class="simulation-controls"><div class="simulation-clock"><span class="running-dot"></span><span id="play-status">Simulation running</span><output id="elapsed-time">00:00:00</output></div><div class="playback-row"><button class="button play-button" data-action="play">${icon('pause')}<span>Pause</span></button><select id="simulation-speed" aria-label="Simulation speed"><option value="1">1× speed</option><option value="30" selected>30× speed</option><option value="60">60× speed</option></select><button class="icon-button" data-action="reset" aria-label="Reset simulation time and readings" title="Reset readings">${icon('reset')}</button></div><p>Target: 1 real second = <span id="speed-description">30 simulated seconds</span></p><p id="simulation-engine" role="status">CPU · 2D</p></div>
       </aside>
     </div>
     <section class="results-panel" aria-label="Illustrative simulation readings">
       <div class="results-summary"><div class="results-heading"><h2>Inside the home</h2><p><span class="simulated-tag">SIMULATED</span></p><svg id="temperature-history" viewBox="0 0 160 32" aria-label="Average temperature trend" role="img"><path d="M0 24H160"/></svg></div><div class="metric"><span>Mean temperature <span class="simulated-tag">SIMULATED</span></span><strong id="mean-temperature">—</strong><small id="feels-like">Feels like —</small></div><div class="metric"><span>Mean PM2.5 <span class="simulated-tag">SIMULATED</span></span><strong id="mean-pm25">—</strong><small>Estimated indoor particles</small></div><div class="metric"><span>Device power <span class="simulated-tag">SIMULATED</span></span><strong id="power">—</strong><small id="energy">0.000 kWh used</small></div><div class="results-actions"><button class="button secondary compact" data-action="readings">All room readings</button><button class="button text-button compact" data-action="export">${icon('download')}Export CSV</button></div></div>
       <div class="room-readings" aria-label="Select a room">${primaryRooms.map(room => `<button class="room-reading ${room === 'living' ? 'selected' : ''}" data-room="${room}" aria-pressed="${room === 'living'}"><span>${roomLabel(room)}</span><strong id="reading-${room}">—</strong><span class="room-reading-detail" id="airflow-${room}">—</span></button>`).join('')}</div>
+    </section>
+    </section>
+    <section id="cooling-lab-workspace" aria-labelledby="cooling-lab-title" hidden>
+      <div class="workspace-heading"><div><h1 id="cooling-lab-title" tabindex="-1">Cooling Lab</h1><p>Compare a window-fan idea with your starting setup.</p></div><button class="button secondary" data-workspace="flat">Back to flat</button></div>
+      <div id="cooling-lab-mount" tabindex="-1"></div>
     </section>
     <footer class="app-footer"><p>${icon('info')}Qualitative toy CFD. Simulated conditions, no sensors.</p><button class="text-link" data-action="about">How this model works</button><button class="text-link" data-action="help">Keyboard shortcuts</button><span>Made for exploring. Built for the tabletop.</span></footer>
   </main>
@@ -221,11 +239,69 @@ function syncControls(): void {
   $('#ac-state').textContent = activeAc ? 'On' : 'Off';
   if (activeAc) $<HTMLSelectElement>('#ac-unit').value = activeAc;
 }
-function updateScene(): void { scene?.update(conditions, result, view); }
+function updateScene(): void {
+  const preview = workspace === 'lab' && coolingLab ? coolingLab.readPreviewConditions() : conditions;
+  scene?.update(preview, result, view);
+}
+function selectWorkspace(next: 'flat' | 'lab'): void {
+  if (next === workspace) return;
+  invalidateGpuStep();
+  const lab = next === 'lab';
+  const labSection = $('#cooling-lab-workspace');
+  if (lab && !coolingLab) {
+    labSection.hidden = false;
+    try {
+      coolingLab = mountCoolingLab($('#cooling-lab-mount'), {
+        readConditions,
+        selectedRoom: () => view.selectedRoom,
+        onVentChange(vent) {
+          thermalVent = vent ? { ...vent } : null;
+          if (workspace === 'lab') { scene?.setThermalVent(thermalVent); updateScene(); }
+        },
+      });
+    } catch (error) {
+      labSection.hidden = true;
+      $('#cooling-lab-mount').replaceChildren();
+      console.error('Unable to initialize Cooling Lab', error);
+      notify('Cooling Lab could not start. The flat simulation is still available.');
+      return;
+    }
+  }
+  const panel = $('.model-panel');
+  if (lab) {
+    flatViewMode = view.mode;
+    $('#cooling-lab-mount [data-lab-model-slot]').append(panel);
+    view.mode = 'model';
+  } else {
+    $('#flat-workspace .workspace').prepend(panel);
+    view.mode = flatViewMode;
+  }
+  workspace = next;
+  $('#flat-workspace').hidden = lab;
+  labSection.hidden = !lab;
+  $('.overlay-modes').hidden = lab;
+  $<HTMLAnchorElement>('.skip-link').href = lab ? '#cooling-lab-mount' : '#controls';
+  document.querySelectorAll<HTMLButtonElement>('nav [data-workspace]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.workspace === next)));
+  scene?.setThermalVent(lab ? thermalVent : null);
+  updateOverlay();
+  if (lab) {
+    coolingLab?.refreshCaptureStatus();
+    $('#view-label').textContent = '3D position preview';
+    $('#view-description').textContent = 'Cooling Lab charts use a separate two-layer room model.';
+    $('#cooling-lab-title').focus();
+  } else {
+    $('nav [data-workspace="flat"]').focus();
+  }
+}
+function isCoolingLabControl(target: HTMLElement): boolean {
+  return Boolean(target.closest('#cooling-lab-mount') && !target.closest('.model-panel'));
+}
 function emitControl(): void {
   window.dispatchEvent(new CustomEvent('heatsim:control', { detail: { conditions: readConditions() } }));
 }
 function markCustom(emit = false): void {
+  invalidateGpuStep();
+  coolingLab?.refreshCaptureStatus();
   invalidateOptimiser();
   activePreset = '';
   $('#scenario-label').textContent = 'Custom setup';
@@ -256,6 +332,7 @@ export function replaceConditions(next: Conditions, resetSimulation = false): vo
 export function loadScenario(id: string, source: 'user' | 'hardware' = 'user'): boolean {
   const preset = PRESETS.find(preset => preset.id === id);
   if (!preset) return false;
+  invalidateGpuStep();
   invalidateOptimiser();
   conditions = { ...structuredClone(preset.conditions), doors: conditions.doors, windows: conditions.windows, devices: conditions.devices, portableFan: conditions.portableFan, purifier: conditions.purifier, acSetpoint: conditions.acSetpoint };
   if (id === 'validation' && source === 'user') {
@@ -263,6 +340,7 @@ export function loadScenario(id: string, source: 'user' | 'hardware' = 'user'): 
   }
   result = createSimulation(conditions);
   history = []; lastSample = -1;
+  coolingLab?.refreshCaptureStatus();
   activePreset = preset.id;
   $('#scenario-label').textContent = preset.name;
   $('#scenario-description').textContent = preset.description;
@@ -461,6 +539,8 @@ function exportCsv(): void {
 document.addEventListener('click', event => {
   const target = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
   if (!target) return;
+  if (target.dataset.workspace === 'flat' || target.dataset.workspace === 'lab') { selectWorkspace(target.dataset.workspace); return; }
+  if (isCoolingLabControl(target)) return;
   if (target.hasAttribute('data-close')) { target.closest<HTMLDialogElement>('dialog')?.close(); return; }
   if (target.dataset.tab) selectTab(target.dataset.tab);
   if (target.dataset.room) selectRoom(target.dataset.room);
@@ -497,12 +577,14 @@ document.addEventListener('click', event => {
     case 'readings': renderTable(); $<HTMLDialogElement>('#readings-dialog').showModal(); break;
     case 'export': exportCsv(); break;
     case 'play':
+      invalidateGpuStep();
       playing = !playing;
       target.innerHTML = `${icon(playing ? 'pause' : 'play')}<span>${playing ? 'Pause' : 'Resume'}</span>`;
       $('#play-status').textContent = playing ? 'Simulation running' : 'Simulation paused';
       $('.running-dot').classList.toggle('paused', !playing);
       break;
     case 'reset':
+      invalidateGpuStep();
       result = createSimulation(conditions); history = []; lastSample = -1; renderReadings(); updateScene();
       notify('Readings and time reset. Your controls are unchanged.'); break;
     case 'reset-camera': scene?.resetCamera(); camera = 'perspective'; document.querySelectorAll<HTMLButtonElement>('[data-camera]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.camera === camera))); break;
@@ -515,6 +597,7 @@ document.addEventListener('click', event => {
 });
 document.addEventListener('input', event => {
   const input = event.target as HTMLInputElement;
+  if (isCoolingLabControl(input)) return;
   if (input.type === 'range' && input.dataset.deviceKey) { editDevice(input.dataset.deviceKey, Number(input.value)); return; }
   if (!input.dataset.field) return;
   const value = Number(input.value);
@@ -525,6 +608,7 @@ document.addEventListener('input', event => {
 });
 document.addEventListener('change', event => {
   const input = event.target as HTMLInputElement;
+  if (isCoolingLabControl(input)) return;
   if (input.id === 'room-select') selectRoom(input.value);
   if (input.id === 'simulation-speed') {
     speed = Number(input.value);
@@ -562,6 +646,7 @@ document.addEventListener('keydown', event => {
     if (event.key.toLowerCase() === 'h' && $<HTMLDialogElement>('#help-dialog').open) $<HTMLDialogElement>('#help-dialog').close();
     return;
   }
+  if (workspace === 'lab') return;
   if (target.closest('button, a, summary') && ['Enter', ' '].includes(event.key)) return;
   const digit = event.code.match(/^Digit([1-9])$/)?.[1];
   if (digit) {
@@ -598,19 +683,60 @@ checkControlMappings(); renderRoomControls(); syncControls(); renderReadings();
 createScene($('#scene'), selectRoom).then(controller => {
   scene = controller;
   $('#scene-loading').remove();
+  scene.setThermalVent(workspace === 'lab' ? thermalVent : null);
   updateScene();
 }).catch(error => {
   console.error('Unable to initialize 3D scene', error);
   $('#scene-loading').innerHTML = `${icon('plan')}<strong>The 3D view could not start</strong><span>Try desktop Chrome with graphics acceleration enabled. Controls and the printable floor plan still work.</span><a class="button secondary" href="/build-pack/index.html" target="_blank" rel="noopener">Open printable floor plan</a>`;
 });
+function invalidateGpuStep(): void {
+  simulationRevision++;
+  gpuPendingSeconds = 0;
+}
+function useCpuFallback(error: unknown): void {
+  const failed = gpu;
+  gpu = null;
+  invalidateGpuStep();
+  failed?.dispose();
+  $('#simulation-engine').textContent = 'CPU · 2D';
+  console.warn('WebGPU unavailable; continuing on CPU', error);
+  notify('GPU processing stopped. The simulation continues on CPU with your current readings.');
+}
+function advanceGpu(seconds: number): void {
+  gpuPendingSeconds = Math.min(gpuPendingSeconds + seconds, 15);
+  if (gpuBusy || !gpu || gpuPendingSeconds <= 0) return;
+  const engine = gpu;
+  const previous = result;
+  const revision = simulationRevision;
+  const captured = readConditions();
+  const duration = gpuPendingSeconds;
+  gpuPendingSeconds = 0;
+  gpuBusy = true;
+  void Promise.resolve().then(() => engine.step(previous, captured, duration)).then(next => {
+    if (gpu !== engine || revision !== simulationRevision || result !== previous || !playing || document.hidden || workspace !== 'flat' || disposed) return;
+    if (![next.averageTemperature, next.averagePm25, next.powerWatts, next.elapsedSeconds].every(Number.isFinite)) throw new Error('Invalid GPU readings');
+    result = next;
+    $('#simulation-engine').textContent = engine.label;
+  }).catch(error => {
+    if (gpu === engine && !disposed) useCpuFallback(error);
+  }).finally(() => { gpuBusy = false; });
+}
+void createPlanGpu().then(engine => {
+  if (disposed) { engine.dispose(); return; }
+  gpu = engine;
+  engine.onLost = reason => { if (gpu === engine && !disposed) useCpuFallback(reason); };
+}).catch(() => {});
+
 function animate(time: number): void {
   const delta = Math.min((time - previousTime) / 1000, 0.25);
   previousTime = time;
-  if (playing && !document.hidden) {
+  if (playing && !document.hidden && workspace === 'flat') {
     try {
-      result = stepSimulation(result, conditions, delta * speed);
+      if (gpu) advanceGpu(delta * speed);
+      else result = stepSimulation(result, conditions, delta * speed);
       if (![result.averageTemperature, result.averagePm25, result.powerWatts].every(Number.isFinite)) {
         result = createSimulation(conditions);
+        invalidateGpuStep();
         notify('Simulation reset after an unstable reading. Your controls are unchanged.');
       }
     } catch (error) {
@@ -626,4 +752,14 @@ function animate(time: number): void {
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
-window.addEventListener('pagehide', event => { if (!event.persisted) { scene?.dispose(); optimiser.dispose(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) invalidateGpuStep(); });
+window.addEventListener('pagehide', event => {
+  if (event.persisted) return;
+  disposed = true;
+  invalidateGpuStep();
+  gpu?.dispose();
+  gpu = null;
+  coolingLab?.dispose();
+  scene?.dispose();
+  optimiser.dispose();
+});

@@ -2,13 +2,15 @@
 
 ## MVP amendment · assets actually used
 
-**This amendment takes precedence over the original asset-use plan below.** The running app and the build pack use the canonical **`assets/hdb-3d/hdb_4room_boxes.json`**, imported through `src/domain.ts`. It is the geometry source for both the simulation mask and the refined procedural three.js scene. The legacy `src/data/model.json` is not the authoritative import.
+**This amendment takes precedence over the original asset-use plan below.** The running app and the build pack use the canonical **`assets/hdb-3d/hdb_4room_boxes.json`**, imported through `src/domain.ts`. It is the geometry source for the planar simulation mask, the refined procedural three.js scene, and Cooling Lab room dimensions/openings. The legacy `src/data/model.json` is not the authoritative import.
 
 The GLB and original viewer are retained as provenance/reference assets; the live scene is built from JSON and does not load that GLB. No large Sketchfab/unknown-license fallback asset was added. The layout remains an approximate educational HDB-inspired plan, not an official building drawing.
 
 Generated public handoff files live in `public/build-pack/`: actual-size floor/wall/leaf SVGs, room/opening/device CSVs, exact dimensions JSON, a printable HTML pack and `heatsim-build-pack.zip`. Rebuild them with `python3 scripts/build-pack.py`; edit the generator instead of editing generated templates. [Physical-model instructions](physical-model.md) explain 3 mm wall joints and hardware-fit limits. The required footprint is 187.692 × 118.462 mm; all 13 wall panels fit one additional A4 sheet.
 
 Installed three.js carries the MIT license (`node_modules/three/LICENSE`); the current package dependency is `three ^0.180.0`, resolved by `bun.lock`. TypeScript's installed license is Apache 2.0, and Vitest's installed core license is MIT. No external LBM demo code was copied. Keep the inherited source-model provenance notes below; this build does not establish new rights to unrelated reference assets.
+
+Cooling Lab adds no new physical geometry, downloaded model or measured material dataset. [Cooling science](cooling-science.md) and [fan thermodynamics](fan-thermodynamics.md) cite the physical mechanisms; they do not establish calibration of the illustrative model coefficients. The 3 mm cardboard is a display/control model and is not a scale thermal experiment.
 
 No SimScale/OpenFOAM result images or measurement datasets were produced. Do not describe source previews, synthetic field images or planned validation screenshots as measured/reference-CFD evidence.
 

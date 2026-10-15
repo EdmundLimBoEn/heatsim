@@ -1,8 +1,8 @@
 # 02 · Simulation spec (the core)
 
-## MVP amendment · authoritative running solver
+## MVP amendment · main apartment solver
 
-**The shipped solver is `src/plan-simulation.ts`, the deliberate 2D fallback from original §7. It is not the 3D LBM/WebGPU engine described below.** The browser renders a 3D scene around a horizontal simulation slice. [CHECKLIST](../CHECKLIST.md) records actual checks; [doc 05](05-scenarios-optimiser.md) defines the six scenarios and comparison workflow.
+**The main apartment solver is `src/plan-simulation.ts`, the deliberate 2D fallback from original §7. It is not the 3D LBM/WebGPU engine described below. Cooling Lab uses the separate reduced-order model documented later in this amendment.** The browser renders a 3D scene around a horizontal simulation slice. [CHECKLIST](../CHECKLIST.md) records actual checks; [doc 05](05-scenarios-optimiser.md) defines the six scenarios and comparison workflow.
 
 ### Geometry and fields
 
@@ -39,9 +39,47 @@ Tests cover sealed geometry, stationary baseline, pollutant conservation, correc
 
 The well-mixed functions in `src/simulation.ts` are retained as an emergency/reference implementation and are tested separately. They are not the engine used by the app or optimiser. No CPU/GPU LBM equivalence, 3D buoyancy result, calibration, measured pressure or SimScale/OpenFOAM validation is claimed.
 
+### Optional WebGPU scalar transport
+
+`src/plan-gpu.ts` runs the **same planar temperature and PM2.5 transport** in a WGSL compute kernel when WebGPU initializes successfully. The CPU still builds the mask, pressure/face-flow solution and sources, and computes room summaries. The label is **“WebGPU heat + haze · CPU airflow · 2D”**. This is not a 3D LBM solver, GPU-resolved airflow, or a claim of faster execution.
+
+Both paths use the same prepared state, source coefficients and stable timestep (at most 0.25 s, tightened by the transport bound), with at most 60 simulated seconds per call. GPU buffers carry scalar fields and CPU-produced face flows. Async staging readback has one request in flight; the frame loop never waits for it. Control changes/reset/workspace changes invalidate stale results. Unavailable hardware, initialization failure, device loss, validation failure or a five-second deadline returns the live app to CPU processing from its last completed state.
+
+The layout optimiser stays on the CPU planar solver. Cooling Lab also remains a separate CPU model in its worker. Packing/reference and mocked-device tests do not prove a real GPU run: [CHECKLIST](../CHECKLIST.md) records native-device parity separately. `gpu-check.html` is a development verification page, not part of the presentation flow.
+
+### Cooling Lab: separate two-layer and surface model
+
+Cooling Lab uses `src/thermal-model.ts` and the contracts in `src/thermal-types.ts`. It runs independently of `PlanField`. Every room has two equal-volume air layers, **0–1.3 m** and **1.3–2.6 m**, plus one lumped surface temperature. Layer heat capacities derive from canonical JSON room volumes: **12 rooms, 90 m² floor area**, air density **1.2 kg/m³** and specific heat **1005 J/(kg·K)**. The illustrative surface heat capacity is **50,000 J/(m² of floor area·K)**. These are full-size-flat assumptions, not thermal properties of the 3 mm cardboard.
+
+`averageTemperature` is the **volume-weighted all-air mean**, including both layers. It is not the occupied-zone temperature. `averageUpperTemperature` describes the upper layer; per-room `lowerTemperature` describes the occupied/lower layer. `averagePm25` is a model concentration, not a sensor reading. Stored-energy values use a 0°C reference; their differences and the energy-balance residual use joules. They are not absolute thermodynamic internal energies. Electrical use is reported separately in watt-hours.
+
+| Mechanism/control | Meaning and limit |
+|---|---|
+| Envelope conductance | `envelope.uValue`, default **1.5 W/(m²·K)**, connects a **massless exterior face to the lumped interior surface**. An outdoor convection film of **10 W/(m²·K)** and longwave radiation act on the exterior face. This is **not a certified whole-wall U-value** or a resolved wall construction. |
+| Solar gain | Absorptance defaults to **0.6**, shading fraction to **0**. Absorbed opaque-surface sunlight enters the exterior-face balance and crosses the envelope conductance; transmitted window sunlight enters the interior surface directly. Shading reduces the assumed gain rather than adding refrigeration. |
+| Surface radiation | Nonlinear longwave exchange acts on the exterior face, with surroundings at outdoor air temperature and illustrative emissivity **0.9**. It reaches the interior through the envelope conductance. No cold sky or sky-view factor is modelled. |
+| Air/surface and interlayer exchange | Surface-to-air convection uses **2.5 W/(m²·K)**. Heat transferred between model states is equal and opposite. An idealized hydrostatic pressure term links the two air layers; warm-below instability and circulation fans increase conservative mixing. This illustrates buoyancy/stratification without resolving plumes or a vertical velocity field. |
+| People | **70% of people heat enters the upper layer** by an explicit unresolved-plume assumption. This split is illustrative, not measured. |
+| High-level fan | Exhaust or supply at a selected exterior window; default exhaust at `window_bedroom3_1`, rated **120 m³/h**, initially off. A finite **20 Pa** linear pump model limits actual flow through the connected opening network. The rating is not a guaranteed flow. |
+| Fan adapter | The selected window has the same adapter in **both** cases, independent of its main-app flag. The adapter closes the remaining window area but leaves a resistive fan passage; wind/buoyancy can produce flow while the motor is off. Other windows/doors retain their states. A missing make-up/relief route can block sustained flow; no hidden leakage is added. |
+| Signed flow | `actualVentM3h` is signed relative to the requested fan direction. A negative value means modelled backflow, not a negative fan power. |
+| Vent-fan power | When on with nonzero rating, assumed input is **4 + rated m³/h ÷ 30 watts**: **8 W at 120 m³/h**, all entering the upper air layer as heat, even if flow is blocked. This is an illustrative motor assumption, not a measured power curve. |
+| Other captured devices | Circulation fans add mixing and **50 W per effective fan** (portable speed scales its contribution). Each purifier removes particles with assumed **250 m³/h** clean-air delivery and adds **40 W** heat. |
+| Captured AC | Sensible cooling approaches the selected setpoint, capped at **3500 W living / 2500 W other rooms**, with assumed **COP 3.2**. Electrical power is removal ÷ COP; no latent cooling or thermostat cycling is solved. This differs from the main apartment's fixed 1000 W AC display. |
+
+The exterior face is solved as a massless balance. The reported conduction, radiation and solar heat rates are **net inward contributions after envelope transfer**, not gross outdoor fluxes. Zero envelope conductance blocks opaque-surface transfer, while direct transmitted sunlight can still enter through windows unless shaded.
+
+The thermal calculation includes outdoor air enthalpy and PM2.5 transport, fan/device heat and AC removal. Circulating fans redistribute air and add energy; they are not negative heat sources. The model's network/layer approximation does not establish the strength of real stack ventilation, a real fan curve, construction performance or humidity/latent cooling loads. No expansion term is subtracted from room temperatures.
+
+The model's default comparison horizon is **1200 seconds (20 minutes)**. [Doc 05](05-scenarios-optimiser.md) describes the matched fan-off/on worker and result signs. [CHECKLIST](../CHECKLIST.md) records checks for this extension separately from the earlier planar engine. Conservation tests establish numerical consistency only, not calibration or experimental validity.
+
+### Educational pressure–temperature calculator
+
+The calculator applies the ideal-gas isentropic relation using **303 K** and **101325 Pa absolute** with a hypothetical pressure drop. The UI varies that drop and overall fan efficiency; its separate fan-work example fixes flow at **180 m³/h**. Its ideal static-temperature change is displayed outside both room solvers. It is not predicted room cooling, a fan outlet specification or a use of the main scene's normalized pressure index. [Fan thermodynamics](fan-thermodynamics.md) explains fan work, mixing and the calculation's assumptions; [cooling science](cooling-science.md) separates ventilation, conduction, solar gain and personal comfort.
+
 ### Honesty text for this build
 
-> HeatSim is a qualitative toy CFD demonstration in 2D plan-view mode. It uses a coarse 20 cm floor-plan grid and scenario conditions to illustrate how airflow, heat and haze may change. It has no vertical buoyancy or turbulence. Temperatures, comfort, pressure colors and energy are illustrative, not calibrated predictions. No sensors or live data are used, and no professional-CFD validation has been completed.
+> The main HeatSim apartment is a qualitative toy CFD demonstration in 2D plan-view mode. It uses a coarse 20 cm floor-plan grid and scenario conditions to illustrate how airflow, heat and haze may change. It has no vertical buoyancy or turbulence. Temperatures, comfort, pressure colors and energy are illustrative, not calibrated predictions. Cooling Lab separately uses two air layers and a surface balance per room, with illustrative coefficients. No sensors or live data are used, and no professional-CFD or experimental validation has been completed.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
 

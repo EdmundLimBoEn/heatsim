@@ -1,52 +1,46 @@
-# Three-minute standalone presentation
+# Three-minute cooling demonstration
 
-The complete demo works without an SSTuino. The board has not arrived, so describe physical switches and servos as the next integration step. The current demonstration is **qualitative toy CFD**: a 3D apartment showing a 2D plan-view approximation, not measured or calibrated building performance.
+The entire presentation works without an SSTuino. Describe HeatSim as an **illustrative teaching model**: the apartment view is planar toy CFD, and Cooling Lab is a separate two-layer/surface heat balance. Neither is calibrated against a real flat.
 
-## Prepare before presenting
+## Set up once
 
-1. Run `bun run dev`, open the printed localhost address, and refresh once to start from the default controls. Keep the terminal running.
-2. Select **Floor plan** and keep **Cutaway** on. Choose **30× speed** explicitly: four real seconds represent about two simulated minutes when the browser can keep up. Use the displayed simulation clock as the reference.
-3. In **Environment**, click **Close windows** and **Close all doors**. In **Devices**, ensure portable fan, purifier and AC are off. Fresh loads already have these states; scenario changes preserve existing controls.
-4. Use the controls below on screen. Keyboard shortcuts are optional: **Y** selects Validation, **1** toggles its north window, and **Shift+1** toggles the main door. Shortcuts are suspended while a form field or dialog has focus. Click a neutral heading before using them.
+1. Run `bun run dev` and open the printed localhost address. Keep the terminal running. Refresh for a clean setup and leave the ordinary portable fan, purifier and AC **off**.
+2. Open **Cooling Lab**. Select **Bedroom 3**, its **north window**, **High-level exhaust**, **300 m³/h**, and **20 minutes** (raise the default 120 m³/h rating for this example).
+3. Choose **Evening cool-down** and **Open windows + internal doors**. Leave envelope conductance **1.5 W/m²K**, absorptance **0.6** and shading **0%**.
+4. Keep the browser wide enough to show the chart and selected-room section. The worker runs simulated time in the background; the result states the completed duration.
 
-## Walkthrough
+## Present
 
-| Time | Do | Say |
+| Time | Do | Explain |
 |---|---|---|
-| 0:00–0:20 | Show **3D model**, briefly switch **Isometric → Floor plan**. | “HeatSim helps us ask what happens when we change a home's openings and devices. This is an approximate four-room flat, and every reading is simulated.” |
-| 0:20–0:55 | Select **Validation case**, then **Airflow**. With outside openings closed the field is still. Open the bedroom 3 **north window** and the **main door**. Select **Pressure**, then return to **Airflow**. | “Opening both ends creates a connected ventilation route through bedroom 3, its internal door, the corridor and living/dining. The arrows show direction. Pressure colours show a relative index for this arrangement, not pascals.” |
-| 0:55–1:20 | Select **Air quality** and let the clock advance at least two simulated minutes. Then select **Haze outside**, click **Close windows** and **Close all doors**, and turn on the portable purifier at **3. Bedroom 3**. Watch that room after two more simulated minutes. | “An open route also carries outdoor haze indoors. With the openings shut, the purifier lowers particles near the room where we place it.” |
-| 1:20–2:00 | Turn the purifier off. Select **Hot afternoon (west sun)**. In **Devices**, use the portable fan at **1. Bedroom 3**, medium speed. Compare **Airflow** and the selected room's **Feels like** reading. Turn the fan off, select the AC's **Bedroom 3** room, turn AC on, and show **Temperature** after two simulated minutes. | “A fan moves air and changes our illustrative comfort score; it does not refrigerate the room. AC lowers temperature but uses more of our assumed device power.” |
-| 2:00–2:40 | Turn AC off. Select **Haze outside**, keeping all windows and doors closed. Set **Available devices → Fan + purifier**. Click **Compare layouts** and explain the trade-off while it works. Review the first result and **click Apply layout**. | “We compare arrangements from the same starting conditions. This percentage combines heat, haze and assumed power; it is not the percentage of haze removed. The search may decide the original arrangement is already best.” |
-| 2:40–3:00 | Show **All room readings** or export a CSV. Close the dialog and open **Build the physical model**. | “The screen model comes with a build pack: two A4 sheets of 3 mm cardboard, no roof. The building is about 188 by 118 mm. We can add physical buttons later; the web demonstration already works independently.” |
+| 0:00–0:25 | Point to the lower air, upper air and surface representation. | “A hot home stores heat in its surfaces as well as its air. Warm air can rise, while fans can mix or exhaust it. We simplify each room into two air layers and one surface temperature; these arrows are a diagram, not a measured plume.” |
+| 0:25–1:15 | Click **Compare fan off / on**. Show the matching starting points, then the occupied-layer chart, actual fan flow and electricity. | “Both trials start identically. We change only this ventilation fan. Here the outside air is cooler, so exchange can export heat. The temperature change is on minus off; a negative value means cooler. This modest result depends on our model assumptions.” |
+| 1:15–2:00 | Select **Close all other openings** and rerun. Point to **Actual flow, fan on** and the temperature change. | “The fan needs replacement air. With the other routes closed, sustained exchange is blocked. The motor still adds heat; spinning a fan is not refrigeration.” |
+| 2:00–2:35 | Expand **Can pressure expansion make a room colder?** Keep **30 Pa** and **50%**. | “An ideal expansion gives about a 0.026°C static-temperature drop in this separate example. Fan work and mixing matter, so that is not room cooling. We never subtract this number from the home temperatures.” |
+| 2:35–3:00 | Show the CSV export and the physical build pack. | “The results include the settings and both trials, so the comparison is reviewable. Our cardboard version uses two A4 sheets, all 3 mm, with no roof. It is a display and future controller, not thermal validation equipment.” |
 
-Validation deliberately opens **all internal doors** when selected. That includes bedroom 3's door; closing it breaks the demonstrated route. **Haze outside does not open that door on a fresh load.** To repeat cross-ventilation directly from Haze outside, also open **Bedroom 3 → Door to corridor** (`Shift+2`). The haze scenario's wind direction differs from Validation, so do not narrate both as the same north-to-south flow.
+## Values observed in the model
 
-## Rehearsal evidence
+A direct engine probe on 15 October 2026 used the exact setup above, all other devices off, and **1200 simulated seconds**. These values help rehearsal; show the actual displayed result and do not present them as measured fan/building performance.
 
-The following were checked directly with the current plan engine on 15 October 2026, from fresh preset fields for **120 simulated seconds**. They establish a visible cause and effect; they are not real-world predictions, promises of exact live readouts, or browser frame-rate measurements.
+| Bedroom 3, exhaust rated 300 m³/h | Routes open | All other openings closed |
+|---|---|---|
+| Occupied air, off → on | about **31.22 → 30.49°C** | about **31.52 → 31.58°C** |
+| Upper air, off → on | about **31.60 → 30.67°C** | about **31.84 → 32.02°C** |
+| Actual fan-on exchange | about **289 m³/h** | approximately **0 m³/h** |
+| Assumed fan input / extra electricity | **14 W / 4.67 Wh** | **14 W / 4.67 Wh** |
 
-| Setup | Bedroom 3 result |
-|---|---|
-| Validation, internal doors open, exterior openings closed | 0.00 m/s mean air speed; PM2.5 stays at 0 |
-| Validation, only north window open | Approximately zero mean speed; particles spread slowly by diffusion |
-| Validation, north window and main door open | About 0.15 m/s mean speed; PM2.5 approaches the illustrative outdoor value of 100 µg/m³ |
-| Haze outside, all openings closed, purifier off | PM2.5 stays at the initial 40 µg/m³ |
-| Same closed haze setup, portable purifier in bedroom 3 | PM2.5 falls to about 22.5 µg/m³ |
-| Hot afternoon, closed, no devices | About 31.1°C temperature and 33.2°C illustrative feels-like |
-| Same hot setup, portable fan in bedroom 3 | Temperature stays about 31.1°C; feels-like falls to about 32.8°C; assumed power 50 W |
-| Same hot setup, bedroom 3 AC only, 25°C setpoint | About 25.7°C temperature; assumed power 1000 W |
+The chart change is specific to **bedroom 3's occupied layer**, not the whole-flat mean. Keep the scopes distinct. Software checks support the calculation's implementation, not its calibration. See [CHECKLIST.md](../CHECKLIST.md) for browser verification separately.
 
-A closed Haze outside comparison with no active devices and the **Fan + purifier** budget evaluated 27 layouts in about nine seconds in a local Bun run. Its best combined score was about 2.25% lower. Browser timing and later tuning can differ; present the actual displayed result, including zero improvement or a time-limited search.
+## Optional follow-up questions
 
-## Avoid surprises on stage
+- **What if outside is hot or hazy?** Restore **Open windows + internal doors**, select **Haze outside**, and rerun. In the direct probe, bedroom 3 PM2.5 rose from about **119 to 158 µg/m³** with the fan on and the whole-flat increase was about **8.8 µg/m³**. Read the actual displayed temperature and PM2.5; ventilation is not guaranteed to improve either. Humidity is shown but latent heat and dehumidification are not calculated.
+- **Could we stop heat arriving first?** Select **Hot afternoon (west sun)**, run at **0% shading**, then rerun at **80%** with everything else unchanged. Compare the two experiments' solar-gain rows and matching fan-off results. Each individual pair still changes only fan on/off. Shading reduces solar input; it does not manufacture cold air.
+- **What does insulation do?** Change **Envelope conductance** under identical conditions. It slows heat transfer in both directions. This connects an exterior-face balance to the interior surface, not a certified material U-value and not the cardboard thickness.
+- **Where does air travel?** Return to the main apartment, close exterior openings, select **Validation case**, then open the bedroom 3 north window and main door. **Airflow** shows the connected planar route; **Pressure** shows a relative index, not Pa. The lab's thermal results do not repaint this field.
 
-- **Scenario selection preserves openings and equipment.** Close them or turn them off explicitly for a clean comparison. **Reset readings** restarts fields and time while keeping the current controls.
-- **Click Apply layout.** Enter activates a focused button, so after clicking Compare layouts it may start another comparison instead of applying the result.
-- **Use room readings for local effects.** A purifier or AC in one bedroom changes that bedroom more clearly than the whole-home average.
-- **A sealed flat can correctly show no airflow or pressure variation.** A single opening alone does not create a sustained through-flow in this steady 2D approximation. Use the connected two-opening case or a powered fan to demonstrate motion.
-- **Pressure is normalised within each arrangement.** Colour intensity cannot establish an absolute pressure increase between two different arrangements. This model does not simulate vertical buoyancy or turbulence.
-- **Pause with the on-screen Pause button** while explaining a result. Close dialogs before returning to shortcuts. Changing controls invalidates a previous optimiser comparison.
-- **Do not claim reference-CFD or electronics validation.** No SimScale/OpenFOAM comparison, board upload, real USB round trip or servo calibration has been completed. The master-bath window is above the simulated slice and does not change the 2D field.
+## Recovery and honesty
+
+**Cancel** stops a comparison; changing lab controls clears old results. **Refresh from the flat** captures its current controls but still starts from scenario initial temperatures. Reloading the page is the simplest clean reset. Do not claim a professional-CFD comparison, real USB operation, servo movement, measured pressure or energy-bill saving. Use [cooling science](cooling-science.md) and [fan thermodynamics](fan-thermodynamics.md) for the mechanisms behind the demonstration.
 
 Written by gpt-6-astra in Codex on behalf of Edmund

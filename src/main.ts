@@ -1,4 +1,4 @@
-import { applyHardwareControl, loadScenario, readConditions, replaceConditions } from './app';
+import { applyHardwareControl, applyHardwarePurifier, loadScenario, readConditions, replaceConditions } from './app';
 import { HardwareConnection, hardwareSupported } from './hardware';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { HARDWARE_OPENINGS, openingForKey } from './config/mapping';
@@ -43,13 +43,17 @@ const connection = new HardwareConnection({
   onLog: appendLog,
   onMessage(message) {
     if (message.type !== 'device' && message.type !== 'number') return;
+    if (message.type === 'device' && message.key === 'PUR') {
+      applyHardwarePurifier(message.value);
+      observed = readConditions();
+      return;
+    }
     const next = readConditions();
     const previous = JSON.stringify(next);
     const fan = next.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
     const purifier = next.purifier ??= { on: false, slot: 0 };
     if (message.type === 'device') {
       if (message.key === 'FAN') fan.on = message.value;
-      if (message.key === 'PUR') purifier.on = message.value;
       if (message.key === 'AC') {
         const selected = document.querySelector<HTMLSelectElement>('#ac-unit')?.value ?? 'ac_living';
         for (const id of Object.keys(next.devices)) if (id.startsWith('ac_')) next.devices[id] = id === selected && message.value;

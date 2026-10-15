@@ -1,6 +1,6 @@
 # 04 · Hardware and serial protocol
 
-**Current MVP:** the user has a SSTuino and one limit switch. The default sketch maps a passive COM→GND / NO→D5 switch to the simulated portable fan: pressed ON, released OFF. Board revision, upload and the physical USB round trip are **not yet verified**. The app still works standalone. The default sketch drives no servos or motors. **There are no environmental sensors** (no PSI, PM2.5, temperature or humidity). See [the practical wiring guide](hardware.md).
+**Current MVP:** the user has a SSTuino and one limit switch. The default sketch maps a passive COM→GND / NO→D5 switch to the simulated purifier in the Bedroom 3 corner: held pressed ON, released OFF. Board revision, upload and the physical USB round trip are **not yet verified**. The app still works standalone. The default sketch drives no servos or motors. **There are no environmental sensors** (no PSI, PM2.5, temperature or humidity). See [the practical wiring guide](hardware.md).
 
 The protocol below is implemented; sections explicitly marked planned or optional are not required to run the app. Cooling Lab is also standalone. Its high-level exhaust/supply fan is a software experiment; no new serial command or physical ventilation actuator is added. Its envelope parameters describe the full-size flat, not the cardboard.
 
@@ -20,9 +20,9 @@ Possible spare-board fallback: Arduino Uno or Nano over USB serial. Keep this pr
 
 ## 2. Current one-switch wiring and alternative opening controls
 
-**Default `SINGLE_FAN_SWITCH 1`: COM→GND, NO→D5, NC unconnected.** `INPUT_PULLUP` makes pressed LOW = `FAN:ON`, released HIGH = `FAN:OFF`, with 30 ms nonblocking debounce. No 5 V, 3.3 V or motor connects to the switch input. In Flat simulation, choose a fan location and nonzero speed on screen; the switch owns only fan power. Setup sends the current state. `GET:ALL` returns only `FAN:<ON|OFF>` and `END`, preserving on-screen location, direction, speed and scenario across connection/reset. A conflicting host `FAN` request returns `ERR:BUSY` followed by the actual switch state. Other valid logical settings can echo, but are not included in this mode's state dump.
+**Default `SINGLE_PURIFIER_SWITCH 1`: COM→GND, NO→D5, NC unconnected.** `INPUT_PULLUP` makes pressed LOW = `PUR:ON`, released HIGH = `PUR:OFF`, with 30 ms nonblocking debounce. No 5 V, 3.3 V or motor connects to the switch input. The app applies each physical PUR state to the Bedroom 3 corner purifier, slot 2 at x=11.5 m, z=2.8 m. The switch owns only purifier power. Setup sends the current state. `GET:ALL` returns only `PUR:<ON|OFF>` and `END`; fan settings, weather, openings and live simulation fields remain unchanged. A conflicting host `PUR` request returns `ERR:BUSY` followed by the actual switch state. Other valid logical settings can echo, but are not included in this mode's state dump.
 
-**Alternative `SINGLE_FAN_SWITCH 0`:** the previous two-opening demonstration below. Neither wiring mode has been tested on the user's board yet.
+**Alternative `SINGLE_PURIFIER_SWITCH 0`:** the previous two-opening demonstration below. Neither wiring mode has been tested on the user's board yet.
 | Function | Model part | Pin | Default behaviour |
 |---|---|---|---|
 | WIN1 input | bedroom 3 north window | **D5** | `INPUT_PULLUP`; button between input and GND toggles once per press |
@@ -80,16 +80,17 @@ Unmapped ids are logged and ignored.
 |---|---|---|
 | `HELLO` | handshake | `HELLO:HEATSIM/1` |
 | `PING` | liveness (host sends every 2 s; disconnected if no `PONG` within 5 s) | `PONG` |
-| `GET:ALL` | request states owned by this firmware mode | default single-switch: `FAN:..`, then `END`; alternative opening mode: every configured opening and logical setting, then `END` |
+| `GET:ALL` | request states owned by this firmware mode | default single-switch: `PUR:..`, then `END`; alternative opening mode: every configured opening and logical setting, then `END` |
 | `WIN<n>:<0\|1>`, `DOOR<n>:<0\|1>` | set a configured channel; servo movement only if enabled and calibrated | echo, or `ERR:BUSY` plus actual limit-switch state |
-| `FAN:<ON\|OFF>` | requests fan power; default single-switch mode is physically authoritative | echo, or `ERR:BUSY` plus actual switch state |
+| `FAN:<ON\|OFF>` | requests logical fan power; independent of the D5 purifier switch | echo |
+| `PUR:<ON\|OFF>` | requests purifier power; default single-switch mode is physically authoritative | echo, or `ERR:BUSY` plus actual switch state |
 | `FANANG:<deg>` | set logical fan angle; no yaw actuator in this sketch | echo |
 | `FANPOS:<slot>` | logical only (there is no slot actuator on the model) | echo |
-| `FANSPD:<0..3>`, `AC:<ON\|OFF>`, `PUR:<ON\|OFF>`, `PURPOS:<0..9>`, `SCN:<1..6>` | update logical settings within the stated range | echo |
+| `FANSPD:<0..3>`, `AC:<ON\|OFF>`, `PURPOS:<0..9>`, `SCN:<1..6>` | update logical settings within the stated range | echo |
 | `LED:<r>,<g>,<b>` | 0..255 each, on the RGB LED via `WiFi.setLEDs` (stretch) | `# ok` |
 | `MODE:<LOCAL\|REMOTE>` | `REMOTE` makes buttons send `BTN:<id>` only and lets the host decide (stretch; default LOCAL) | echo |
 
-Example session for alternative `SINGLE_FAN_SWITCH 0` mode:
+Example session for alternative `SINGLE_PURIFIER_SWITCH 0` mode:
 ```
 < HELLO:HEATSIM/1
 > GET:ALL
@@ -127,9 +128,9 @@ There is no `tools/bridge/` or WebSocket client in this MVP. USB uses Web Serial
 
 ## 7. Implemented Arduino sketch (`firmware/heatsim_board/heatsim_board.ino`)
 
-The [sketch](../firmware/heatsim_board/heatsim_board.ino) defaults to the single D5 fan switch in §2. Setting `SINGLE_FAN_SWITCH` to `0` restores the two opening inputs. Both modes implement 30 ms nonblocking debounce, bounded ASCII parsing, range checks, handshake and heartbeat replies. State dumps include only states owned by the selected mode. `LED` and `MODE` return `ERR:UNKNOWN`. Servos are disabled by default and only relevant to the alternative opening mode.
+The [sketch](../firmware/heatsim_board/heatsim_board.ino) defaults to the single D5 purifier switch in §2. Setting `SINGLE_PURIFIER_SWITCH` to `0` restores the two opening inputs. Both modes implement 30 ms nonblocking debounce, bounded ASCII parsing, range checks, handshake and heartbeat replies. State dumps include only states owned by the selected mode. `LED` and `MODE` return `ERR:UNKNOWN`. Servos are disabled by default and only relevant to the alternative opening mode.
 
-**Single-switch acceptance:** with Arduino IDE Serial Monitor at 115200 and "Newline", `PING` returns `PONG`; `GET:ALL` returns the actual `FAN:ON` or `FAN:OFF` and `END`. Press and release each produce one state update after debounce. A conflicting `FAN` request returns `ERR:BUSY` followed by the observed state. Close Serial Monitor, connect from desktop Chrome, and confirm the selected fan location survives reconnect. Alternative opening mode retains its WIN1/DOOR1 checks. Test servo movement separately only after enabling and calibrating it.
+**Single-switch acceptance:** with Arduino IDE Serial Monitor at 115200 and "Newline", `PING` returns `PONG`; `GET:ALL` returns the actual `PUR:ON` or `PUR:OFF` and `END`. Press and release each produce one state update after debounce. A conflicting `PUR` request returns `ERR:BUSY` followed by the observed state. Close Serial Monitor, connect from desktop Chrome, and confirm the Bedroom 3 corner purifier responds without changing fan, weather or openings. Alternative opening mode retains its WIN1/DOOR1 checks. Test servo movement separately only after enabling and calibrating it.
 
 Host-side tests exercise the parser, connection handling and the sketch through mocked Arduino functions. They do **not** verify AVR compilation, firmware upload, physical USB behaviour, wiring or servo movement. Follow [hardware.md](hardware.md) for exact check commands and the remaining hardware steps.
 

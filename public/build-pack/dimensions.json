@@ -776,7 +776,7 @@
     }
   ],
   "hardware": {
-    "status": "SSTuino, servos, limit switches and buttons specified; exact parts, mounting sizes, pins and power pending",
+    "status": "SSTuino planned but not yet available; servos, limit switches and buttons listed by the user; fitting, exact parts, mounting sizes, pins and power pending",
     "primary_controls": "Door and window states; app fans, AC and purifier controls are separate software controls",
     "reserved_panel_mm": [
       190,
@@ -1216,7 +1216,7 @@
       "wall": "W01",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1226,7 +1226,7 @@
       "wall": "W01",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1236,7 +1236,7 @@
       "wall": "W01",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1246,7 +1246,7 @@
       "wall": "W01",
       "control": "open / closed",
       "hardware_channel": "WIN1",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1256,7 +1256,7 @@
       "wall": "W02",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1266,7 +1266,7 @@
       "wall": "W02",
       "control": "open / closed",
       "hardware_channel": "DOOR1",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1276,7 +1276,7 @@
       "wall": "W02",
       "control": "open / closed",
       "hardware_channel": "WIN2",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1286,7 +1286,7 @@
       "wall": "W02",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1296,7 +1296,7 @@
       "wall": "W03",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "north"
     },
     {
@@ -1306,7 +1306,7 @@
       "wall": "W03",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "north"
     },
     {
@@ -1316,7 +1316,7 @@
       "wall": "W04",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "north"
     },
     {
@@ -1326,7 +1326,7 @@
       "wall": "W04",
       "control": "open / closed",
       "hardware_channel": "WIN3",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "north"
     },
     {
@@ -1336,7 +1336,7 @@
       "wall": "W05",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1346,7 +1346,7 @@
       "wall": "W05",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1356,7 +1356,7 @@
       "wall": "W05",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1366,7 +1366,7 @@
       "wall": "W05",
       "control": "open / closed",
       "hardware_channel": "DOOR2",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1376,7 +1376,7 @@
       "wall": "W06",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "north"
     },
     {
@@ -1386,7 +1386,7 @@
       "wall": "W10",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "north"
     },
     {
@@ -1396,7 +1396,7 @@
       "wall": "W11",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "west"
     },
     {
@@ -1406,7 +1406,7 @@
       "wall": "W12",
       "control": "open / closed",
       "hardware_channel": "",
-      "physical": "SSTuino button / limit switch / servo channel; mapping pending actual hardware",
+      "physical": "Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending",
       "hinge_side": "east"
     },
     {

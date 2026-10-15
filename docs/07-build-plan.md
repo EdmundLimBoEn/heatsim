@@ -1,5 +1,34 @@
 # 07 · Build plan: Thu 15 Oct 2026 (all times SGT)
 
+## MVP amendment · handoff status
+
+**The original schedule and 3D milestones below are historical planning, not a completion report.** The authoritative acceptance record is [CHECKLIST.md](../CHECKLIST.md). Run and rehearse from the [README](../README.md).
+
+The working presentation is deliberately **standalone first**: a refined 3D view, documented 2D plan solver, all six scenarios, keyboard/on-screen controls, device placement, background layout comparison and A4 construction files. **The SSTuino has not arrived.** Hardware integration is prepared but is not a prerequisite for demonstrating the software.
+
+At the final software checkpoint, **79 automated tests**, strict TypeScript/Vite production build and the scene self-check (including pressure and direction arrows) passed. Generated-pack assertions and a host C++ mock of the sketch also passed. Native Zen verified actual WebGL visuals and downloaded PNG output. Browser application and serial-mock scripts each passed nine assertions; the actual optimiser worker completed and Apply retained the layout. Production-preview smoke testing, formal five-minute FPS recording and physical hardware tests remain separately tracked in the checklist. Headless Chromium could not render WebGL in its SwiftShader/driver environment; native Zen supplies the visual evidence.
+
+### Finish the presentation
+
+1. Complete the production-preview smoke check and retain the final test/build results. Browser controls, pressure/flow views, optimiser and exports already have the specific evidence recorded in the checklist.
+2. Rehearse the standalone README sequence on the presentation machine with no board connected. Record a backup video; keep the built app and local assets available.
+3. Give the crew the [build pack](../public/build-pack/index.html). Verify actual-size printing and cardboard thickness before cutting. Assemble the 187.692 × 118.462 mm roofless shell before fitting unspecified components.
+4. When the SSTuino arrives, identify its version, upload the correct sketch, and test the two default physical inputs individually. Only enable servos after checking their power and calibrating their travel.
+
+### Explicitly deferred
+
+- 3D D3Q19 LBM, WebGPU compute, GPU/CPU equivalence and vertical buoyancy.
+- SimScale/OpenFOAM runs or reference-validation claims.
+- Physical USB round-trip acceptance, board-specific compile/upload, limit-switch installation and servo actuation until the real hardware is available.
+- Optional WebSocket bridge, vertical slices, high-resolution solver, advanced turbulence and physical device-position actuators.
+
+The old acceptance tests remain below for traceability. Mark 3D-only items **N/A for this deliberate fallback**, not passed. Do not convert mocked tests or solver-only benchmarks into claims of physical operation or full-browser FPS.
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
+<details>
+<summary>Original roadmap / reference specification — not a statement of shipped functionality</summary>
+
 ## Fixed points
 | Time | Event | Tag |
 |---|---|---|
@@ -72,3 +101,5 @@
 | SimScale queue too slow or out of runs | no results by 13:00 | OpenFOAM in Multipass (doc 06 §4); else present the expected behaviour with the live sim screenshots only, labelled clearly |
 | Optimiser too slow | > 30 s | coarse CPU engine, fewer steps, fewer candidates (fan yaw offsets {−45, 0, 45}) |
 | Anything breaks on stage | n/a | backup screen recording (made by 15:30) |
+
+</details>

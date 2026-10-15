@@ -1,24 +1,24 @@
 label,app_object,category,wall,control,hardware_channel,physical,hinge_side
-G01,window_master_1,window,W01,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-G02,window_master_bath,window,W01,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-G03,window_bedroom2_1,window,W01,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-G04,window_bedroom3_1,window,W01,open / closed,WIN1,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-G05,window_service_yard,window,W02,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-D01,main_door,door,W02,open / closed,DOOR1,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-G06,window_living_1,window,W02,open / closed,WIN2,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-G07,window_living_2,window,W02,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-G08,window_master_2,window,W03,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,north
-G09,window_kitchen,window,W03,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,north
-G10,window_bedroom3_2,window,W04,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,north
-G11,window_living_3,window,W04,open / closed,WIN3,SSTuino button / limit switch / servo channel; mapping pending actual hardware,north
-D02,door_master_bedroom,door,W05,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-D03,door_common_bath,door,W05,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-D04,door_bedroom2,door,W05,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-D05,door_bedroom3,door,W05,open / closed,DOOR2,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-D06,door_master_bath,door,W06,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,north
-D07,door_kitchen,door,W10,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,north
-D08,door_service_yard,door,W11,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,west
-D09,door_shelter,door,W12,open / closed,,SSTuino button / limit switch / servo channel; mapping pending actual hardware,east
+G01,window_master_1,window,W01,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+G02,window_master_bath,window,W01,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+G03,window_bedroom2_1,window,W01,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+G04,window_bedroom3_1,window,W01,open / closed,WIN1,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+G05,window_service_yard,window,W02,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+D01,main_door,door,W02,open / closed,DOOR1,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+G06,window_living_1,window,W02,open / closed,WIN2,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+G07,window_living_2,window,W02,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+G08,window_master_2,window,W03,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,north
+G09,window_kitchen,window,W03,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,north
+G10,window_bedroom3_2,window,W04,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,north
+G11,window_living_3,window,W04,open / closed,WIN3,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,north
+D02,door_master_bedroom,door,W05,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+D03,door_common_bath,door,W05,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+D04,door_bedroom2,door,W05,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+D05,door_bedroom3,door,W05,open / closed,DOOR2,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+D06,door_master_bath,door,W06,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,north
+D07,door_kitchen,door,W10,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,north
+D08,door_service_yard,door,W11,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,west
+D09,door_shelter,door,W12,open / closed,,Planned SSTuino button / limit switch / servo channel; board not yet available; fitting and mapping pending,east
 A01,fan_living,fan,,on / off,,Web-app control; no physical switch required for the current build,
 A02,fan_dining,fan,,on / off,,Web-app control; no physical switch required for the current build,
 A03,fan_master,fan,,on / off,,Web-app control; no physical switch required for the current build,

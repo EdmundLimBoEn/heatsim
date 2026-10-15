@@ -1,5 +1,22 @@
 # 08 · Assets
 
+## MVP amendment · assets actually used
+
+**This amendment takes precedence over the original asset-use plan below.** The running app and the build pack use the canonical **`assets/hdb-3d/hdb_4room_boxes.json`**, imported through `src/domain.ts`. It is the geometry source for both the simulation mask and the refined procedural three.js scene. The legacy `src/data/model.json` is not the authoritative import.
+
+The GLB and original viewer are retained as provenance/reference assets; the live scene is built from JSON and does not load that GLB. No large Sketchfab/unknown-license fallback asset was added. The layout remains an approximate educational HDB-inspired plan, not an official building drawing.
+
+Generated public handoff files live in `public/build-pack/`: actual-size floor/wall/leaf SVGs, room/opening/device CSVs, exact dimensions JSON, a printable HTML pack and `heatsim-build-pack.zip`. Rebuild them with `python3 scripts/build-pack.py`; edit the generator instead of editing generated templates. [Physical-model instructions](physical-model.md) explain 3 mm wall joints and hardware-fit limits. The required footprint is 187.692 × 118.462 mm; all 13 wall panels fit one additional A4 sheet.
+
+Installed three.js carries the MIT license (`node_modules/three/LICENSE`); the current package dependency is `three ^0.180.0`, resolved by `bun.lock`. TypeScript's installed license is Apache 2.0, and Vitest's installed core license is MIT. No external LBM demo code was copied. Keep the inherited source-model provenance notes below; this build does not establish new rights to unrelated reference assets.
+
+No SimScale/OpenFOAM result images or measurement datasets were produced. Do not describe source previews, synthetic field images or planned validation screenshots as measured/reference-CFD evidence.
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
+<details>
+<summary>Original roadmap / reference specification — not a statement of shipped functionality</summary>
+
 ## In this repo: `assets/hdb-3d/` (copied from `/workspace/hdb-3d/` on 15 Oct 2026)
 | File | Size | What | Use |
 |---|---|---|---|
@@ -35,3 +52,5 @@ SHA-256 at copy time: `hdb_4room.glb` `bfa5667f…7a7086b36`, `hdb_4room_boxes.j
 ## Third-party code (to be added by the build)
 - three.js (MIT) [U: licence well known, not re-checked today], from npm, pinned.
 - No code from WebLBM, the MIT GPU-LBM demo or Hypercube-gpu is to be copied unless its licence has been checked and recorded here.
+
+</details>

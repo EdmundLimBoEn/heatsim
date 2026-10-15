@@ -1,5 +1,22 @@
 # 00 · Overview
 
+## MVP amendment · 15 October 2026
+
+**This amendment describes the app that exists and takes precedence over the original roadmap below.** Use the [README](../README.md) for running and presenting it, and [CHECKLIST](../CHECKLIST.md) for verified versus pending work.
+
+HeatSim now runs as a standalone browser presentation: a refined 3D apartment view, a 2D plan-view heat/haze simulation, six scenarios, opening and device controls, and a background layout comparison. A keyboard and on-screen controls cover the demo. **The SSTuino has not arrived; physical electronics are optional future integration.** No sensor or live environmental API is used.
+
+The cardboard handoff is ready to print: **1:65, 187.692 × 118.462 mm footprint, 40 mm walls**, inside a 200 × 150 mm area on A4. One A4 base plus one extra A4 sheet of 3 mm card supplies the roofless shell. See the [builder instructions](physical-model.md) and [complete pack](../public/build-pack/index.html).
+
+The honest pitch is: “Our qualitative toy CFD uses a coarse 2D floor-plan model to show possible heat, haze and airflow trends. The 3D apartment makes those trends visible. Its values are illustrative, and we have not validated it against measurements or professional CFD.” Pressure is a normalized relative index, not pascals.
+
+**Not completed:** 3D LBM, WebGPU compute, vertical buoyancy, SimScale/OpenFOAM reference runs, physical USB/switch tests or servo actuation. The historical NEA/event statements below come from the inherited brief; this build did not independently verify those external claims. Do not present a live data feed or a completed reference-validation study.
+
+Written by gpt-6-astra in Codex on behalf of Edmund
+
+<details>
+<summary>Background and original roadmap — not a statement of shipped functionality</summary>
+
 ## Event facts
 | Item | Value | Tag |
 |---|---|---|
@@ -52,3 +69,5 @@ Each criterion is scored Beginning / Developing / Competent / Accomplished (the 
 | **Quality of Pitch** | Mdm Tan story, the NEA haze number, a live demo, SimScale validation images, honest limits ("toy CFD"), and the SDG 13 energy angle. |
 
 Prize categories also include Best MVP, Best Pitching and Most Promising Design [V brief]. A robust live demo is our best lever.
+
+</details>

@@ -189,7 +189,7 @@ describe('layout optimiser', () => {
       }
     }
     expect(changed.size).toBe(mapped.size);
-    expect(evaluated.length).toBeLessThanOrEqual(33);
+    expect(evaluated.length).toBeLessThanOrEqual(27 + mapped.size);
   });
 
   test('reports finite, monotonic progress while awaiting asynchronous evaluations', async () => {

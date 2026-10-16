@@ -1,6 +1,5 @@
 # Outdoor air, haze and cooling: presentation walkthrough
 
-**Final prototype mapping (16 Oct): D5 now controls the Bedroom 3 main standing fan (fan preset 1), held = ON and released = OFF. D4 and switch polarity are unchanged. The already-uploaded sketch still sends `PUR:ON/OFF`; the app maps that legacy channel to the fan, and sends main-fan power requests back on `PUR`. The purifier is software-only. No reflash is required. On a D5 update, the main fan returns to its Bedroom 3 preset; other fans and purifier settings are preserved. References to D5 purifier control below describe the previous mapping.**
 
 Run `bun run dev` and open the localhost address. No SSTuino is needed. The visible workspaces are **My flat**, **Window fan test** and **Compare floor plans**. Describe My flat as **planar toy CFD** and Window fan test (Cooling Lab) as a **separate two-layer/surface teaching model**. Neither is calibrated.
 
@@ -58,7 +57,7 @@ In **My flat**, choose a day and use **What to try → Suggest changes**. Read t
 
 To show the three-plan workflow, open **Compare floor plans → Try the 3 example plans**, choose shared weather and click **Compare three plans**. Read the separate metric advantages and room results, then **Download comparison**. **Weather source & details** records manual input provenance; it does not automatically fetch weather.
 
-With the verified board setup connected, press and release **D4** once: both Bedroom 3 windows change together. Holding must not repeat. Press again to reverse the group. Hold **D5** to power the simulated Bedroom 3 corner purifier, then release to stop it. These switches supply inputs only; no real purifier or motor is powered. Physical upload/USB checks remain outstanding until performed on the actual board. Without a board, select Bedroom 3 and use **Open both windows / Close both windows** plus the purifier controls. Keyboard **1 / 4** changes the north/east window independently; keyboard 4 is distinct from the physical D4 group button.
+The final-round protocol v2 sketch uses D4 to toggle all 11 windows, optional D3 to toggle all 9 doors, and D5 held/released to control main standing-fan power. Unwired D3 stays HIGH with INPUT_PULLUP; on-screen doors remain usable. All inputs debounce for 30 ms. FAN messages preserve the main fan position and heading. Upload v2 and verify the physical round trip using [the hardware guide](hardware.md). No sensors, servos or motors are driven.
 
 ## Keep the demonstration reviewable
 

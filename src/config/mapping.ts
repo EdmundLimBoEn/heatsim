@@ -3,8 +3,22 @@ export const HARDWARE_OPENINGS = {
   WIN2: 'window_living_1',
   WIN3: 'window_living_3',
   WIN4: 'window_bedroom3_2',
+  WIN5: 'window_master_1',
+  WIN6: 'window_master_bath',
+  WIN7: 'window_bedroom2_1',
+  WIN8: 'window_service_yard',
+  WIN9: 'window_living_2',
+  WIN10: 'window_master_2',
+  WIN11: 'window_kitchen',
   DOOR1: 'main_door',
   DOOR2: 'door_bedroom3',
+  DOOR3: 'door_master_bedroom',
+  DOOR4: 'door_common_bath',
+  DOOR5: 'door_bedroom2',
+  DOOR6: 'door_master_bath',
+  DOOR7: 'door_kitchen',
+  DOOR8: 'door_service_yard',
+  DOOR9: 'door_shelter',
 } as const;
 
 export type HardwareOpeningKey = keyof typeof HARDWARE_OPENINGS;

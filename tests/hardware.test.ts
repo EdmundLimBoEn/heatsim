@@ -20,7 +20,7 @@ describe('hardware messages', () => {
   });
 
   test('ignores invalid, unknown, and unmapped input', () => {
-    for (const line of ['', 'booting...', 'WIN1:true', 'WIN1:2', 'WIN9:1', 'DOOR9:1',
+    for (const line of ['', 'booting...', 'WIN1:true', 'WIN1:2', 'WIN12:1', 'DOOR10:1',
       '{"type":"opening","target":"main_door","open":true}', 'FAN:ON']) {
       expect(parseHardwareLine(line)).toBeNull();
     }
@@ -88,7 +88,7 @@ describe('USB lifecycle', () => {
     expect(await board.connection.sendOpening('window', 'window_bedroom3_2', false)).toBe(true);
     expect(await board.connection.sendOpening('door', 'main_door', false)).toBe(true);
     expect(await board.connection.sendOpening('door', 'window_bedroom3_1', true)).toBe(false);
-    expect(await board.connection.sendOpening('window', 'window_master_1', true)).toBe(false);
+    expect(await board.connection.sendOpening('window', 'window_missing', true)).toBe(false);
     expect(await board.connection.send('WIN1:1\nDOOR1:1')).toBe(false);
     expect(board.sent).toEqual(['WIN1:1\n', 'WIN4:0\n', 'DOOR1:0\n']);
   });

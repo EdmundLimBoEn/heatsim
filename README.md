@@ -10,7 +10,7 @@ The app has three workspaces, using a planar model and a separate room/layer the
 | **Window fan test** | A separate whole-flat model with lower/upper air layers and a surface temperature per room; matched opening, purifier, high-level fan and envelope experiments, with an ideal-expansion calculator. | Calibrated building performance, a resolved 3D plume, or cooling produced by ideal expansion in the room solver. |
 | **Compare floor plans** | Three validated JSON floor plans, shared manual conditions, plan-specific room-network calculations and a reviewable client handoff. | Automatic image/PDF interpretation, surveyed dimensions, professional CFD or compliance certification. |
 
-The supplied SSTuino is optional. The current demo uses a D4 button for both Bedroom 3 windows and a D5 held switch for its purifier; the physical USB round trip remains unverified. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
+The supplied SSTuino is optional. The v2 demo uses D4 for all windows, optional D3 for all doors and D5 for main-fan power; the physical USB round trip remains unverified. [CHECKLIST.md](CHECKLIST.md) records the completed software checks and the remaining physical/rehearsal work.
 
 ## Run it
 
@@ -127,16 +127,11 @@ Use the [presentation walkthrough](docs/presentation-demo.md) for the final rehe
 
 Playback starts at a **30× target speed**; busy devices may advance more slowly. The clock and energy reflect simulated time actually completed. **Space** pauses/resumes, **Backspace** resets fields and the simulation clock while keeping controls, and **H** shows the shortcuts. Keyboard shortcuts pause while typing in a form control or using a dialog. Everything needed for this demo is also on screen.
 
-## Optional electronics: D4 windows and D5 purifier
+## Optional electronics: D4 windows, D3 doors, D5 fan
 
-Follow [the wiring and firmware guide](docs/hardware.md) and [protocol v1](docs/04-hardware-protocol.md). The default `SINGLE_PURIFIER_SWITCH = 1` now enables both Bedroom 3 controls, with **30 ms debounce**:
+Upload the rewritten v2 [firmware](firmware/heatsim_board/heatsim_board.ino), then follow the [wiring and verification guide](docs/hardware.md). D4 toggles all windows; optional D3 toggles all doors; D5 COM→GND and NO→D5 powers the simulated main standing fan while pressed. D3 can be left unwired. Buttons and switch use 30 ms debounce and internal pull-ups.
 
-- **D4 button → GND:** each stable press toggles both Bedroom 3 windows. If both are open, it closes both; otherwise it opens both. Holding or releasing does not toggle again. The two messages are `WIN1` (north) and `WIN4` (east); `WIN2`/`WIN3` still refer to the living-room windows.
-- **D5 limit switch: COM → GND, NO → D5, NC unused:** hold to enable the **Bedroom 3 corner purifier**; release to disable it. This sends `PUR:ON` / `PUR:OFF`. Both inputs use `INPUT_PULLUP`; see the guide's SSTuino II versus classic-board D4 check before wiring.
-
-On boot, both logical window states start closed and the purifier samples its physical switch. `GET:ALL` reports those three states; it does not reset fan, weather or unrelated openings. On screen, select **Bedroom 3 → Open both windows / Close both windows** for the same group action. Individual controls and keyboard **1** (north) / **4** (east) remain independent; keyboard 4 is not the physical D4 group button. Set `SINGLE_PURIFIER_SWITCH = 0` only for the alternative WIN1/D5 and DOOR1/D6 demonstration.
-
-USB uses **115200 baud, ASCII `KEY:VALUE` lines**. There are no temperature, humidity or PM sensors. **Servos are disabled by default; no physical purifier or fan is powered.** The SSTuino II Rev A target compiles with core 1.1.3; firmware upload, switch wiring and USB round trips remain unverified on the supplied board. The standalone demo requires none of those physical checks.
+The browser should show **v2 · D4 windows / D3 doors / D5 fan**. Close Serial Monitor before connecting. D5 changes power without moving or rotating the fan. No motors, servos or sensors are connected. Physical upload and round-trip verification remain required; the sketch compiles for SSTuino II Rev A and passes host I/O tests.
 
 ## What the simulation means
 

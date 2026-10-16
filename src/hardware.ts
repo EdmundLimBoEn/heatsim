@@ -222,7 +222,7 @@ export class HardwareConnection {
     if (!message) return;
     if (message.type === 'hello') {
       this.handshaken = true;
-      this.report('connected', 'Model connected · HeatSim protocol v1.');
+      this.report('connected', message.version === 2 ? 'Model connected · v2 · D4 windows / D3 doors / D5 fan.' : 'Model connected · protocol v1 (old sketch). Upload v2 for all openings.');
     } else if (message.type === 'pong') {
       this.lastPong = Date.now();
     } else if (message.type === 'opening') {

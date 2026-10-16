@@ -125,7 +125,7 @@ Headless Chromium's 3D rendering was blocked by its SwiftShader/driver environme
 
 - [ ] Verify the printed 50 mm bar, cardboard thickness and 187.692 × 118.462 mm outer footprint; dry-fit walls and hinges.
 - [ ] Confirm the supplied SSTuino version/board package and the guide's D4 compatibility note. Wire the D4 button to GND and the D5 passive switch COM→GND, NO→D5, leaving NC unconnected.
-- [ ] Upload the board-target-compiled sketch to the actual SSTuino. The default `SINGLE_PURIFIER_SWITCH = 1` enables the D4 window button and D5 purifier switch, with `ENABLE_SERVOS = 0`. Flag `0` restores the alternative WIN1/D5 and DOOR1/D6 inputs.
+- [ ] Upload the v2 sketch and complete docs/hardware.md physical checks: all windows D4, all doors D3, fan D5, D3 absent, reconnect.
 - [ ] Check D4 press toggles both Bedroom 3 windows; holding/releasing does not repeat. Check D5 held→corner purifier ON and release→OFF, 30 ms debounce and physical-state authority. Confirm startup/reconnect reports these owned states without changing the fan, weather or other openings.
 - [ ] USB connect, `HELLO` / `GET:ALL`, one press → one app update, unplug/reconnect and keyboard-only fallback on actual hardware.
 - [ ] Only if servos will be used: identify supply/current needs, verify common ground, calibrate horns detached, check linkage travel, then enable and test one servo.
@@ -174,3 +174,8 @@ Written by gpt-6-astra in Codex on behalf of Edmund
 - LIMITATION: this Mac's normal resolver retained an initial negative lookup despite direct DNS resolving. Admin mDNSResponder cache reset requires the user's password; normal-address browser verification remained blocked locally. No physical hardware or real-world calibration checks were performed.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
+
+## Final-round repair
+- [x] Firmware v2 host checks and SSTuino II Rev A compile passed (D3 absent included).
+- [ ] Physical switch-to-browser check after uploading v2.
+- [x] 314 TypeScript tests, production build, 14 v2 browser serial checks and 7 fan interaction checks passed. Browser checks use simulated serial/pointer inputs.

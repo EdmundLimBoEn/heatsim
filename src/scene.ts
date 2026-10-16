@@ -652,6 +652,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   const projected = new THREE.Vector3();
   const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const raycaster = new THREE.Raycaster();
+  raycaster.params.Line.threshold = 0.025;
   const pointer = new THREE.Vector2();
   const worldHit = new THREE.Vector3();
   let pointerDown: { x: number; y: number } | null = null;
@@ -780,11 +781,11 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     if (drag) {
       if (event.pointerId !== drag.pointerId) return;
       event.preventDefault(); event.stopImmediatePropagation();
-      const room = drag.kind === 'fan' ? drag.startFan.room : PURIFIER_SLOTS[drag.startSlot].room;
+      const room = drag.kind === 'purifier' ? PURIFIER_SLOTS[drag.startSlot].room : null;
       const moved = drag.moved;
       if (moved) onPointerMove(event);
       endDrag(true);
-      if (!moved) onSelectRoom(room);
+      if (!moved && room) onSelectRoom(room);
       return;
     }
     if (!pointerDown || Math.hypot(pointerDown.x - event.clientX, pointerDown.y - event.clientY) > 6) { pointerDown = null; return; }

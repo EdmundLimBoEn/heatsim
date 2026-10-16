@@ -55,7 +55,7 @@ describe('protocol v1 incoming lines', () => {
   });
 
   test('ignores malformed, unknown, wrong-case, and invalid state messages', () => {
-    for (const line of ['', 'HELLO', 'HELLO:HEATSIM/2', 'PING', 'GET:ALL', 'WIN0:1', 'WIN10:1', 'DOOR0:0', 'DOOR10:0',
+    for (const line of ['', 'HELLO', 'PING', 'GET:ALL', 'WIN0:1', 'WIN12:1', 'DOOR0:0', 'DOOR10:0',
       'WIN1:2', 'WIN1:true', 'DOOR1:ON', 'win1:1', ' WIN1:1', 'WIN1:1 ', 'WIN1:1:0', 'FAN:1', 'AC:on',
       'PUR:', 'BTN:', 'ERR:FAIL', 'MODE:INVALID', '__proto__:1', 'toString:1', '{"WIN1":1}', 'TEMPERATURE:30']) {
       expect(parseLine(line)).toBeNull();
@@ -85,7 +85,8 @@ describe('physical model mapping', () => {
   test('matches doc 04 and round-trips each mapped opening', () => {
     expect(HARDWARE_OPENINGS).toEqual({
       WIN1: 'window_bedroom3_1', WIN2: 'window_living_1', WIN3: 'window_living_3', WIN4: 'window_bedroom3_2',
-      DOOR1: 'main_door', DOOR2: 'door_bedroom3',
+      WIN5: 'window_master_1', WIN6: 'window_master_bath', WIN7: 'window_bedroom2_1', WIN8: 'window_service_yard', WIN9: 'window_living_2', WIN10: 'window_master_2', WIN11: 'window_kitchen',
+      DOOR1: 'main_door', DOOR2: 'door_bedroom3', DOOR3: 'door_master_bedroom', DOOR4: 'door_common_bath', DOOR5: 'door_bedroom2', DOOR6: 'door_master_bath', DOOR7: 'door_kitchen', DOOR8: 'door_service_yard', DOOR9: 'door_shelter',
     });
     for (const [key, id] of Object.entries(HARDWARE_OPENINGS)) {
       expect(openingForKey(key)).toEqual({ kind: key.startsWith('WIN') ? 'window' : 'door', id });
@@ -94,11 +95,22 @@ describe('physical model mapping', () => {
   });
 
   test('unmapped or inherited keys never control another opening', () => {
-    for (const key of ['WIN5', 'WIN9', 'DOOR3', 'WIN0', '__proto__', 'constructor', 'toString', 'win1', '']) {
+    for (const key of ['WIN12', 'DOOR10', 'WIN0', '__proto__', 'constructor', 'toString', 'win1', '']) {
       expect(openingForKey(key)).toBeUndefined();
     }
-    for (const id of ['window_master_1', 'door_bedroom2', 'WIN1', '__proto__', '']) {
+    for (const id of ['window_missing', 'door_missing', 'WIN1', '__proto__', '']) {
       expect(keyForOpening(id)).toBeUndefined();
     }
   });
+});
+
+test('v2 adds every canonical opening while retaining legacy keys', async () => {
+  const { model } = await import('../src/domain');
+  expect(parseLine('HELLO:HEATSIM/2')).toEqual({type:'hello',version:2});
+  for (const box of model.boxes.filter(box => box.type === 'window' || box.type === 'door')) {
+    const key = keyForOpening(box.name)!;
+    expect(key).toBeDefined();
+    expect(parseLine(`${key}:1`)).toEqual({type:'opening',key,value:true});
+    expect(formatLine(`${key}:0`)).toBe(`${key}:0\n`);
+  }
 });

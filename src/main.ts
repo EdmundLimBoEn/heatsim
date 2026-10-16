@@ -20,6 +20,7 @@ guide.className = 'text-link';
 controls.append(guide, log);
 const messages: string[] = [];
 let observed = readConditions();
+let protocolVersion = 1;
 const appendLog = (line: string) => {
   messages.push(line);
   if (messages.length > 5) messages.shift();
@@ -38,23 +39,23 @@ const connection = new HardwareConnection({
     controls.dataset.connection = next.state;
     button.textContent = next.state === 'connected' ? 'Disconnect SSTuino' : 'Connect SSTuino';
     button.disabled = next.state === 'connecting' || next.state === 'unsupported';
+    if (next.state === 'connecting' || next.state === 'disconnected') protocolVersion = 1;
     observed = readConditions();
   },
   onLog: appendLog,
   onMessage(message) {
+    if (message.type === 'hello') { protocolVersion = message.version ?? 1; return; }
     if (message.type !== 'device' && message.type !== 'number') return;
     const next = readConditions();
     const previous = JSON.stringify(next);
     const fan = next.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
     const purifier = next.purifier ??= { on: false, slot: 0 };
     if (message.type === 'device') {
-      // Keep the uploaded D5 sketch: its legacy PUR channel now owns the Bedroom 3 fan.
-      if (message.key === 'PUR') {
-        fan.on = message.value; fan.slot = 0; delete fan.removed;
-        delete fan.position; delete fan.headingDeg;
-        if (fan.on && fan.speed === 0) fan.speed = 2;
+      if (message.key === 'FAN' || (message.key === 'PUR' && protocolVersion === 1)) {
+        fan.on = message.value;
+        if (fan.on) { delete fan.removed; if (fan.speed === 0) fan.speed = 2; }
       }
-      if (message.key === 'FAN') { fan.on = message.value; delete fan.removed; }
+      if (message.key === 'PUR' && protocolVersion === 2) purifier.on = message.value;
       if (message.key === 'AC') {
         const selected = document.querySelector<HTMLSelectElement>('#ac-unit')?.value ?? 'ac_living';
         for (const id of Object.keys(next.devices)) if (id.startsWith('ac_')) next.devices[id] = id === selected && message.value;
@@ -95,13 +96,14 @@ window.addEventListener('heatsim:control', ((event: CustomEvent<{ conditions: Co
       if (next[group][opening.id] !== observed[group][opening.id]) void connection.sendOpening(opening.kind, opening.id, next[group][opening.id]);
     }
     const changes: [string, unknown, unknown][] = [
-      ['PUR', next.portableFan?.on, observed.portableFan?.on],
+      [protocolVersion === 2 ? 'FAN' : 'PUR', next.portableFan?.on, observed.portableFan?.on],
       ['FANPOS', next.portableFan?.slot, observed.portableFan?.slot],
       ['FANANG', next.portableFan?.angleDeg, observed.portableFan?.angleDeg],
       ['FANSPD', next.portableFan?.speed, observed.portableFan?.speed],
       ['PURPOS', next.purifier?.slot, observed.purifier?.slot],
       ['AC', Object.entries(next.devices).some(([id, on]) => id.startsWith('ac_') && on), Object.entries(observed.devices).some(([id, on]) => id.startsWith('ac_') && on)],
     ];
+    if (protocolVersion === 2) changes.push(['PUR', next.purifier?.on, observed.purifier?.on]);
     for (const [key, value, old] of changes) if (value !== old && value !== undefined) void connection.send(`${key}:${typeof value === 'boolean' ? value ? 'ON' : 'OFF' : value}`);
     if (next.scenarioId !== observed.scenarioId) {
       const index = PRESETS.findIndex(preset => preset.id === next.scenarioId);

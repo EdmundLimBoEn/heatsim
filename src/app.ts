@@ -142,7 +142,7 @@ $('#app').innerHTML = `
               <details id="fan-presets" class="standing-fan-detail"><summary>Main fan presets & shortcuts</summary><p class="section-note">Presets replace the main fan’s free position and direction. Keyboard F, position and angle shortcuts always adjust the main fan.</p><label class="field-label spaced" for="fan-slot">Preset position</label><select id="fan-slot" class="device-select" data-device-key="fanSlot">${FAN_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}</option>`).join('')}</select><label class="range-control spaced" for="fan-angle"><span>Direction within preset<output id="fan-angle-value">90°</output></span><input id="fan-angle" type="range" min="0" max="180" step="15" value="90" data-device-key="fanAngle"><span class="range-limits"><span>0°</span><span>180°</span></span></label></details>
               <p id="standing-fan-status" class="section-note" role="status" aria-live="polite">Up to 8 standing fans. Keep walls, furniture and doorways clear.</p>
             </div>
-            <h3 class="control-group-title">Air purifier <kbd>P</kbd></h3><button class="button secondary full-width" data-action="purifier-menu">Purifier quick controls</button>
+            <h3 class="control-group-title">Air purifier <kbd>P</kbd></h3><label class="toggle-control"><span>Turbo demo<small>Exaggerated haze clearing · not real performance</small></span><input type="checkbox" data-device-key="purifierBoost" aria-label="Purifier turbo demo"><span class="switch-track" aria-hidden="true"></span></label><button class="button secondary full-width" data-action="purifier-menu">Purifier quick controls</button>
             <label class="toggle-control"><span>Purifier power<small id="purifier-state">Off</small></span><input type="checkbox" data-device-key="purifierOn" aria-label="Portable purifier power"><span class="switch-track" aria-hidden="true"></span></label>
             <label class="field-label spaced" for="purifier-slot">Position</label><select id="purifier-slot" class="device-select" data-device-key="purifierSlot">${PURIFIER_SLOTS.map((slot, index) => `<option value="${index}">${index + 1}. ${roomLabel(slot.room)}${index === 4 || index === bedroom3PurifierSlot ? ' corner' : ''}</option>`).join('')}</select><p class="section-note">The physical D5 switch controls the Bedroom 3 standing fan: held down is on; released is off. You can also use these controls without a board.</p>
             <h3 class="control-group-title">Air conditioning <kbd>A</kbd></h3>
@@ -319,7 +319,8 @@ function syncControls(): void {
   $('#fan-state').textContent = fan.on ? 'On' : 'Off';
   $<HTMLInputElement>('[data-device-key="purifierOn"]').checked = purifier.on;
   $<HTMLSelectElement>('#purifier-slot').value = String(purifier.slot);
-  $('#purifier-state').textContent = purifier.on ? 'On' : 'Off';
+  $<HTMLInputElement>('[data-device-key="purifierBoost"]').checked = purifier.demoBoost === true;
+  $('#purifier-state').textContent = purifier.on ? purifier.demoBoost ? 'On · TURBO DEMO' : 'On' : 'Off';
   const activeAc = Object.keys(conditions.devices).find(id => id.startsWith('ac_') && conditions.devices[id]);
   $<HTMLInputElement>('[data-device-key="acOn"]').checked = Boolean(activeAc);
   $('#ac-state').textContent = activeAc ? 'On' : 'Off';
@@ -594,6 +595,7 @@ function editDevice(key: string, value: number | boolean | string): void {
     case 'fanSlot': fan.slot = Math.max(0, Math.min(FAN_SLOTS.length - 1, Number(value))); delete fan.position; delete fan.headingDeg; break;
     case 'fanAngle': fan.angleDeg = Math.max(0, Math.min(180, Number(value))); delete fan.headingDeg; break;
     case 'fanSpeed': fan.speed = Math.max(0, Math.min(3, Number(value))); break;
+    case 'purifierBoost': purifier.demoBoost = Boolean(value); break;
     case 'purifierOn': purifier.on = Boolean(value); break;
     case 'purifierSlot': purifier.slot = Math.max(0, Math.min(PURIFIER_SLOTS.length - 1, Number(value))); break;
     case 'acOn': {
@@ -689,7 +691,7 @@ function renderReadings(): void {
   if (bedroom3) {
     const purifierHere = conditions.purifier?.slot === bedroom3PurifierSlot;
     $('#bedroom3-purifier-status').textContent = purifierHere
-      ? `Corner purifier ${conditions.purifier?.on ? 'ON' : 'OFF'}`
+      ? `Corner purifier ${conditions.purifier?.on ? 'ON' : 'OFF'}${conditions.purifier?.demoBoost ? ' · TURBO DEMO' : ''}`
       : `Portable purifier is in ${roomLabel(PURIFIER_SLOTS[conditions.purifier?.slot ?? 0]?.room ?? 'living')}`;
     const northOpen = Boolean(conditions.windows.window_bedroom3_1), eastOpen = Boolean(conditions.windows.window_bedroom3_2);
     $('#bedroom3-window-status').textContent = `North ${northOpen ? 'open' : 'closed'} · East ${eastOpen ? 'open' : 'closed'}`;
@@ -799,6 +801,7 @@ function exportCsv(): void {
     ['Portable fan slot (zero-based)', String(conditions.portableFan?.slot ?? 0)],
     ['Portable fan preset angle degrees', String(conditions.portableFan?.angleDeg ?? 90)],
     ['Portable fan speed', String(conditions.portableFan?.speed ?? 2)],
+    ['Purifier turbo demo (exaggerated clearing)', String(conditions.purifier?.demoBoost === true)],
     ['Portable purifier on', String(conditions.purifier?.on ?? false)],
     ['Portable purifier slot (zero-based)', String(conditions.purifier?.slot ?? 0)],
     ['Device power W', result.powerWatts.toFixed(1)],

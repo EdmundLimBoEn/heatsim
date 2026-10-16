@@ -142,7 +142,7 @@ export async function optimiseLayouts(
       }));
     }
     if (budget.includes('purifier')) {
-      await choose(PURIFIER_SLOTS.map((_, slot) => ({ ...structuredClone(current.conditions), purifier: { on: true, slot } })), 'purifier');
+      await choose(PURIFIER_SLOTS.map((_, slot) => ({ ...structuredClone(current.conditions), purifier: { ...current.conditions.purifier, on: true, slot } })), 'purifier');
     }
     // Slot proposals replace only the primary fan's manual placement; additional fans stay fixed.
     await choose(FAN_SLOTS.flatMap((_, slot) => [45, 90, 135].map(angleDeg => ({

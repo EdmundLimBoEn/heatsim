@@ -301,3 +301,6 @@ Reynolds number at room scale in the sim is about 20, against about 10⁵ in rea
 - Krüger et al., *The Lattice Boltzmann Method: Principles and Practice* (2017) [U]
 
 </details>
+
+### Purifier turbo demo
+Devices → Air purifier → Turbo demo opts into exaggerated clearing for presentations. Default is off. The plan solver increases portable purifier reach from 0.65 m to 2 m and its local removal rate from 0.2/s to 2/s; the room solver uses 10× portable cleaning capacity. Power stays illustrative at 40 W. This is not real purifier performance. Turning purifier power off stops removal; the badge and CSV identify boosted runs.

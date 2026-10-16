@@ -106,3 +106,17 @@ describe('live Bedroom 3 corner purifier', () => {
     expectBounded(filtered);
   });
 });
+
+test('turbo demo clears haze faster, stays bounded, and stops cleaning when off', () => {
+  const normal = conditions(); normal.purifier!.on = true;
+  const turbo = structuredClone(normal); turbo.purifier!.demoBoost = true;
+  const initial = createSimulation(normal);
+  const ordinary = stepSimulation(initial, normal, 30);
+  const boosted = stepSimulation(initial, turbo, 30);
+  expect(bedroomPm(boosted)).toBeLessThan(bedroomPm(ordinary) * 0.8);
+  expectBounded(boosted);
+  expect(boosted.powerWatts).toBe(ordinary.powerWatts);
+  turbo.purifier!.on = false;
+  const off = stepSimulation(boosted, turbo, 30);
+  expect(particleMass(off)).toBeCloseTo(particleMass(boosted), 3);
+});

@@ -118,11 +118,12 @@ function buildFlow(conditions: Conditions, key: string): Flow {
     for (const cell of localCells(fan, 0.5, mask)) { forceX[cell] += Math.sin(yaw) * strength; forceZ[cell] += Math.cos(yaw) * strength; }
     powerWatts += 50;
   }
-  const addPurifier = (slot: DeviceSlot) => {
-    for (const cell of localCells(slot, 0.65, mask)) cleaning[cell] += 0.2;
+  const addPurifier = (slot: DeviceSlot, demoBoost = false) => {
+    // Demo boost exaggerates reach and removal; it is not a device performance estimate.
+    for (const cell of localCells(slot, demoBoost ? 2 : 0.65, mask)) cleaning[cell] += demoBoost ? 2 : 0.2;
     powerWatts += 40;
   };
-  if (conditions.purifier?.on) addPurifier(PURIFIER_SLOTS[clamp(Math.round(finite(conditions.purifier.slot, 0)), 0, PURIFIER_SLOTS.length - 1)]);
+  if (conditions.purifier?.on) addPurifier(PURIFIER_SLOTS[clamp(Math.round(finite(conditions.purifier.slot, 0)), 0, PURIFIER_SLOTS.length - 1)], conditions.purifier.demoBoost === true);
   for (const [name, room] of Object.entries(deviceRoom)) {
     if (!conditions.devices[name]) continue;
     const box = model.boxes.find(candidate => candidate.name === name)!;

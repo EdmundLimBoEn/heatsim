@@ -1,5 +1,7 @@
 # Connect the cardboard model
 
+**Final prototype mapping (16 Oct): D5 now controls the Bedroom 3 main standing fan (fan preset 1), held = ON and released = OFF. D4 and switch polarity are unchanged. The already-uploaded sketch still sends `PUR:ON/OFF`; the app maps that legacy channel to the fan, and sends main-fan power requests back on `PUR`. The purifier is software-only. No reflash is required. On a D5 update, the main fan returns to its Bedroom 3 preset; other fans and purifier settings are preserved. References to D5 purifier control below describe the previous mapping.**
+
 The default sketch has **two Bedroom 3 controls**: press the D4 button once to toggle both windows together; hold the D5 limit switch to turn the corner purifier ON and release it for OFF. The app remains usable without the board. Neither input powers a physical appliance or drives a servo.
 
 ## Wire first, with USB unplugged

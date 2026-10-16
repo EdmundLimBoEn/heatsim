@@ -51,7 +51,7 @@
     assert(writes.includes('HELLO') && writes.includes('GET:ALL'), 'Handshake requests board state');
     assert(app.readConditions().scenarioId === 'validation' && !app.readConditions().doors.door_bedroom3, 'Hardware scenario preserves authoritative closed door');
     assert(document.querySelector('#hardware-status').textContent.includes('protocol v1'), 'Mock handshake reaches connected state');
-    assert(!app.readConditions().purifier.on && app.readConditions().purifier.slot === 2 && JSON.stringify(app.readConditions().portableFan) === JSON.stringify(startup.portableFan), 'Startup PUR state selects the Bedroom 3 corner without changing the fan');
+    assert(!app.readConditions().portableFan.on && app.readConditions().portableFan.slot === 0 && JSON.stringify(app.readConditions().purifier) === JSON.stringify(startup.purifier), 'Startup D5 state targets Bedroom 3 fan and preserves purifier');
     assert(!app.readConditions().windows.window_bedroom3_1 && !app.readConditions().windows.window_bedroom3_2, 'Startup reads the north and east Bedroom 3 windows independently');
     const count = writes.filter(line => line.startsWith('WIN1:')).length;
     key(); await wait(100);
@@ -106,10 +106,11 @@
     reveal(document.querySelector('#bedroom3-window-toggle')).click(); await wait(100);
     assert(app.readConditions().windows.window_bedroom3_1 && app.readConditions().windows.window_bedroom3_2 && withoutBedroom3Windows(app.readConditions()) === pairBaseline && document.querySelector('#elapsed-time').textContent === clock, 'Visible Bedroom 3 group control opens both without resetting other settings or time');
 
-    const beforeInvalidPurifier = JSON.stringify(app.readConditions());
-    assert(app.applyHardwarePurifier('ON') === false && JSON.stringify(app.readConditions()) === beforeInvalidPurifier, 'Purifier hardware API rejects non-boolean input');
-    app.applyHardwarePurifier(false);
-    assert(JSON.stringify(app.readConditions()) === beforeInvalidPurifier, 'Repeated purifier state is idempotent');
+    const d5Before = app.readConditions();
+    send('PUR:ON'); await wait(100);
+    assert(app.readConditions().portableFan.on && app.readConditions().portableFan.slot === 0, 'D5 press powers Bedroom 3 fan');
+    send('PUR:OFF'); await wait(100);
+    assert(!app.readConditions().portableFan.on && JSON.stringify(app.readConditions().purifier) === JSON.stringify(d5Before.purifier), 'D5 release stops fan without changing purifier');
 
     app.loadScenario('haze_outside');
     await wait(100);
@@ -128,12 +129,12 @@
     const withoutPurifier = conditions => { const copy = structuredClone(conditions); delete copy.purifier; return JSON.stringify(copy); };
     const pausedPm = pm(), pausedClock = clockText(), pausedEnergy = document.querySelector('#energy').textContent;
     const beforePurifierWrites = writes.filter(line => line.startsWith('PUR:')).length;
-    send('PUR:ON'); await wait(100);
-    assert(app.readConditions().purifier.on && app.readConditions().purifier.slot === 2 && document.querySelector('#bedroom3-purifier-status').textContent.includes('ON'), 'PUR ON activates the Bedroom 3 corner purifier and its visible status');
-    assert(withoutPurifier(app.readConditions()) === withoutPurifier(sealed), 'PUR ON preserves the fan, weather, openings and all other conditions');
+    app.applyHardwarePurifier(true); await wait(100);
+    assert(app.readConditions().purifier.on && app.readConditions().purifier.slot === 2 && document.querySelector('#bedroom3-purifier-status').textContent.includes('ON'), 'Software purifier ON activates the Bedroom 3 corner purifier and its visible status');
+    assert(withoutPurifier(app.readConditions()) === withoutPurifier(sealed), 'Software purifier ON preserves the fan, weather, openings and all other conditions');
     assert(pm() === pausedPm && clockText() === pausedClock && document.querySelector('#energy').textContent === pausedEnergy, 'Purifier activation preserves paused fields, clock and energy');
-    send('PUR:ON'); await wait(100);
-    assert(writes.filter(line => line.startsWith('PUR:')).length === beforePurifierWrites && pm() === pausedPm && clockText() === pausedClock, 'Duplicate PUR messages neither reset readings nor echo');
+    app.applyHardwarePurifier(true); await wait(100);
+    assert(writes.filter(line => line.startsWith('PUR:')).length === beforePurifierWrites && pm() === pausedPm && clockText() === pausedClock, 'Repeated software purifier settings neither reset readings nor echo');
     const monitorText = document.querySelector('#bedroom3-purifier-monitor').textContent;
     assert(monitorText.includes('SIMULATED') && monitorText.includes('24-hour') && monitorText.includes('Not Singapore PSI'), 'Bedroom 3 monitor labels simulated PM and its index-equivalent limits');
     assert(document.querySelector('#purifier-slot option[value="2"]').textContent.includes('Bedroom 3 corner'), 'Keyboard-accessible position selector names the Bedroom 3 corner');
@@ -147,13 +148,13 @@
     assert(displayedAqi >= pm25ToUsAqiEquivalent(Math.max(0, displayedPm - 0.051)) && displayedAqi <= pm25ToUsAqiEquivalent(displayedPm + 0.051), 'Bedroom 3 index equivalent agrees with the live room PM within display rounding');
     assert(clockText() !== pausedClock, 'Room air-quality changes advance with simulation time');
     const offPm = pm(), offClock = clockText();
-    send('PUR:OFF'); await wait(100);
-    assert(!app.readConditions().purifier.on && app.readConditions().purifier.slot === 2 && document.querySelector('#bedroom3-purifier-status').textContent.includes('OFF'), 'PUR OFF keeps the purifier in the Bedroom 3 corner');
-    assert(pm() === offPm && clockText() === offClock && withoutPurifier(app.readConditions()) === withoutPurifier(sealed), 'PUR OFF preserves room fields, elapsed time and other controls');
+    app.applyHardwarePurifier(false); await wait(100);
+    assert(!app.readConditions().purifier.on && app.readConditions().purifier.slot === 2 && document.querySelector('#bedroom3-purifier-status').textContent.includes('OFF'), 'Software purifier OFF keeps the purifier in the Bedroom 3 corner');
+    assert(pm() === offPm && clockText() === offClock && withoutPurifier(app.readConditions()) === withoutPurifier(sealed), 'Software purifier OFF preserves room fields, elapsed time and other controls');
     setPlaying(true); await wait(500); setPlaying(false); await wait(300);
     assert(Math.abs(pm() - offPm) <= 0.2, 'Switching OFF stops removal in sealed Bedroom 3 without restoring its starting pollution');
 
-    send('PUR:ON'); send('WIN1:1'); send('DOOR2:1'); send('DOOR1:1');
+    app.applyHardwarePurifier(true); send('WIN1:1'); send('DOOR2:1'); send('DOOR1:1');
     send('WIN4:1');
     await wait(100);
     assert(app.readConditions().windows.window_bedroom3_1 && app.readConditions().doors.door_bedroom3 && app.readConditions().doors.main_door && app.readConditions().purifier.on, 'Window and door switch controls remain live alongside purifier power');

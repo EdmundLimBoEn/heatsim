@@ -1,5 +1,7 @@
 # Outdoor air, haze and cooling: presentation walkthrough
 
+**Final prototype mapping (16 Oct): D5 now controls the Bedroom 3 main standing fan (fan preset 1), held = ON and released = OFF. D4 and switch polarity are unchanged. The already-uploaded sketch still sends `PUR:ON/OFF`; the app maps that legacy channel to the fan, and sends main-fan power requests back on `PUR`. The purifier is software-only. No reflash is required. On a D5 update, the main fan returns to its Bedroom 3 preset; other fans and purifier settings are preserved. References to D5 purifier control below describe the previous mapping.**
+
 Run `bun run dev` and open the localhost address. No SSTuino is needed. The visible workspaces are **My flat**, **Window fan test** and **Compare floor plans**. Describe My flat as **planar toy CFD** and Window fan test (Cooling Lab) as a **separate two-layer/surface teaching model**. Neither is calibrated.
 
 ## 1. Show the outdoor inputs

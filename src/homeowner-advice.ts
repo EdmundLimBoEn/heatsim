@@ -65,7 +65,7 @@ export function purifierMatches(a: Conditions, b: Conditions): boolean {
   return (a.purifier?.on ?? false) === (b.purifier?.on ?? false) && (a.purifier?.slot ?? 0) === (b.purifier?.slot ?? 0);
 }
 
-/** The two physical switches own both Bedroom 3 windows and its portable purifier. */
+/** The two physical switches own both Bedroom 3 windows and its standing fan. */
 export function hardwareOwnedControlsMatch(a: Conditions, b: Conditions): boolean {
-  return purifierMatches(a, b) && ['window_bedroom3_1', 'window_bedroom3_2'].every(id => Boolean(a.windows[id]) === Boolean(b.windows[id]));
+  return JSON.stringify(a.portableFan) === JSON.stringify(b.portableFan) && ['window_bedroom3_1', 'window_bedroom3_2'].every(id => Boolean(a.windows[id]) === Boolean(b.windows[id]));
 }

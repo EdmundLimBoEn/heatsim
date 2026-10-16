@@ -116,3 +116,18 @@ describe('legacy hardware commands with multiple freely placed fans', () => {
     expect(harness.sendOpening).not.toHaveBeenCalled();
   });
 });
+
+ test('D5 legacy PUR drives the Bedroom 3 fan, preserves purifier and extra fans, and does not echo', () => {
+  const before = structuredClone(harness.conditions!);
+  receive('PUR:OFF');
+  expect(harness.conditions!.portableFan).toEqual({on:false, slot:0, angleDeg:90, speed:2});
+  receive('PUR:ON');
+  expect(harness.conditions!.portableFan!.on).toBe(true);
+  expect(harness.conditions!.purifier).toEqual(before.purifier);
+  expect(harness.conditions!.standingFans).toEqual(before.standingFans);
+  harness.controlListener!({detail:{conditions:structuredClone(harness.conditions!)}});
+  expect(harness.send).not.toHaveBeenCalled();
+  const next = structuredClone(harness.conditions!); next.portableFan!.on = false;
+  harness.controlListener!({detail:{conditions:next}});
+  expect(harness.send).toHaveBeenCalledWith('PUR:OFF');
+ });

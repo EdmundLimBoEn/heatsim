@@ -68,15 +68,15 @@ describe('homeowner advice from actual control differences', () => {
     after.portableFan.angleDeg = 135;
     expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 315° (0° plan top, 90° plan right)');
   });
-  it('guards both absolute D4 window states and D5 purifier state', () => {
+  it('guards both absolute D4 window states and D5 fan state', () => {
     const before = defaultConditions();
     for (const id of ['window_bedroom3_1', 'window_bedroom3_2']) {
       const after = structuredClone(before); after.windows[id] = true;
       expect(hardwareOwnedControlsMatch(before, after)).toBe(false);
     }
-    const after = structuredClone(before); after.purifier!.on = true;
+    const after = structuredClone(before); after.portableFan!.on = !before.portableFan!.on;
     expect(hardwareOwnedControlsMatch(before, after)).toBe(false);
-    after.purifier!.on = false; after.windows.window_living_1 = true;
+    after.portableFan!.on = before.portableFan!.on; after.windows.window_living_1 = true;
     expect(hardwareOwnedControlsMatch(before, after)).toBe(true);
   });
   it('identifies the second living purifier placement as a corner', () => {

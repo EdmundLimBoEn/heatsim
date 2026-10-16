@@ -304,3 +304,7 @@ Reynolds number at room scale in the sim is about 20, against about 10⁵ in rea
 
 ### Purifier turbo demo
 Devices → Air purifier → Turbo demo opts into exaggerated clearing for presentations. Default is off. The plan solver increases portable purifier reach from 0.65 m to 2 m and its local removal rate from 0.2/s to 2/s; the room solver uses 10× portable cleaning capacity. Power stays illustrative at 40 W. This is not real purifier performance. Turning purifier power off stops removal; the badge and CSV identify boosted runs.
+
+### Main door alone
+
+The plan solver includes single-sided wind exchange at the open main door. Across its width, a small pressure offset `0.2 × wind speed × (x − door centre) / door width` permits opposing inflow/outflow even when every other opening is shut. The existing pressure projection conserves volume: the doorway does not inject net air into a sealed flat. This is an illustrative mixing approximation, not resolved turbulence or buoyancy. With zero wind, existing scalar diffusion still exchanges heat/haze through the opening. Outside conditions determine whether this cools/heats or cleans/pollutes; closing the door removes the exchange. CPU and GPU consume the same prepared face velocities.

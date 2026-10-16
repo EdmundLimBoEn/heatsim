@@ -222,3 +222,27 @@ describe('manual meteorological wind direction', () => {
     expect(manual.field!.pressure).toEqual(preset.field!.pressure);
   });
 });
+
+test('main door alone supports balanced exchange and changes heat and haze without a second opening', () => {
+  const config = closed();
+  for (const id of Object.keys(config.windows)) config.windows[id] = false;
+  for (const id of Object.keys(config.devices)) config.devices[id] = false;
+  config.portableFan = {on:false, slot:0, angleDeg:90, speed:2};
+  config.purifier = {on:false,slot:2};
+  config.windSpeed = 2; config.windFrom = 'N'; config.outdoorTemperature = 25; config.outdoorPm25 = 150;
+  const sealed = createSimulation(config);
+  const off = preparePlanStep(sealed, config, 0).flow;
+  expect(Array.from(off.velocity).every(value => Math.abs(value) < 1e-7)).toBe(true);
+  config.doors.main_door = true;
+  const {flow} = preparePlanStep(sealed, config, 0);
+  const boundary = Array.from(flow.velocity).filter((_, i) => flow.mask[flow.b[i]] === 2);
+  expect(Math.min(...boundary)).toBeLessThan(-0.01);
+  expect(Math.max(...boundary)).toBeGreaterThan(0.01);
+  expect(Math.abs(boundary.reduce((a,b) => a+b,0))).toBeLessThan(1e-5);
+  const after = stepSimulation(sealed, config, 60);
+  expect(after.averageTemperature).toBeLessThan(sealed.averageTemperature);
+  expect(after.averagePm25).toBeGreaterThan(sealed.averagePm25);
+  config.doors.main_door = false;
+  const closedAgain = preparePlanStep(after, config, 0).flow;
+  expect(Array.from(closedAgain.velocity).every(value => Math.abs(value) < 1e-7)).toBe(true);
+});

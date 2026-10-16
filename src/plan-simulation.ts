@@ -4,7 +4,7 @@ import { SCENARIOS } from './simulation';
 import { resolveStandingFans } from './standing-fans';
 import { windToPlanDirection } from './weather-orientation';
 
-export const PLAN_SIMULATION_NOTE = 'Qualitative toy CFD · 2D plan-view mode. A 20 cm floorplan grid transports heat and haze through openings using a steady pressure-flow approximation. No vertical buoyancy, turbulence or sensors. Outdoor conditions are scenarios/manual or explicitly loaded regional forecasts. Humidity adjusts an illustrative comfort indicator, not a medical heat index. Temperatures, comfort and energy are not calibrated predictions. The master-bath window is above this 1.2 m slice.';
+export const PLAN_SIMULATION_NOTE = 'Qualitative toy CFD · 2D plan-view mode. A 20 cm floorplan grid transports heat and haze through openings using a steady pressure-flow approximation. Open main-door flow includes an illustrative single-sided wind-exchange approximation. No resolved vertical buoyancy, turbulence or sensors. Outdoor conditions are scenarios/manual or explicitly loaded regional forecasts. Humidity adjusts an illustrative comfort indicator, not a medical heat index. Temperatures, comfort and energy are not calibrated predictions. The master-bath window is above this 1.2 m slice.';
 export const PLAN_GRID = { nx: 64, nz: 48, dx: 0.2, origin: [-0.3, -0.3] as [number, number], height: 1.2 };
 const { nx, nz, dx, origin } = PLAN_GRID;
 const size = nx * nz;
@@ -12,6 +12,7 @@ const FLUID = 0, SOLID = 1, OUTSIDE = 2;
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const finite = (value: number | undefined, fallback: number) => Number.isFinite(value) ? value! : fallback;
 const openings = model.boxes.filter(box => box.type === 'door' || box.type === 'window');
+const mainDoor = openings.find(box => box.name === 'main_door')!;
 const walls = model.boxes.filter(box => box.type === 'wall');
 const roomOf = new Int16Array(size).fill(-1);
 const closedMask = new Uint8Array(size).fill(OUTSIDE);
@@ -165,6 +166,7 @@ function buildFlow(conditions: Conditions, key: string): Flow {
     for (const cell of cells) heat[cell] += scenario.validationHeatWatts / (cells.length * dx * dx * model.ceiling_height * 1200);
   }
 
+  const doorwayCells = new Set(conditions.doors.main_door ? openingCells.get('main_door') : []);
   const from: number[] = [], to: number[] = [], directions: number[] = [], drives: number[] = [], reservoir: number[] = [];
   const diagonal = new Float64Array(size), rhs = new Float64Array(size);
   for (let cell = 0; cell < size; cell++) if (mask[cell] === FLUID) for (const next of neighbours(cell)) {
@@ -175,7 +177,13 @@ function buildFlow(conditions: Conditions, key: string): Flow {
     const [x, z] = position(next);
     const windward = (windFrom === 'N' && z < 0) || (windFrom === 'S' && z > 7.5)
       || (windFrom === 'E' && x > 12) || (windFrom === 'W' && x < 0);
-    const outsidePressure = mask[next] === OUTSIDE && windward ? wind * 5 : 0;
+    let outsidePressure = mask[next] === OUTSIDE && windward ? wind * 5 : 0;
+    if (mask[next] === OUTSIDE && doorwayCells.has(cell)) {
+      // Opposing doorway pressures approximate single-sided wind exchange, not resolved turbulence.
+      const [doorX] = position(cell);
+      outsidePressure += 0.2 * wind * (doorX - (mainDoor.min[0] + mainDoor.max[0]) / 2)
+        / (mainDoor.max[0] - mainDoor.min[0]);
+    }
     from.push(cell); to.push(next); directions.push(direction); drives.push(drive); reservoir.push(outsidePressure);
     diagonal[cell]++; rhs[cell] -= drive;
     if (mask[next] === FLUID) { diagonal[next]++; rhs[next] += drive; }

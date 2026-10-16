@@ -114,6 +114,11 @@ for (const state of fanStates) {
   const rotorMesh = visual.rotor as THREE.Mesh;
   assert(rotorMesh.geometry === fanGeometry && rotorMesh.material === fanMaterial, 'Fan clones must share GPU geometry and materials.');
 }
+scene.updateMatrixWorld(true);
+const grabRay = new THREE.Raycaster(new THREE.Vector3(0.7, 0.7, 4), new THREE.Vector3(0, 0, -1));
+const grab = grabRay.intersectObjects(fanView.groups(), true)[0];
+assert(grab?.object.name === 'standing-fan-hit-target' && grab.object.parent?.userData.standingFanId === 'primary', 'A click between thin fan parts must hit the main fan grab target.');
+assert(!(grab.object as THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>).material.visible, 'The grab target must not draw over the fan.');
 fanView.animate(0.1);
 assert(Math.abs(fanView.get('fan-1')!.rotor.rotation.z - 1.6) < 1e-6 && fanView.get('fan-3')!.rotor.rotation.z === 0, 'Only switched-on fan rotors may animate.');
 const removedGroup = fanView.get('fan-1')!.group;

@@ -1,6 +1,5 @@
 # 01 · Architecture
 
-**Final prototype mapping (16 Oct): D5 now controls the Bedroom 3 main standing fan (fan preset 1), held = ON and released = OFF. D4 and switch polarity are unchanged. The already-uploaded sketch still sends `PUR:ON/OFF`; the app maps that legacy channel to the fan, and sends main-fan power requests back on `PUR`. The purifier is software-only. No reflash is required. On a D5 update, the main fan returns to its Bedroom 3 preset; other fans and purifier settings are preserved. References to D5 purifier control below describe the previous mapping.**
 
 **Hosting update, 16 October 2026:** the user authorized a static Cloudflare deployment at https://heatsim.sillyapps.co. Local development and browser-only simulation remain supported; no backend, accounts or analytics were added.
 
@@ -47,7 +46,7 @@ The paired comparison runs in a dedicated worker from clones of one initial ther
 
 The educational ideal-expansion calculation is independent of both solvers. It uses explicitly entered absolute pressure/pressure drop; the main scene's dimensionless pressure index is not a pressure input.
 
-USB is optional. The default `SINGLE_PURIFIER_SWITCH = 1` sketch now uses **D4 press-to-toggle** for both Bedroom 3 windows (`WIN1` north, `WIN4` east) and **D5 hold-to-enable** for the Bedroom 3 corner purifier (`PUR`). Both inputs debounce for 30 ms; D4 holds/releases do not repeat the toggle. Startup and `GET:ALL` report only these owned states, preserving the fan, weather and unrelated openings. Window commands from the app can still change either window independently; the next D4 press closes both if both are open, otherwise opens both. `WIN2`/`WIN3` retain the living-room mapping. Servo outputs remain disabled; flag `0` retains the alternative WIN1/D5 and DOOR1/D6 mode. The supplied board's upload and physical USB round trip remain unverified; see [hardware guide](hardware.md), including the board-specific D4 note. There is no WebSocket bridge or automatic 3D backend selection in this MVP.
+The final-round protocol v2 sketch uses D4 to toggle all 11 windows, optional D3 to toggle all 9 doors, and D5 held/released to control main standing-fan power. Unwired D3 stays HIGH with INPUT_PULLUP; on-screen doors remain usable. All inputs debounce for 30 ms. FAN messages preserve the main fan position and heading. Upload v2 and verify the physical round trip using [the hardware guide](hardware.md). No sensors, servos or motors are driven.
 
 Written by gpt-6-astra in Codex on behalf of Edmund
 

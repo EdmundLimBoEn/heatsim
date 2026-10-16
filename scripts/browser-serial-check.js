@@ -9,6 +9,7 @@
   window.heatSimSerialResult = { status: 'running', checks, writes, observations };
   const assert = (condition, label) => { if (!condition) throw new Error(label); checks.push(label); };
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const waitUntil = async predicate => { const deadline = Date.now() + 10000; while (!predicate() && Date.now() < deadline) await wait(100); assert(predicate(), 'Live simulation progresses before sampling'); };
   const key = (digit = '1') => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: digit, code: `Digit${digit}`, bubbles: true }));
   let stream;
   const encoder = new TextEncoder(), decoder = new TextDecoder();
@@ -51,7 +52,7 @@
     assert(writes.includes('HELLO') && writes.includes('GET:ALL'), 'Handshake requests board state');
     assert(app.readConditions().scenarioId === 'validation' && !app.readConditions().doors.door_bedroom3, 'Hardware scenario preserves authoritative closed door');
     assert(document.querySelector('#hardware-status').textContent.includes('protocol v1'), 'Mock handshake reaches connected state');
-    assert(!app.readConditions().portableFan.on && app.readConditions().portableFan.slot === 0 && JSON.stringify(app.readConditions().purifier) === JSON.stringify(startup.purifier), 'Startup D5 state targets Bedroom 3 fan and preserves purifier');
+    assert(!app.readConditions().portableFan.on && app.readConditions().portableFan.slot === startup.portableFan.slot && JSON.stringify(app.readConditions().purifier) === JSON.stringify(startup.purifier), 'Startup legacy D5 state preserves fan placement and purifier');
     assert(!app.readConditions().windows.window_bedroom3_1 && !app.readConditions().windows.window_bedroom3_2, 'Startup reads the north and east Bedroom 3 windows independently');
     const count = writes.filter(line => line.startsWith('WIN1:')).length;
     key(); await wait(100);
@@ -108,7 +109,7 @@
 
     const d5Before = app.readConditions();
     send('PUR:ON'); await wait(100);
-    assert(app.readConditions().portableFan.on && app.readConditions().portableFan.slot === 0, 'D5 press powers Bedroom 3 fan');
+    assert(app.readConditions().portableFan.on && app.readConditions().portableFan.slot === startup.portableFan.slot, 'Legacy D5 press powers main fan without moving it');
     send('PUR:OFF'); await wait(100);
     assert(!app.readConditions().portableFan.on && JSON.stringify(app.readConditions().purifier) === JSON.stringify(d5Before.purifier), 'D5 release stops fan without changing purifier');
 
@@ -140,7 +141,7 @@
     assert(document.querySelector('#purifier-slot option[value="2"]').textContent.includes('Bedroom 3 corner'), 'Keyboard-accessible position selector names the Bedroom 3 corner');
     const samples = [pausedPm];
     setPlaying(true);
-    for (let i = 0; i < 3; i++) { await wait(450); samples.push(pm()); }
+    for (let i = 0; i < 3; i++) { await waitUntil(() => pm() < samples.at(-1)); samples.push(pm()); }
     setPlaying(false); await wait(300);
     observations.sealedBedroom3Pm25 = samples;
     assert(samples.every(Number.isFinite) && samples[3] > 0 && samples.slice(1).every((value, index) => value < samples[index]), 'Sealed Bedroom 3 PM falls gradually across live samples without jumping to zero');
@@ -159,7 +160,7 @@
     await wait(100);
     assert(app.readConditions().windows.window_bedroom3_1 && app.readConditions().doors.door_bedroom3 && app.readConditions().doors.main_door && app.readConditions().purifier.on, 'Window and door switch controls remain live alongside purifier power');
     const beforeDirtyAir = pm(), beforeDirtyClock = clockText();
-    setPlaying(true); await wait(1200); setPlaying(false); await wait(300);
+    setPlaying(true); await waitUntil(() => pm() > beforeDirtyAir + 5); setPlaying(false); await wait(300);
     observations.dirtyAirBedroom3Pm25 = [beforeDirtyAir, pm()];
     assert(pm() > beforeDirtyAir + 5 && clockText() !== beforeDirtyClock, 'Dirty incoming air can worsen Bedroom 3 PM while the purifier remains on');
     assert(JSON.stringify(app.readConditions().portableFan) === JSON.stringify(sealed.portableFan), 'All purifier and opening messages leave the fan configuration untouched');

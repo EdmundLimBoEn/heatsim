@@ -12,6 +12,13 @@ export interface StandingFanVisual {
 
 export function createStandingFanVisuals(scene: THREE.Scene, template: THREE.Group) {
   const visuals = new Map<string, StandingFanVisual>();
+  // A solid invisible target keeps the thin grille and moving blades easy to grab.
+  const hitGeometry = new THREE.BoxGeometry(0.6, 1.4, 0.6);
+  const hitMaterial = new THREE.MeshBasicMaterial({ visible: false });
+  const hitTarget = new THREE.Mesh(hitGeometry, hitMaterial);
+  hitTarget.name = 'standing-fan-hit-target';
+  hitTarget.position.y = 0.7;
+  template.add(hitTarget);
   function add(id: string): StandingFanVisual {
     const group = id === PRIMARY_STANDING_FAN_ID ? template : template.clone(true);
     group.name = `standing-fan:${id}`;
@@ -56,6 +63,7 @@ export function createStandingFanVisuals(scene: THREE.Scene, template: THREE.Gro
     dispose(): void {
       for (const visual of visuals.values()) { visual.group.removeFromParent(); visual.group.clear(); }
       visuals.clear();
+      hitGeometry.dispose(); hitMaterial.dispose();
     },
   };
 }

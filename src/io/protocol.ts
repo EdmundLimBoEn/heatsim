@@ -1,7 +1,7 @@
 export const MAX_LINE_LENGTH = 32;
 
 type OpeningIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-export type OpeningKey = `WIN${OpeningIndex}` | `DOOR${OpeningIndex}`;
+export type OpeningKey = `WIN${OpeningIndex | 10 | 11}` | `DOOR${OpeningIndex}`;
 export type DeviceKey = 'FAN' | 'AC' | 'PUR';
 export type NumberKey = 'FANANG' | 'FANPOS' | 'FANSPD' | 'PURPOS' | 'SCN';
 
@@ -9,7 +9,7 @@ export type ProtocolMessage =
   | { type: 'opening'; key: OpeningKey; value: boolean }
   | { type: 'device'; key: DeviceKey; value: boolean }
   | { type: 'number'; key: NumberKey; value: number }
-  | { type: 'hello' }
+  | { type: 'hello'; version?: 2 }
   | { type: 'pong' }
   | { type: 'end' }
   | { type: 'log'; message: string }
@@ -34,6 +34,7 @@ export function parseLine(raw: string): ProtocolMessage | null {
   const line = cleanLine(raw);
   if (line === null) return null;
   if (line === 'HELLO:HEATSIM/1') return { type: 'hello' };
+  if (line === 'HELLO:HEATSIM/2') return { type: 'hello', version: 2 };
   if (line === 'PONG') return { type: 'pong' };
   if (line === 'END') return { type: 'end' };
   if (line.startsWith('#')) return { type: 'log', message: line.slice(1).trimStart() };
@@ -41,7 +42,7 @@ export function parseLine(raw: string): ProtocolMessage | null {
   if (separator < 0) return null;
   const key = line.slice(0, separator);
   const value = line.slice(separator + 1);
-  if (/^(WIN|DOOR)[1-9]$/.test(key) && (value === '0' || value === '1')) {
+  if (/^(WIN([1-9]|10|11)|DOOR[1-9])$/.test(key) && (value === '0' || value === '1')) {
     return { type: 'opening', key: key as OpeningKey, value: value === '1' };
   }
   if ((key === 'FAN' || key === 'AC' || key === 'PUR') && (value === 'ON' || value === 'OFF')) {

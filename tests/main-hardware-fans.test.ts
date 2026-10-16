@@ -117,10 +117,10 @@ describe('legacy hardware commands with multiple freely placed fans', () => {
   });
 });
 
- test('D5 legacy PUR drives the Bedroom 3 fan, preserves purifier and extra fans, and does not echo', () => {
+ test('D5 legacy PUR preserves fan placement, purifier and extra fans without echo', () => {
   const before = structuredClone(harness.conditions!);
   receive('PUR:OFF');
-  expect(harness.conditions!.portableFan).toEqual({on:false, slot:0, angleDeg:90, speed:2});
+  expect(harness.conditions!.portableFan).toEqual({...before.portableFan, on:false});
   receive('PUR:ON');
   expect(harness.conditions!.portableFan!.on).toBe(true);
   expect(harness.conditions!.purifier).toEqual(before.purifier);
@@ -131,3 +131,21 @@ describe('legacy hardware commands with multiple freely placed fans', () => {
   harness.controlListener!({detail:{conditions:next}});
   expect(harness.send).toHaveBeenCalledWith('PUR:OFF');
  });
+
+test('v2 D5 FAN restores a deleted or zero-speed fan without moving it and routes purifier independently', () => {
+  receive('HELLO:HEATSIM/2');
+  harness.conditions!.portableFan!.removed = true;
+  harness.conditions!.portableFan!.speed = 0;
+  const position = structuredClone(harness.conditions!.portableFan!.position);
+  receive('FAN:ON');
+  expect(harness.conditions!.portableFan!.removed).toBeUndefined();
+  expect(harness.conditions!.portableFan!.speed).toBe(2);
+  expect(harness.conditions!.portableFan!.position).toEqual(position);
+  receive('PUR:OFF');
+  expect(harness.conditions!.portableFan!.on).toBe(true);
+  expect(harness.conditions!.purifier!.on).toBe(false);
+  const next = structuredClone(harness.conditions!); next.portableFan!.on = false; next.purifier!.on = true;
+  harness.controlListener!({ detail:{ conditions:next } });
+  expect(harness.send).toHaveBeenCalledWith('FAN:OFF');
+  expect(harness.send).toHaveBeenCalledWith('PUR:ON');
+});

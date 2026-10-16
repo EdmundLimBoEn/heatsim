@@ -1,6 +1,5 @@
 # 03 · Rendering and UI
 
-**Final prototype mapping (16 Oct): D5 now controls the Bedroom 3 main standing fan (fan preset 1), held = ON and released = OFF. D4 and switch polarity are unchanged. The already-uploaded sketch still sends `PUR:ON/OFF`; the app maps that legacy channel to the fan, and sends main-fan power requests back on `PUR`. The purifier is software-only. No reflash is required. On a D5 update, the main fan returns to its Bedroom 3 preset; other fans and purifier settings are preserved. References to D5 purifier control below describe the previous mapping.**
 
 ## Implemented homeowner presentation
 
@@ -31,7 +30,7 @@ The field renderer uses **900 display tracers** in airflow/air-quality modes. Th
 
 Fans drag continuously onto valid floor with a green/red destination preview; the original position stays until a valid drop commits. Canonical geometry, doorway/furniture clearance and overlap checks constrain manual placement. Invalid/outside drops, Escape or a cancelled drag retain the prior position. Decorative furniture can differ from the canonical clearance geometry. Authoritative hardware preset moves can overlap another fan: both remain effective and the UI warns. The purifier still uses its **six preset positions**; fixed ceiling devices/AC cannot be dragged. Dragging is disabled in the Cooling Lab preview and the three-plan study retains room-level placement.
 
-**Main fan presets & shortcuts** retains the five Main fan presets and the main-only F/angle/position shortcuts. Legacy `FANPOS` clears only its free-position override; `FANANG` clears only its plan-heading override and restores the legacy slot-relative angle. Added fan IDs, positions and settings remain intact; D4/D5 behavior is unchanged. CSV records actual fan coordinates/headings.
+**Main fan presets & shortcuts** retains the five Main fan presets and main-only F/angle/position shortcuts. `FANPOS` clears free placement and heading; `FANANG` restores the slot-relative angle. Power-only messages preserve placement and rotation. Added fans remain independent. CSV records actual coordinates/headings.
 
 Playback starts at a **30× target**, with 1× and 60× alternatives. CPU work is capped at one simulated second per frame, so busy devices can run slower; the clock/energy use only completed solver time. Keyboard controls do not fire while typing into form fields or operating a dialog. Every hardware control used in the default demo has an on-screen/keyboard equivalent. The main workflow works with no SSTuino attached.
 
@@ -47,7 +46,7 @@ The **US EPA PM2.5 index equivalent (24-hour scale)** field accepts integers **0
 
 **Suggest → Suggest changes** runs the existing whole-flat comparison worker and lists concrete opening/device differences, together with simulated temperature, PM2.5 and device-power trade-offs. **Devices to test** controls the available equipment and whether to suggest openings. **Apply these changes** applies a reviewed option; **Undo** is available while the applied setup still matches and hardware authority permits it. Further edits invalidate stale advice. **Other options & how this was scored** contains the score and alternatives. Selecting a room supplies context; it does not change the search into a room-only calculation or establish a health recommendation. Added fans stay fixed during the search; only Main fan preset positions/angles are tried. Applying a proposed Main fan preset clears its manual placement overrides; the comparison baseline retains the original setup.
 
-Under Bedroom 3 details, **Open both windows / Close both windows** supplies a group action and the status gives North/East states separately. Keyboard **4** changes the east window alone. The optional physical D4 button toggles both Bedroom 3 windows (`WIN1` north and `WIN4` east) on a debounced press; a hold/release does not repeat. D5 held enables the Bedroom 3 corner purifier and release disables it. The connected purifier’s physical state remains authoritative. These inputs do not move a real window or power a physical purifier. [The hardware guide](hardware.md) distinguishes the supported board/pin setup and the unverified physical tests.
+The final-round protocol v2 sketch uses D4 to toggle all 11 windows, optional D3 to toggle all 9 doors, and D5 held/released to control main standing-fan power. Unwired D3 stays HIGH with INPUT_PULLUP; on-screen doors remain usable. All inputs debounce for 30 ms. FAN messages preserve the main fan position and heading. Upload v2 and verify the physical round trip using [the hardware guide](hardware.md). No sensors, servos or motors are driven.
 
 ## Window fan test workspace (Cooling Lab)
 
@@ -96,3 +95,5 @@ Weather supports an explicit, timestamped Open-Meteo regional forecast load for 
 
 ### Purifier turbo demo
 Devices → Air purifier → Turbo demo opts into exaggerated clearing for presentations. Default is off. The plan solver increases portable purifier reach from 0.65 m to 2 m and its local removal rate from 0.2/s to 2/s; the room solver uses 10× portable cleaning capacity. Power stays illustrative at 40 W. This is not real purifier performance. Turning purifier power off stops removal; the badge and CSV identify boosted runs.
+
+Fan selection keeps the Devices panel open. Invisible grab targets make thin fan meshes easier to drag; direction lines use a narrow hit tolerance. Escape cancels a drag.

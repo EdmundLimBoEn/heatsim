@@ -31,97 +31,64 @@ std::string exchange(const std::string& input) {
   return Serial.output;
 }
 
+std::string groupLines(const char* const* keys, size_t count, bool open) {
+  std::string out;
+  for (size_t i = 0; i < count; ++i) out += std::string(keys[i]) + (open ? ":1\n" : ":0\n");
+  return out;
+}
+void settle(uint8_t pin, bool state) { inputs[pin] = state; loop(); nowMs += 30; loop(); }
 int main() {
   for (bool& input : inputs) input = HIGH;
   setup();
   assert(Serial.baud == 115200);
-#if SINGLE_PURIFIER_SWITCH
-  assert(Serial.output == "HELLO:HEATSIM/1\nWIN1:0\nWIN4:0\nPUR:OFF\n");
-  assert(exchange("PING\nHELLO\r\n") == "PONG\nHELLO:HEATSIM/1\n");
-  assert(exchange("GET:ALL\n") == "WIN1:0\nWIN4:0\nPUR:OFF\nEND\n");
-  assert(exchange("PUR:OFF\n") == "PUR:OFF\n");
-  assert(exchange("PUR:ON\n") == "ERR:BUSY\nPUR:OFF\n");
-  assert(exchange("FANPOS:3\nFANANG:45\n") == "FANPOS:3\nFANANG:45\n");
-  assert(exchange("FAN:ON\n") == "FAN:ON\n");
-  assert(exchange("GET:ALL\n") == "WIN1:0\nWIN4:0\nPUR:OFF\nEND\n");
-  assert(exchange("WIN2:1\n") == "ERR:UNKNOWN\n");
-  Serial.output.clear();
-  inputs[PURIFIER_SWITCH_PIN] = LOW; loop();
-  nowMs += 10; inputs[PURIFIER_SWITCH_PIN] = HIGH; loop();
-  nowMs += 10; inputs[PURIFIER_SWITCH_PIN] = LOW; loop();
-  nowMs += 29; loop(); assert(Serial.output.empty());
-  nowMs += 1; loop(); assert(Serial.output == "PUR:ON\n");
-  nowMs += 50; loop(); assert(Serial.output == "PUR:ON\n");
+  const auto windows = [](bool on) { return groupLines(windowKeys, WINDOW_COUNT, on); };
+  const auto doors = [](bool on) { return groupLines(doorKeys, DOOR_COUNT, on); };
+  assert(Serial.output == "HELLO:HEATSIM/2\n" + windows(false) + doors(false) + "FAN:OFF\nEND\n");
+  assert(exchange("PING\nHELLO\r\n") == "PONG\nHELLO:HEATSIM/2\n");
+  assert(exchange("GET:ALL\n") == windows(false) + doors(false) + "FAN:OFF\nEND\n");
+  assert(exchange("FAN:ON\n") == "ERR:BUSY\nFAN:OFF\n");
   assert(exchange("PUR:ON\n") == "PUR:ON\n");
-  assert(exchange("PUR:OFF\n") == "ERR:BUSY\nPUR:ON\n");
-  inputs[PURIFIER_SWITCH_PIN] = HIGH; loop(); nowMs += 30; loop();
-  assert(Serial.output == "ERR:BUSY\nPUR:ON\nPUR:OFF\n");
-  assert(exchange("PUR:maybe\nFANPOS:10\n") == "ERR:RANGE\nERR:RANGE\n");
+  // All button groups debounce, toggle once, and accept mixed on-screen states.
+  for (size_t group = 0; group < 2; ++group) {
+    const uint8_t pin = group == 0 ? WINDOW_BUTTON_PIN : DOOR_BUTTON_PIN;
+    const auto opened = group == 0 ? windows(true) : doors(true);
+    const auto closed = group == 0 ? windows(false) : doors(false);
+    Serial.output.clear();
+    inputs[pin] = LOW; loop(); nowMs += 8; inputs[pin] = HIGH; loop();
+    nowMs += 8; inputs[pin] = LOW; loop(); nowMs += 29; loop(); assert(Serial.output.empty());
+    nowMs += 1; loop(); assert(Serial.output == opened);
+    nowMs += 100; loop(); assert(Serial.output == opened);
+    settle(pin, HIGH); assert(Serial.output == opened);
+    Serial.output.clear(); settle(pin, LOW); assert(Serial.output == closed);
+    settle(pin, HIGH);
+    assert(exchange(group == 0 ? "WIN11:1\n" : "DOOR9:1\n") == (group == 0 ? "WIN11:1\n" : "DOOR9:1\n"));
+    Serial.output.clear(); settle(pin, LOW); assert(Serial.output == opened);
+    settle(pin, HIGH); Serial.output.clear();
+    nowMs = UINT32_MAX - 10; inputs[pin] = LOW; loop();
+    nowMs = 18; loop(); assert(Serial.output.empty());
+    nowMs = 19; loop(); assert(Serial.output == closed);
+    settle(pin, HIGH);
+  }
+  Serial.output.clear();
+  inputs[FAN_SWITCH_PIN] = LOW; loop(); nowMs += 10; inputs[FAN_SWITCH_PIN] = HIGH; loop();
+  nowMs += 10; inputs[FAN_SWITCH_PIN] = LOW; loop(); nowMs += 29; loop(); assert(Serial.output.empty());
+  nowMs += 1; loop(); assert(Serial.output == "FAN:ON\n");
+  nowMs += 100; loop(); assert(Serial.output == "FAN:ON\n");
+  assert(exchange("FAN:OFF\n") == "ERR:BUSY\nFAN:ON\n");
+  Serial.output.clear(); nowMs = UINT32_MAX - 10; inputs[FAN_SWITCH_PIN] = HIGH; loop();
+  nowMs = 18; loop(); assert(Serial.output.empty()); nowMs = 19; loop(); assert(Serial.output == "FAN:OFF\n");
+  // D3 left unwired stays HIGH; software doors, D4 and D5 keep working.
+  assert(exchange("DOOR9:1\n") == "DOOR9:1\n");
+  Serial.output.clear(); nowMs += 10000; loop(); assert(Serial.output.empty());
+  settle(WINDOW_BUTTON_PIN, LOW); assert(Serial.output == windows(true));
+  Serial.output.clear(); settle(FAN_SWITCH_PIN, LOW); assert(Serial.output == "FAN:ON\n");
+  assert(doorsOpen[8]);
+  assert(exchange("FAN:maybe\nWIN11:2\nDOOR9:yes\nFANANG:181\nFANPOS:5\nPURPOS:6\nSCN:0\n") == std::string("ERR:RANGE\n") + "ERR:RANGE\nERR:RANGE\nERR:RANGE\nERR:RANGE\nERR:RANGE\nERR:RANGE\n");
+  assert(exchange("WIN12:1\nDOOR10:0\n") == "ERR:UNKNOWN\nERR:UNKNOWN\n");
   assert(exchange(std::string(100, 'X') + "\nPING\n") == "ERR:RANGE\nPONG\n");
-  inputs[PURIFIER_SWITCH_PIN] = LOW; Serial.output.clear(); setup();
-  assert(Serial.output == "HELLO:HEATSIM/1\nWIN1:0\nWIN4:0\nPUR:ON\n");
-  assert(exchange("GET:ALL\n") == "WIN1:0\nWIN4:0\nPUR:ON\nEND\n");
-  Serial.output.clear();
-  inputs[BEDROOM3_BUTTON_PIN] = LOW; loop();
-  nowMs += 8; inputs[BEDROOM3_BUTTON_PIN] = HIGH; loop();
-  nowMs += 8; inputs[BEDROOM3_BUTTON_PIN] = LOW; loop();
-  nowMs += 29; loop(); assert(Serial.output.empty());
-  nowMs += 1; loop(); assert(Serial.output == "WIN1:1\nWIN4:1\n");
-  nowMs += 100; loop(); assert(Serial.output == "WIN1:1\nWIN4:1\n");
-  inputs[BEDROOM3_BUTTON_PIN] = HIGH; loop(); nowMs += 30; loop();
-  assert(Serial.output == "WIN1:1\nWIN4:1\n");
-  assert(exchange("GET:ALL\n") == "WIN1:1\nWIN4:1\nPUR:ON\nEND\n");
-  Serial.output.clear();
-  inputs[BEDROOM3_BUTTON_PIN] = LOW; loop(); nowMs += 30; loop();
-  assert(Serial.output == "WIN1:0\nWIN4:0\n");
-  inputs[BEDROOM3_BUTTON_PIN] = HIGH; loop(); nowMs += 30; loop();
-  assert(exchange("WIN4:1\nWIN4:1\n") == "WIN4:1\nWIN4:1\n");
-  assert(!bedroomWindowsOpen[0] && bedroomWindowsOpen[1]);
-  Serial.output.clear();
-  inputs[BEDROOM3_BUTTON_PIN] = LOW; loop(); nowMs += 30; loop();
-  assert(Serial.output == "WIN1:1\nWIN4:1\n");
-  inputs[BEDROOM3_BUTTON_PIN] = HIGH; loop(); nowMs += 30; loop();
-  Serial.output.clear();
-  nowMs = UINT32_MAX - 10; inputs[BEDROOM3_BUTTON_PIN] = LOW; loop();
-  nowMs = 18; loop(); assert(Serial.output.empty());
-  nowMs = 19; loop(); assert(Serial.output == "WIN1:0\nWIN4:0\n");
-  assert(exchange("WIN1:2\nWIN4:yes\n") == "ERR:RANGE\nERR:RANGE\n");
-  inputs[BEDROOM3_BUTTON_PIN] = LOW; Serial.output.clear(); setup();
-  nowMs += 100; loop();
-  assert(Serial.output == "HELLO:HEATSIM/1\nWIN1:0\nWIN4:0\nPUR:ON\n");
-  Serial.output.clear();
-  nowMs = UINT32_MAX - 10; inputs[PURIFIER_SWITCH_PIN] = HIGH; loop();
-  nowMs = 18; loop(); assert(Serial.output.empty());
-  nowMs = 19; loop(); assert(Serial.output == "PUR:OFF\n");
-  std::cout << "Bedroom 3 firmware passed: D4 bounce/hold/release/mixed-state toggle/rollover, D5 purifier authority, startup/reconnect and protocol bounds.\n";
-#else
-  assert(Serial.output == "HELLO:HEATSIM/1\n");
-  assert(exchange("PING\nHELLO\r\n") == "PONG\nHELLO:HEATSIM/1\n");
-  assert(exchange("WIN1:1\n") == "WIN1:1\n");
-  assert(exchange("WIN1:1\n") == "WIN1:1\n");
-  assert(exchange("WIN1:2\nFANANG:181\nFANANG:90x\nSCN:0\n") == "ERR:RANGE\nERR:RANGE\nERR:RANGE\nERR:RANGE\n");
-  assert(exchange(std::string(100, 'X') + "\nPING\n") == "ERR:RANGE\nPONG\n");
-  assert(exchange("WIN9:1\n") == "ERR:UNKNOWN\n");
-  assert(exchange("FAN:ON\nFANANG:45\n") == "FAN:ON\nFANANG:45\n");
-  const std::string dump = exchange("GET:ALL\n");
-  assert(dump.find("WIN1:1\nDOOR1:0\n") == 0);
-  assert(dump.find("FAN:ON\nFANANG:45\n") != std::string::npos);
-  assert(dump.substr(dump.size() - 4) == "END\n");
-  Serial.output.clear();
-  inputs[5] = LOW; loop();
-  nowMs += 10; inputs[5] = HIGH; loop();
-  nowMs += 10; inputs[5] = LOW; loop();
-  nowMs += 29; loop(); assert(Serial.output.empty());
-  nowMs += 1; loop(); assert(Serial.output == "WIN1:0\n");
-  nowMs += 50; loop(); assert(Serial.output == "WIN1:0\n");
-  inputs[5] = HIGH; loop(); nowMs += 31; loop();
-  assert(Serial.output == "WIN1:0\n");
-  flaps[1].limitSwitch = true;
-  inputs[6] = LOW; loop(); nowMs += 31; loop();
-  inputs[6] = HIGH; loop(); nowMs += 31; loop();
-  assert(flaps[1].open);
-  assert(exchange("DOOR1:0\n") == "ERR:BUSY\nDOOR1:1\n");
-  assert(flaps[1].open);
-  std::cout << "Firmware logic passed: protocol, range checks, overflow recovery, debounce, limit authority.\n";
-#endif
+  // Buttons held at boot must not toggle; D5 samples its actual state.
+  inputs[DOOR_BUTTON_PIN] = LOW; Serial.output.clear(); setup(); nowMs += 100; loop();
+  assert(Serial.output == "HELLO:HEATSIM/2\n" + windows(false) + doors(false) + "FAN:ON\nEND\n");
+  assert(exchange("GET:ALL\n") == windows(false) + doors(false) + "FAN:ON\nEND\n");
+  std::cout << "Firmware v2 passed: all openings, optional D3, debounce/hold/release/rollover, D5 authority, startup/reconnect and protocol bounds.\n";
 }

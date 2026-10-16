@@ -68,11 +68,11 @@ describe('homeowner advice from actual control differences', () => {
     after.portableFan.angleDeg = 135;
     expect(describeAdviceChanges(before, after)).toContain('Point the main fan towards 315° (0° plan top, 90° plan right)');
   });
-  it('guards both absolute D4 window states and D5 fan state', () => {
+  it('guards D5 power while allowing button-controlled openings and fan placement', () => {
     const before = defaultConditions();
     for (const id of ['window_bedroom3_1', 'window_bedroom3_2']) {
       const after = structuredClone(before); after.windows[id] = true;
-      expect(hardwareOwnedControlsMatch(before, after)).toBe(false);
+      expect(hardwareOwnedControlsMatch(before, after)).toBe(true);
     }
     const after = structuredClone(before); after.portableFan!.on = !before.portableFan!.on;
     expect(hardwareOwnedControlsMatch(before, after)).toBe(false);

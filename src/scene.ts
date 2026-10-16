@@ -24,6 +24,7 @@ export interface SceneController {
   setSelectedStandingFan(id: string | null): void;
   setCamera(view: 'perspective' | 'top'): void;
   resetCamera(): void;
+  rotateCamera(direction: 'left' | 'right'): void;
   dispose(): void;
   screenshot(): string;
 }
@@ -1130,6 +1131,10 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     },
     setCamera: cameraPosition,
     resetCamera: () => cameraPosition('perspective'),
+    rotateCamera: direction => {
+      camera.position.sub(controls.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), (direction === 'left' ? -1 : 1) * Math.PI / 12).add(controls.target);
+      controls.update();
+    },
     screenshot,
     dispose: () => {
       if (disposed) return;

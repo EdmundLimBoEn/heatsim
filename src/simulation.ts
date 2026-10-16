@@ -124,6 +124,7 @@ function equipment(conditions: Conditions) {
       fanSpeed: (ceilingFan ? 1 : 0) + fansHere.reduce((sum, fan) => sum + fan.speed / 2, 0),
       fanCount: Number(ceilingFan) + fansHere.length,
       ac: enabled.some(name => name.startsWith('ac_')),
+      purifierCleaningCount: Number(enabled.some(name => name.startsWith('purifier_'))) + Number(purifierHere) * (conditions.purifier?.demoBoost === true ? 10 : 1),
       purifierCount: Number(enabled.some(name => name.startsWith('purifier_'))) + Number(purifierHere),
       coolingWatts: room.name === 'living' ? 3_500 : 2_500,
     };
@@ -217,7 +218,7 @@ export function stepSimulation(previous: SimulationResult, conditions: Condition
       + solarGain[index] + (scenario?.people === false ? 0 : model.rooms[index].area_m2 * 3)
       + (model.rooms[index].name === 'bedroom3' ? scenario?.validationHeatWatts ?? 0 : 0) + heat[index] - cooling[index]);
     const particleChange = particles.map((pm25, index) => outside[index] * (environment.pm25 - pm25)
-      - (volumes[index] * 0.1 / 3_600 + devices[index].purifierCount * 250 / 3_600) * pm25);
+      - (volumes[index] * 0.1 / 3_600 + devices[index].purifierCleaningCount * 250 / 3_600) * pm25);
     for (const { a, b, flow, wallConductance } of links) {
       const transferHeat = (flow * 1_200 + wallConductance) * (temperatures[b] - temperatures[a]);
       const transferParticles = flow * (particles[b] - particles[a]);

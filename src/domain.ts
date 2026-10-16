@@ -19,7 +19,7 @@ export interface Conditions {
   scenarioId?: string;
   portableFan?: { on: boolean; slot: number; angleDeg: number; speed: number; position?: { x: number; z: number }; headingDeg?: number; removed?: boolean };
   standingFans?: StandingFan[];
-  purifier?: { on: boolean; slot: number; headingDeg?: number };
+  purifier?: { on: boolean; slot: number; headingDeg?: number; demoBoost?: boolean };
   houseOrientationDeg?: 0 | 90 | 180 | 270;
   weatherProvenance?: import('./weather').WeatherSample['provenance'];
   outdoorTemperature: number;

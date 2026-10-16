@@ -1,5 +1,7 @@
 # 04 · Hardware and serial protocol
 
+**Final prototype mapping (16 Oct): D5 now controls the Bedroom 3 main standing fan (fan preset 1), held = ON and released = OFF. D4 and switch polarity are unchanged. The already-uploaded sketch still sends `PUR:ON/OFF`; the app maps that legacy channel to the fan, and sends main-fan power requests back on `PUR`. The purifier is software-only. No reflash is required. On a D5 update, the main fan returns to its Bedroom 3 preset; other fans and purifier settings are preserved. References to D5 purifier control below describe the previous mapping.**
+
 **Current MVP:** the default sketch uses D4 for a button that toggles both Bedroom 3 windows together, and D5 for the corner purifier switch (held pressed ON, released OFF). Board revision, upload and the physical USB round trip are **not yet verified**. The app still works standalone. The default sketch drives no servos or motors. **There are no environmental sensors** (no PSI, PM2.5, temperature or humidity). See [the practical wiring guide](hardware.md).
 
 The protocol below is implemented; sections explicitly marked planned or optional are not required to run the app. Cooling Lab is also standalone. Its high-level exhaust/supply fan is a software experiment; no new serial command or physical ventilation actuator is added. Its envelope parameters describe the full-size flat, not the cardboard.

@@ -1,3 +1,4 @@
+// Final demo: app maps the legacy D5 PUR channel to the Bedroom 3 standing fan; no wiring/polarity change.
 // SSTuino II Rev A (core newer than 1.1.1), or Arduino Uno; USB protocol v1.
 #include <string.h>
 

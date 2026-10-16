@@ -1,5 +1,7 @@
 # 03 · Rendering and UI
 
+**Final prototype mapping (16 Oct): D5 now controls the Bedroom 3 main standing fan (fan preset 1), held = ON and released = OFF. D4 and switch polarity are unchanged. The already-uploaded sketch still sends `PUR:ON/OFF`; the app maps that legacy channel to the fan, and sends main-fan power requests back on `PUR`. The purifier is software-only. No reflash is required. On a D5 update, the main fan returns to its Bedroom 3 preset; other fans and purifier settings are preserved. References to D5 purifier control below describe the previous mapping.**
+
 ## Implemented homeowner presentation
 
 The desktop studio keeps the model beside one scrollable control panel: **Home**, **Room**, **Devices**, **Weather**, and **Suggest**. Home contains whole-flat switches and a single-column room list. Selecting a room opens its controls and moves focus to the room selector. On smaller screens the panel sits below the model. Room labels start off; **View** enables them. The large HeatSim wordmark and fixed header compact when the page scrolls, with a stable page offset to avoid layout jumps. The top-right header QR links to **https://heatsim.sillyapps.co**, with a centered HeatSim mark and single-line “Scan to try” caption beneath it; it is hidden on small phone screens.

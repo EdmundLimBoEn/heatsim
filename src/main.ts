@@ -1,4 +1,4 @@
-import { applyHardwareControl, applyHardwarePurifier, loadScenario, readConditions, replaceConditions } from './app';
+import { applyHardwareControl, loadScenario, readConditions, replaceConditions } from './app';
 import { HardwareConnection, hardwareSupported } from './hardware';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { HARDWARE_OPENINGS, openingForKey } from './config/mapping';
@@ -43,16 +43,17 @@ const connection = new HardwareConnection({
   onLog: appendLog,
   onMessage(message) {
     if (message.type !== 'device' && message.type !== 'number') return;
-    if (message.type === 'device' && message.key === 'PUR') {
-      applyHardwarePurifier(message.value);
-      observed = readConditions();
-      return;
-    }
     const next = readConditions();
     const previous = JSON.stringify(next);
     const fan = next.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
     const purifier = next.purifier ??= { on: false, slot: 0 };
     if (message.type === 'device') {
+      // Keep the uploaded D5 sketch: its legacy PUR channel now owns the Bedroom 3 fan.
+      if (message.key === 'PUR') {
+        fan.on = message.value; fan.slot = 0; delete fan.removed;
+        delete fan.position; delete fan.headingDeg;
+        if (fan.on && fan.speed === 0) fan.speed = 2;
+      }
       if (message.key === 'FAN') { fan.on = message.value; delete fan.removed; }
       if (message.key === 'AC') {
         const selected = document.querySelector<HTMLSelectElement>('#ac-unit')?.value ?? 'ac_living';
@@ -94,11 +95,10 @@ window.addEventListener('heatsim:control', ((event: CustomEvent<{ conditions: Co
       if (next[group][opening.id] !== observed[group][opening.id]) void connection.sendOpening(opening.kind, opening.id, next[group][opening.id]);
     }
     const changes: [string, unknown, unknown][] = [
-      ['FAN', next.portableFan?.on, observed.portableFan?.on],
+      ['PUR', next.portableFan?.on, observed.portableFan?.on],
       ['FANPOS', next.portableFan?.slot, observed.portableFan?.slot],
       ['FANANG', next.portableFan?.angleDeg, observed.portableFan?.angleDeg],
       ['FANSPD', next.portableFan?.speed, observed.portableFan?.speed],
-      ['PUR', next.purifier?.on, observed.purifier?.on],
       ['PURPOS', next.purifier?.slot, observed.purifier?.slot],
       ['AC', Object.entries(next.devices).some(([id, on]) => id.startsWith('ac_') && on), Object.entries(observed.devices).some(([id, on]) => id.startsWith('ac_') && on)],
     ];

@@ -41,14 +41,14 @@ describe('hardware messages', () => {
   });
 });
 
-function fakeBoard() {
+function fakeBoard(write?: () => Promise<void>, onState?: () => void) {
   let stream!: ReadableStreamDefaultController<Uint8Array>;
   let closes = 0;
   let baudRate = 0;
   const sent: string[] = [];
   const port = {
     readable: new ReadableStream<Uint8Array>({ start(controller) { stream = controller; } }),
-    writable: new WritableStream<Uint8Array>({ write(bytes) { sent.push(new TextDecoder().decode(bytes)); } }),
+    writable: new WritableStream<Uint8Array>({ write(bytes) { sent.push(new TextDecoder().decode(bytes)); return write?.(); } }),
     async open(options: { baudRate: number }) { baudRate = options.baudRate; },
     async close() { closes++; }
   };
@@ -57,7 +57,7 @@ function fakeBoard() {
   } } });
   const events: HardwareEvent[] = [];
   const statuses: HardwareStatus[] = [];
-  const connection = new HardwareConnection({ onState: event => events.push(event), onStatus: status => statuses.push(status) });
+  const connection = new HardwareConnection({ onState: event => { events.push(event); onState?.(); }, onStatus: status => statuses.push(status) });
   connections.push(connection);
   return { connection, stream, port, events, statuses, sent, get closes() { return closes; }, get baudRate() { return baudRate; } };
 }
@@ -200,4 +200,126 @@ describe('USB lifecycle', () => {
     expect(connection.connected).toBe(false);
     expect(statuses.at(-1)?.state).toBe('unsupported');
   });
+});
+
+
+describe('USB stalled operations and receive budgets', () => {
+  test('disconnect bounds a stalled write and late cleanup cannot disconnect the replacement', async () => {
+    vi.useFakeTimers();
+    let release!: () => void;
+    const stalled = new Promise<void>(resolve => { release = resolve; });
+    const board = fakeBoard(() => stalled);
+    await board.connection.connect();
+    const sending = board.connection.send('PING');
+    await Promise.resolve();
+    let disconnected = false;
+    const disconnecting = board.connection.disconnect().then(() => { disconnected = true; });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(disconnected).toBe(true);
+    await disconnecting;
+    expect(await sending).toBe(false);
+    expect(board.connection.connected).toBe(false);
+    expect(board.statuses.at(-1)?.message).toContain('OS may still hold the port');
+    const replacement = fakeBoard(); // supplies the next requestPort result
+    await board.connection.connect();
+    expect(board.connection.connected).toBe(true);
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(board.port.writable.locked).toBe(false);
+    expect(board.closes).toBe(1);
+    expect(board.connection.connected).toBe(true);
+    expect(replacement.port.writable.locked).toBe(true);
+    expect(board.statuses.at(-1)?.state).toBe('connected');
+    await board.connection.disconnect();
+  });
+
+  test('a stalled write automatically times out and disconnects without an unhandled rejection', async () => {
+    vi.useFakeTimers();
+    const board = fakeBoard(() => new Promise(() => {}));
+    await board.connection.connect();
+    const sending = board.connection.send('PING');
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(await sending).toBe(false);
+    expect(board.connection.connected).toBe(false);
+    expect(board.statuses.at(-1)?.state).toBe('disconnected');
+  });
+
+  test('yields to a pending timer before delivering a flood and preserves the final state', async () => {
+    vi.useFakeTimers();
+    const board = fakeBoard();
+    await board.connection.connect();
+    let countAtTimer = -1;
+    setTimeout(() => { countAtTimer = board.events.length; }, 0);
+    board.stream.enqueue(new TextEncoder().encode(Array.from({ length: 128 }, (_, i) => `WIN1:${i % 2}\n`).join('')));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(countAtTimer).toBeGreaterThanOrEqual(0);
+    expect(countAtTimer).toBeLessThan(128);
+    expect(board.events).toHaveLength(128);
+    expect(board.events.at(-1)?.open).toBe(true);
+    expect(board.connection.connected).toBe(true);
+  });
+
+  test('also yields when each ready read contains just one short line', async () => {
+    vi.useFakeTimers();
+    const board = fakeBoard();
+    await board.connection.connect();
+    let countAtTimer = -1;
+    setTimeout(() => { countAtTimer = board.events.length; }, 0);
+    for (let i = 0; i < 128; i++) board.stream.enqueue(new TextEncoder().encode(`WIN1:${i % 2}\n`));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(countAtTimer).toBeLessThan(128);
+    expect(countAtTimer).toBeGreaterThanOrEqual(0);
+    expect(board.events).toHaveLength(128);
+  });
+
+  test('drops pending messages on disconnect while a receive slice is waiting', async () => {
+    vi.useFakeTimers();
+    const board = fakeBoard();
+    await board.connection.connect();
+    board.stream.enqueue(new TextEncoder().encode('WIN1:1\n'.repeat(128)));
+    await Promise.resolve();
+    const count = board.events.length;
+    await board.connection.disconnect();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(board.events).toHaveLength(count);
+    expect(count).toBeLessThan(128);
+  });
+
+  test('rejects an oversized read before allocating or delivering its lines', async () => {
+    const board = fakeBoard();
+    await board.connection.connect();
+    board.stream.enqueue(new TextEncoder().encode('WIN1:1\n'.repeat(2000)));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(board.events).toHaveLength(0);
+    expect(board.connection.connected).toBe(false);
+    expect(board.statuses.at(-1)?.message).toContain('input rate exceeded');
+  });
+
+  test('disconnects a sender that continues flooding with individually allowed chunks', async () => {
+    vi.useFakeTimers();
+    const board = fakeBoard();
+    await board.connection.connect();
+    for (let i = 0; i < 3; i++) board.stream.enqueue(new TextEncoder().encode('WIN1:1\n'.repeat(1000)));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(board.connection.connected).toBe(false);
+    expect(board.statuses.at(-1)?.message).toContain('input rate exceeded');
+    expect(board.events.length).toBeLessThan(3000);
+  });
+});
+
+
+test('the time budget yields even before the byte budget when callbacks are expensive', async () => {
+  vi.useFakeTimers();
+  let workTime = 0;
+  const clock = vi.spyOn(performance, 'now').mockImplementation(() => workTime);
+  try {
+    const board = fakeBoard(undefined, () => { workTime += 5; });
+    await board.connection.connect();
+    let countAtTimer = -1;
+    setTimeout(() => { countAtTimer = board.events.length; }, 0);
+    board.stream.enqueue(new TextEncoder().encode('WIN1:1\n'.repeat(10)));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(countAtTimer).toBe(1);
+    expect(board.events).toHaveLength(10);
+  } finally { clock.mockRestore(); }
 });

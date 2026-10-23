@@ -11,6 +11,7 @@ interface HardwareCallbacks {
   onStatus: (status: HardwareStatus) => void;
   onMessage?: (message: ProtocolMessage) => void;
   onLog?: (line: string) => void;
+  onBatch?: (apply: () => void) => void;
 }
 interface SerialPort {
   readable: ReadableStream<Uint8Array> | null;
@@ -58,11 +59,20 @@ export class HardwareLineParser {
   }
 }
 
+// Deadlines bound logical cleanup even when the driver retains the physical port.
+async function withDeadline<T>(task: Promise<T>, ms = 1000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([task, new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('USB operation timed out')), ms);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+
 export class HardwareConnection {
   private port: SerialPort | null = null;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
-  private readTask: Promise<void> | null = null;
   private connecting = false;
   private closing = false;
   private attempt = 0;
@@ -88,7 +98,7 @@ export class HardwareConnection {
   }
 
   private async open(known: boolean): Promise<void> {
-    if (this.connecting || this.port) return;
+    if (this.connecting || this.closing || this.port) return;
     if (!hardwareSupported()) {
       if (!known) this.report('unsupported', 'Use desktop Chrome or Edge on HTTPS or localhost to connect USB.');
       return;
@@ -111,7 +121,7 @@ export class HardwareConnection {
       await port.open({ baudRate: 115200 });
       opened = true;
       if (attempt !== this.attempt) {
-        await port.close();
+        await withDeadline(port.close());
         return;
       }
       if (!port.readable || !port.writable) throw new Error('Serial streams unavailable.');
@@ -120,7 +130,7 @@ export class HardwareConnection {
       this.port = port;
       this.handshaken = false;
       this.report('connected', 'USB connected · waiting for the board handshake.');
-      this.readTask = this.read(port, this.reader);
+      void this.read(port, this.reader, attempt);
       this.startupTimer = setTimeout(() => {
         void this.send('HELLO');
         void this.send('GET:ALL');
@@ -140,16 +150,18 @@ export class HardwareConnection {
         }, 3000);
       }, 1500);
     } catch (error) {
-      this.writer?.releaseLock();
-      this.writer = null;
-      if (opened && port) await port.close().catch(() => {});
+      if (attempt === this.attempt) {
+        this.writer?.releaseLock();
+        this.writer = null;
+      }
+      if (opened && port) await withDeadline(port.close()).catch(() => {});
       if (attempt !== this.attempt) return;
       const cancelled = error instanceof DOMException && error.name === 'NotFoundError';
       this.report(cancelled ? 'disconnected' : 'error', cancelled
         ? 'No port selected. The on-screen controls still work.'
         : 'Could not open USB. Close the Arduino Serial Monitor, check the cable, and reconnect.');
     } finally {
-      this.connecting = false;
+      if (attempt === this.attempt) this.connecting = false;
     }
   }
 
@@ -179,11 +191,13 @@ export class HardwareConnection {
       this.pendingFanAngle = null;
       this.lastFanAngle = Date.now();
     }
+    const attempt = this.attempt;
+    const writer = this.writer;
     try {
-      await this.writer.write(new TextEncoder().encode(encoded));
+      await withDeadline(writer.write(new TextEncoder().encode(encoded)));
       return true;
     } catch {
-      void this.disconnect('USB write failed. Check the board and reconnect.');
+      if (attempt === this.attempt) void this.disconnect('USB write failed or timed out. Check the board and reconnect.');
       return false;
     }
   }
@@ -193,14 +207,35 @@ export class HardwareConnection {
     ++this.attempt;
     this.closing = true;
     this.clearTimers();
+    const port = this.port;
+    const reader = this.reader;
+    const writer = this.writer;
+    this.port = null;
+    this.reader = null;
+    this.writer = null;
+    this.connecting = false;
+    // Capture resources before awaiting: late cleanup must never touch a new connection.
+    const cleanup = (async () => {
+      await Promise.all([
+        (async () => {
+          try { await reader?.cancel(); } catch { /* Device removed. */ }
+          try { reader?.releaseLock(); } catch { /* read() also releases its lock. */ }
+        })(),
+        (async () => {
+          try { await writer?.abort(); } catch { /* Device removed. */ }
+          writer?.releaseLock();
+        })(),
+      ]);
+      await port?.close();
+    })();
     try {
-      await this.reader?.cancel();
+      await withDeadline(cleanup);
     } catch {
-      // A removed USB device can reject cancellation; read() still releases its lock.
+      message += ' USB cleanup did not finish; the OS may still hold the port. Unplug the board before retrying that port.';
+    } finally {
+      this.closing = false;
+      this.report('disconnected', message);
     }
-    await this.readTask;
-    this.closing = false;
-    this.report('disconnected', message);
   }
 
   private clearTimers(): void {
@@ -232,31 +267,57 @@ export class HardwareConnection {
     this.callbacks.onMessage?.(message);
   }
 
-  private async read(port: SerialPort, reader: ReadableStreamDefaultReader<Uint8Array>): Promise<void> {
+  private async read(port: SerialPort, reader: ReadableStreamDefaultReader<Uint8Array>, attempt: number): Promise<void> {
     const decoder = new TextDecoder();
     const parser = new HardwareLineParser();
+    let sliceStart = performance.now();
+    let sliceBytes = 0;
+    let windowStart = Date.now();
+    let receivedBytes = 0;
     try {
-      while (true) {
+      while (attempt === this.attempt) {
         const { value, done } = await reader.read();
-        if (done) break;
-        for (const line of parser.push(decoder.decode(value, { stream: true }))) this.receive(line);
+        if (done || attempt !== this.attempt) break;
+        if (Date.now() - windowStart >= 1000) { windowStart = Date.now(); receivedBytes = 0; }
+        receivedBytes += value.byteLength;
+        // Allow full state dumps and button bursts, but reject sustained/oversized floods.
+        if (value.byteLength > 8192 || receivedBytes > 16384) {
+          void this.disconnect('USB input rate exceeded. Check the board and reconnect.');
+          break;
+        }
+        for (let offset = 0; offset < value.byteLength; offset += 256) {
+          if (sliceBytes >= 256 || performance.now() - sliceStart >= 4) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+            sliceStart = performance.now();
+            sliceBytes = 0;
+          }
+          if (attempt !== this.attempt) return;
+          const bytes = value.subarray(offset, offset + 256);
+          sliceBytes += bytes.byteLength;
+          const lines = parser.push(decoder.decode(bytes, { stream: true }));
+          let index = 0;
+          while (index < lines.length && attempt === this.attempt) {
+            const apply = () => {
+              do { this.receive(lines[index++]); }
+              while (index < lines.length && performance.now() - sliceStart < 4 && attempt === this.attempt);
+            };
+            if (this.callbacks.onBatch) this.callbacks.onBatch(apply);
+            else apply();
+            if (index < lines.length) {
+              await new Promise(resolve => setTimeout(resolve, 0));
+              sliceStart = performance.now();
+              sliceBytes = 0;
+            }
+          }
+        }
       }
     } catch {
       // Removal and serial errors follow the same cleanup and reconnect path.
     } finally {
-      this.clearTimers();
       reader.releaseLock();
-      const writer = this.writer;
-      this.writer = null;
-      if (writer) {
-        await writer.abort().catch(() => {});
-        writer.releaseLock();
+      if (attempt === this.attempt && this.port === port) {
+        void this.disconnect('USB connection ended. Check the board and reconnect.');
       }
-      await port.close().catch(() => {});
-      this.reader = null;
-      this.port = null;
-      this.readTask = null;
-      if (!this.closing) this.report('disconnected', 'USB connection ended. Check the board and reconnect.');
     }
   }
 }

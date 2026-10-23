@@ -149,3 +149,23 @@ test('v2 D5 FAN restores a deleted or zero-speed fan without moving it and route
   expect(harness.send).toHaveBeenCalledWith('FAN:OFF');
   expect(harness.send).toHaveBeenCalledWith('PUR:ON');
 });
+
+
+test('a serial batch applies mixed opening and device changes with one app refresh and no echo', () => {
+  harness.callbacks!.onBatch!(() => {
+    harness.callbacks!.onState({ kind: 'window', id: 'window_bedroom3_1', open: false });
+    receive('HELLO:HEATSIM/2');
+    receive('FAN:OFF');
+    receive('PUR:OFF');
+    harness.callbacks!.onState({ kind: 'window', id: 'window_bedroom3_2', open: false });
+    expect(harness.replace).not.toHaveBeenCalled();
+  });
+  expect(harness.replace).toHaveBeenCalledTimes(1);
+  expect(harness.conditions!.windows.window_bedroom3_1).toBe(false);
+  expect(harness.conditions!.windows.window_bedroom3_2).toBe(false);
+  expect(harness.conditions!.portableFan!.on).toBe(false);
+  expect(harness.conditions!.purifier!.on).toBe(false);
+  harness.controlListener!({ detail: { conditions: structuredClone(harness.conditions!) } });
+  expect(harness.send).not.toHaveBeenCalled();
+  expect(harness.sendOpening).not.toHaveBeenCalled();
+});

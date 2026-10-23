@@ -1,4 +1,4 @@
-import { applyHardwareControl, loadScenario, readConditions, replaceConditions } from './app';
+import { loadScenario, readConditions, replaceConditions } from './app';
 import { HardwareConnection, hardwareSupported } from './hardware';
 import { FAN_SLOTS, PURIFIER_SLOTS } from './config/slots';
 import { HARDWARE_OPENINGS, openingForKey } from './config/mapping';
@@ -27,10 +27,28 @@ const appendLog = (line: string) => {
   log.textContent = messages.join('\n');
 };
 
+let batchConditions: Conditions | null = null;
+const readHardwareConditions = () => batchConditions ?? readConditions();
+const writeHardwareConditions = (next: Conditions) => {
+  if (batchConditions) batchConditions = next;
+  else replaceConditions(next);
+};
+
 const connection = new HardwareConnection({
+  onBatch(apply) {
+    batchConditions = readConditions();
+    try { apply(); }
+    finally {
+      const next = batchConditions;
+      batchConditions = null;
+      replaceConditions(next);
+      observed = readConditions();
+    }
+  },
   onState({ kind, id, open }) {
-    const current = readConditions();
-    if (current[kind === 'window' ? 'windows' : 'doors'][id] !== open) applyHardwareControl(kind, id, open);
+    const current = readHardwareConditions();
+    current[kind === 'window' ? 'windows' : 'doors'][id] = open;
+    writeHardwareConditions(current);
     observed = readConditions();
   },
   onStatus(next) {
@@ -46,7 +64,7 @@ const connection = new HardwareConnection({
   onMessage(message) {
     if (message.type === 'hello') { protocolVersion = message.version ?? 1; return; }
     if (message.type !== 'device' && message.type !== 'number') return;
-    const next = readConditions();
+    const next = readHardwareConditions();
     const previous = JSON.stringify(next);
     const fan = next.portableFan ??= { on: false, slot: 0, angleDeg: 90, speed: 2 };
     const purifier = next.purifier ??= { on: false, slot: 0 };
@@ -63,9 +81,12 @@ const connection = new HardwareConnection({
     } else {
       switch (message.key) {
         case 'SCN':
+          // Preserve wire order across scenario resets.
+          if (batchConditions) replaceConditions(batchConditions);
           const preset = PRESETS[message.value - 1];
           const fields = ['outdoorTemperature', 'outdoorPm25', 'humidity', 'windSpeed', 'timeOfDay'] as const;
           if (next.scenarioId !== preset.id || next.windFrom !== undefined || fields.some(key => next[key] !== preset.conditions[key])) loadScenario(preset.id, 'hardware');
+          if (batchConditions) batchConditions = readConditions();
           observed = readConditions();
           return;
         case 'FANPOS':
@@ -77,7 +98,7 @@ const connection = new HardwareConnection({
         case 'FANSPD': fan.speed = message.value; break;
       }
     }
-    if (JSON.stringify(next) !== previous) replaceConditions(next);
+    if (JSON.stringify(next) !== previous) writeHardwareConditions(next);
     observed = readConditions();
   },
 });

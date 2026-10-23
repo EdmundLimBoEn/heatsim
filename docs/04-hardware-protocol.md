@@ -49,7 +49,7 @@ Existing WIN1…WIN4 and DOOR1…DOOR2 retain their v1 names. Windows WIN10/11 a
 
 The app recognizes v1 and v2 greetings. v1 `PUR` retains the previous D5→main-fan compatibility mapping, but no longer resets its position. v2 uses FAN directly and restores PUR to the purifier. A visible old-sketch message prompts upgrading. D5 remains main-fan power, not ceiling-fan power.
 
-Browser startup waits 1.5 seconds for board reset, sends HELLO and GET:ALL, then pings every 2 seconds. Missing responses for 5 seconds disconnect cleanly. USB removal releases streams; controls remain usable offline. Serial Monitor must be closed before browser connection.
+Browser startup waits 1.5 seconds for board reset, sends HELLO and GET:ALL, then pings every 2 seconds. Missing responses for 5 seconds disconnect cleanly. USB removal releases streams; controls remain usable offline. Browser writes and cleanup each have a one-second deadline; a cleanup timeout reports that the OS may still hold the physical port, while allowing a new connection. Receive processing yields after 256 bytes or a four-millisecond processing budget (individual callbacks/refreshes may take longer), batches opening/device changes per slice, and retains at most an 8192-byte read plus a partial line. Reads above 8192 bytes or more than 16384 received bytes in a one-second window disconnect the sender. These browser safeguards do not change the wire protocol. Serial Monitor must be closed before browser connection.
 
 ## Verification
 

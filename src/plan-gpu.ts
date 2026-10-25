@@ -98,6 +98,7 @@ class GpuTransport implements PlanGpu {
   private disposed = false;
   private failed: string | null = null;
   private busy = false;
+  private uploadedFlow: PreparedPlanStep['flow'] | undefined;
 
   constructor(private readonly device: GPUDevice, private readonly pipeline: GPUComputePipeline) {
     this.failure = new Promise<never>((_, reject) => { this.rejectFailure = reject; });
@@ -149,7 +150,10 @@ class GpuTransport implements PlanGpu {
         initial[cell * 2] = prepared.temperature[cell]; initial[cell * 2 + 1] = prepared.pm25[cell];
       }
       this.device.queue.writeBuffer(this.states[0], 0, initial);
-      this.device.queue.writeBuffer(this.cells, 0, packPlanCells(prepared));
+      if (this.uploadedFlow !== prepared.flow) {
+        this.device.queue.writeBuffer(this.cells, 0, packPlanCells(prepared));
+        this.uploadedFlow = prepared.flow;
+      }
       this.device.queue.writeBuffer(this.params, 0, new Float32Array([
         prepared.dt, PLAN_GRID.dx, prepared.env.setpoint, CELL_COUNT,
         prepared.env.scenario.initialTemperature, prepared.env.scenario.initialPm25, 0, 0,

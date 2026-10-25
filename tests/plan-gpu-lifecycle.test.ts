@@ -72,6 +72,53 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('WebGPU lifecycle and asynchronous readback', () => {
+  it('uploads airflow only when it differs from the last flow uploaded to this backend', async () => {
+    const fake = installGpu(), backend = await createPlanGpu(), config = settings();
+    const write = vi.spyOn(fake.device.queue, 'writeBuffer');
+    const uploads = (label: string) => write.mock.calls.filter(([buffer]) => buffer.label === label);
+    const initial = createSimulation(config);
+    let result = await backend.step(initial, config, 0.1);
+    const cells = fake.buffers.find(buffer => buffer.label === 'HeatSim CPU airflow and sources')!;
+    const originalBytes = cells.bytes.slice();
+    expect(uploads(cells.label)).toHaveLength(1);
+    result = await backend.step(result, structuredClone(config), 0.2);
+    expect(uploads(cells.label)).toHaveLength(1);
+    expect(cells.bytes).toEqual(originalBytes);
+
+    const changed = structuredClone(config);
+    changed.windows.window_bedroom3_1 = !changed.windows.window_bedroom3_1;
+    result = await backend.step(result, changed, 0.1);
+    expect(uploads(cells.label)).toHaveLength(2);
+    expect(cells.bytes).not.toEqual(originalBytes);
+    result = await backend.step(result, changed, 0.1);
+    expect(uploads(cells.label)).toHaveLength(2);
+
+    // An older cached flow must be uploaded again after another flow replaced it.
+    await backend.step(initial, config, 0.1);
+    expect(uploads(cells.label)).toHaveLength(3);
+    expect(cells.bytes).toEqual(originalBytes);
+    expect(uploads('HeatSim scalar state 0')).toHaveLength(5);
+    expect(uploads('HeatSim timestep')).toHaveLength(5);
+    backend.dispose();
+  });
+
+  it('uploads cached airflow to a fresh backend even after a zero-duration step', async () => {
+    const fake = installGpu(), backend = await createPlanGpu(), config = settings();
+    const result = await backend.step(createSimulation(config), config, 0.1);
+    const originalBytes = fake.buffers.find(buffer => buffer.label === 'HeatSim CPU airflow and sources')!.bytes.slice();
+    backend.dispose();
+
+    const fresh = installGpu(), replacement = await createPlanGpu();
+    const write = vi.spyOn(fresh.device.queue, 'writeBuffer');
+    const unchanged = await replacement.step(result, config, 0);
+    expect(write).not.toHaveBeenCalled();
+    await replacement.step(unchanged, config, 0.1);
+    const cells = fresh.buffers.find(buffer => buffer.label === 'HeatSim CPU airflow and sources')!;
+    expect(write.mock.calls.filter(([buffer]) => buffer === cells)).toHaveLength(1);
+    expect(cells.bytes).toEqual(originalBytes);
+    replacement.dispose();
+  });
+
   it('fails promptly when no adapter is available', async () => {
     vi.stubGlobal('navigator', { gpu: { requestAdapter: async () => null } });
     await expect(createPlanGpu()).rejects.toThrow('No WebGPU adapter');

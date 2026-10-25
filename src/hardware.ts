@@ -118,12 +118,15 @@ export class HardwareConnection {
         port = await serialAPI()!.requestPort();
       }
       if (attempt !== this.attempt) return;
-      await port.open({ baudRate: 115200 });
-      opened = true;
-      if (attempt !== this.attempt) {
-        await withDeadline(port.close());
-        return;
-      }
+      const openingPort = port;
+      // The picker has no deadline. Only the driver operation is bounded; a late
+      // success owns cleanup of its captured port, never the replacement's resources.
+      await withDeadline(openingPort.open({ baudRate: 115200 }).then(async () => {
+        if (attempt !== this.attempt) {
+          await withDeadline(openingPort.close()).catch(() => {});
+        } else opened = true;
+      }), 5000);
+      if (attempt !== this.attempt) return;
       if (!port.readable || !port.writable) throw new Error('Serial streams unavailable.');
       this.writer = port.writable.getWriter();
       this.reader = port.readable.getReader();
@@ -156,6 +159,8 @@ export class HardwareConnection {
       }
       if (opened && port) await withDeadline(port.close()).catch(() => {});
       if (attempt !== this.attempt) return;
+      ++this.attempt;
+      this.connecting = false;
       const cancelled = error instanceof DOMException && error.name === 'NotFoundError';
       this.report(cancelled ? 'disconnected' : 'error', cancelled
         ? 'No port selected. The on-screen controls still work.'

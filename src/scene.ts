@@ -1,3 +1,4 @@
+import { createLabelStyleWriter } from './label-style';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createPlanFieldView, fieldColor, roomPressure } from './scene-field';
@@ -138,6 +139,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
   renderer.domElement.setAttribute('role', 'img');
   renderer.domElement.tabIndex = 0;
   container.appendChild(renderer.domElement);
+  const setLabelStyle = createLabelStyleWriter();
   const labelLayer = document.createElement('div');
   labelLayer.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;font-family:inherit;';
   container.appendChild(labelLayer);
@@ -861,7 +863,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     thermalVentConfig = placement && config ? { ...config } : null;
     thermalVent.visible = Boolean(thermalVentConfig);
     updateFanSelection();
-    ventLabel.style.display = 'none';
+    setLabelStyle(ventLabel.style, 'display', 'none');
     if (!placement || !thermalVentConfig) return;
     thermalVent.position.copy(placement.position);
     thermalVent.rotation.y = placement.yaw;
@@ -1014,7 +1016,7 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
       maxLabelY = Infinity;
       const selected = width < 520 && currentView.labels ? labels.find(label => label.room === currentView.selectedRoom) : undefined;
       if (selected) {
-        selected.element.style.display = 'block';
+        setLabelStyle(selected.element.style, 'display', 'block');
         const sceneTop = container.getBoundingClientRect().top;
         const halfLabelHeight = selected.element.offsetHeight / 2;
         for (const obstacle of labelObstacles ?? []) {
@@ -1026,21 +1028,21 @@ export async function createScene(container: HTMLElement, onSelectRoom: (room: s
     for (const label of labels) {
       projected.copy(label.anchor).project(camera);
       const show = currentView.labels && (width >= 520 || label.room === currentView.selectedRoom) && currentView.roofOpacity < 0.65 && projected.z < 1 && projected.z > -1 && Math.abs(projected.x) < 1 && Math.abs(projected.y) < 1;
-      label.element.style.display = show ? 'block' : 'none';
-      label.element.style.left = `${(projected.x + 1) / 2 * width}px`;
-      label.element.style.top = `${Math.min((1 - projected.y) / 2 * height, maxLabelY)}px`;
-      label.element.style.zIndex = String(Math.round((1 - projected.z) * 1000));
+      setLabelStyle(label.element.style, 'display', show ? 'block' : 'none');
+      setLabelStyle(label.element.style, 'left', `${(projected.x + 1) / 2 * width}px`);
+      setLabelStyle(label.element.style, 'top', `${Math.min((1 - projected.y) / 2 * height, maxLabelY)}px`);
+      setLabelStyle(label.element.style, 'zIndex', String(Math.round((1 - projected.z) * 1000)));
     }
     projected.copy(ventLabelAnchor).project(camera);
     const showVentLabel = thermalVentConfig && currentView.roofOpacity < 0.65 && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < 1 && Math.abs(projected.y) < 1;
-    ventLabel.style.display = showVentLabel ? 'block' : 'none';
-    ventLabel.style.left = `${Math.max(8, Math.min(width - ventLabel.offsetWidth - 8, (projected.x + 1) / 2 * width + 16))}px`;
-    ventLabel.style.top = `${(1 - projected.y) / 2 * height}px`;
+    setLabelStyle(ventLabel.style, 'display', showVentLabel ? 'block' : 'none');
+    setLabelStyle(ventLabel.style, 'left', `${Math.max(8, Math.min(width - ventLabel.offsetWidth - 8, (projected.x + 1) / 2 * width + 16))}px`);
+    setLabelStyle(ventLabel.style, 'top', `${(1 - projected.y) / 2 * height}px`);
     for (const dimension of dimensions) {
       projected.copy(dimension.anchor).project(camera);
-      dimension.element.style.display = currentView.dimensions && projected.z < 1 ? 'block' : 'none';
-      dimension.element.style.left = `${(projected.x + 1) / 2 * width}px`;
-      dimension.element.style.top = `${(1 - projected.y) / 2 * height}px`;
+      setLabelStyle(dimension.element.style, 'display', currentView.dimensions && projected.z < 1 ? 'block' : 'none');
+      setLabelStyle(dimension.element.style, 'left', `${(projected.x + 1) / 2 * width}px`);
+      setLabelStyle(dimension.element.style, 'top', `${(1 - projected.y) / 2 * height}px`);
     }
     renderer.render(scene, camera);
   }

@@ -204,6 +204,84 @@ describe('USB lifecycle', () => {
 
 
 describe('USB stalled operations and receive budgets', () => {
+  test.each(['success', 'rejection', 'stalled cleanup'] as const)('opening times out, allows retry, and isolates late %s', async outcome => {
+    vi.useFakeTimers();
+    const board = fakeBoard();
+    let resolveOpen!: () => void;
+    let rejectOpen!: (error: Error) => void;
+    board.port.open = () => new Promise<void>((resolve, reject) => {
+      resolveOpen = resolve; rejectOpen = reject;
+    });
+    const close = vi.spyOn(board.port, 'close');
+    if (outcome === 'stalled cleanup') close.mockImplementation(() => new Promise(() => {}));
+    let settled = false;
+    const opening = board.connection.reconnectKnown().then(() => { settled = true; });
+    await vi.advanceTimersByTimeAsync(4999);
+    expect(board.statuses.at(-1)?.state).toBe('connecting');
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(settled).toBe(true);
+    await opening;
+    expect(board.connection.connected).toBe(false);
+    expect(board.statuses.at(-1)?.state).toBe('error'); // main.ts re-enables the button for error.
+    expect(close).not.toHaveBeenCalled();
+
+    const replacement = fakeBoard();
+    await board.connection.connect();
+    expect(board.connection.connected).toBe(true);
+    const statusCount = board.statuses.length;
+    if (outcome === 'rejection') rejectOpen(new Error('Driver failed late'));
+    else resolveOpen();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(close).toHaveBeenCalledTimes(outcome === 'rejection' ? 0 : 1);
+    expect(board.port.readable.locked).toBe(false);
+    expect(board.port.writable.locked).toBe(false);
+    expect(replacement.closes).toBe(0);
+    expect(replacement.port.readable.locked).toBe(true);
+    expect(replacement.port.writable.locked).toBe(true);
+    expect(board.connection.connected).toBe(true);
+    expect(board.statuses).toHaveLength(statusCount);
+    expect(await board.connection.send('PING')).toBe(true);
+    expect(replacement.sent).toEqual(['PING\n']);
+  });
+
+  test('a timed-out opening cannot connect even before the user retries', async () => {
+    vi.useFakeTimers();
+    const board = fakeBoard();
+    let resolveOpen!: () => void;
+    board.port.open = () => new Promise<void>(resolve => { resolveOpen = resolve; });
+    const opening = board.connection.connect();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(board.statuses.at(-1)?.state).toBe('error');
+    await opening;
+    resolveOpen();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(board.closes).toBe(1);
+    expect(board.connection.connected).toBe(false);
+    expect(board.port.readable.locked).toBe(false);
+    expect(board.port.writable.locked).toBe(false);
+    expect(board.statuses.at(-1)?.state).toBe('error');
+  });
+
+  test('the port picker can stay open beyond the driver deadline before connecting', async () => {
+    vi.useFakeTimers();
+    const board = fakeBoard();
+    let selectPort!: (port: typeof board.port) => void;
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { serial: {
+      requestPort: () => new Promise<typeof board.port>(resolve => { selectPort = resolve; }),
+    } } });
+    const open = vi.spyOn(board.port, 'open');
+    const connecting = board.connection.connect();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(board.statuses.at(-1)?.state).toBe('connecting');
+    expect(open).not.toHaveBeenCalled();
+    selectPort(board.port);
+    await connecting;
+    expect(open).toHaveBeenCalledWith({ baudRate: 115200 });
+    expect(board.connection.connected).toBe(true);
+    expect(board.statuses.at(-1)?.state).toBe('connected');
+  });
+
   test('disconnect bounds a stalled write and late cleanup cannot disconnect the replacement', async () => {
     vi.useFakeTimers();
     let release!: () => void;
